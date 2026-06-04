@@ -35,6 +35,16 @@ $env:GOCACHE='D:\Projects\Goland\onesearch\.gocache'
 go test ./...
 ```
 
+发布构建会把 `.deploy/version` 注入到二进制内部，不依赖同目录 `version` 文件：
+
+```powershell
+$version = (Get-Content .\.deploy\version -Raw).Trim()
+go build -trimpath -ldflags "-s -w -X github.com/deqiying/onesearch/internal/app.BuildVersion=$version" -o .\bin\onesearch.exe .\cmd\onesearch
+.\bin\onesearch.exe --version
+```
+
+推送 `v*.*.*` tag 后，GitHub Actions 会先执行共享测试，然后并行构建 GitHub Release 多平台二进制和 npm 平台包。GitHub Release 产物包含各平台压缩包与 `checksums.txt`，npm 发布沿用 `onesearch` 与 `@deqiying/onesearch-*` 包。
+
 ## 配置架构
 
 配置文件默认位置：

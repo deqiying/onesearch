@@ -183,6 +183,9 @@ try {
     Write-Host "Push later with:"
     Write-Host "  git push origin main"
     Write-Host "  git push origin $tagName"
+    Write-Host "Pushing the tag triggers the Release workflow:"
+    Write-Host "  - GitHub Release binaries are built with linker-injected version metadata."
+    Write-Host "  - npm packages are built and published in parallel after shared tests."
 }
 finally {
     Pop-Location

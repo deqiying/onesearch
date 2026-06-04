@@ -11,6 +11,7 @@ func TestReadMarkdownSupportsCapabilityAliases(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReadMarkdown(%q) error: %v", name, err)
 		}
+		text = strings.ReplaceAll(text, "\r\n", "\n")
 		if !strings.HasPrefix(text, "---\nname: onesearch-") {
 			t.Fatalf("ReadMarkdown(%q) returned unexpected content: %.40q", name, text)
 		}

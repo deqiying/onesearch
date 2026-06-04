@@ -13,11 +13,15 @@ const (
 )
 
 var (
-	Version   = resolveVersion()
-	UserAgent = "onesearch/" + Version
+	BuildVersion string
+	Version      = resolveVersion()
+	UserAgent    = "onesearch/" + Version
 )
 
 func resolveVersion() string {
+	if version := strings.TrimSpace(BuildVersion); version != "" {
+		return version
+	}
 	for _, path := range versionFileCandidates() {
 		if version := readVersionFile(path); version != "" {
 			return version

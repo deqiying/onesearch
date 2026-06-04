@@ -1,18 +1,21 @@
-name: Publish npm packages
+name: Release
 
 on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.version.outputs.release_version }}
 
     steps:
       - name: Checkout
@@ -32,6 +35,7 @@ jobs:
           package-manager-cache: false
 
       - name: Verify release version
+        id: version
         shell: bash
         run: |
           set -euo pipefail
@@ -70,11 +74,104 @@ jobs:
             fi
           done
 
+          echo "release_version=${release_version}" >> "${GITHUB_OUTPUT}"
+
       - name: Test
         run: go test ./...
 
-  build:
-    name: Build ${{ matrix.id }}
+  binary-build:
+    name: Build release binary ${{ matrix.id }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: linux-amd64
+            goos: linux
+            goarch: amd64
+            binary_name: onesearch
+            archive_ext: tar.gz
+          - id: linux-arm64
+            goos: linux
+            goarch: arm64
+            binary_name: onesearch
+            archive_ext: tar.gz
+          - id: darwin-amd64
+            goos: darwin
+            goarch: amd64
+            binary_name: onesearch
+            archive_ext: tar.gz
+          - id: darwin-arm64
+            goos: darwin
+            goarch: arm64
+            binary_name: onesearch
+            archive_ext: tar.gz
+          - id: windows-amd64
+            goos: windows
+            goarch: amd64
+            binary_name: onesearch.exe
+            archive_ext: zip
+          - id: windows-arm64
+            goos: windows
+            goarch: arm64
+            binary_name: onesearch.exe
+            archive_ext: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Build and archive binary
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_version="${{ needs.test.outputs.release_version }}"
+          archive_name="onesearch_${release_version}_${{ matrix.goos }}_${{ matrix.goarch }}"
+          build_dir="dist/build/${archive_name}"
+          archive_dir="dist/release"
+          mkdir -p "${build_dir}" "${archive_dir}"
+
+          ldflags="-s -w -X github.com/deqiying/onesearch/internal/app.BuildVersion=${release_version}"
+          CGO_ENABLED=0 GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" \
+            go build -trimpath -ldflags="${ldflags}" -o "${build_dir}/${{ matrix.binary_name }}" ./cmd/onesearch
+
+          cp README.md "${build_dir}/"
+          if [[ -f LICENSE ]]; then
+            cp LICENSE "${build_dir}/"
+          fi
+          if [[ "${{ matrix.goos }}" != "windows" ]]; then
+            chmod +x "${build_dir}/${{ matrix.binary_name }}"
+          fi
+
+          if [[ "${{ matrix.goos }}" == "linux" && "${{ matrix.goarch }}" == "amd64" ]]; then
+            "${build_dir}/${{ matrix.binary_name }}" --version
+          fi
+
+          if [[ "${{ matrix.archive_ext }}" == "zip" ]]; then
+            (cd "${build_dir}" && zip -qr "../../release/${archive_name}.zip" .)
+          else
+            tar -C "${build_dir}" -czf "${archive_dir}/${archive_name}.tar.gz" .
+          fi
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: release-${{ matrix.id }}
+          path: dist/release/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
+
+  npm-build:
+    name: Build npm binary ${{ matrix.id }}
     needs: test
     runs-on: ubuntu-latest
     strategy:
@@ -109,18 +206,20 @@ jobs:
         run: |
           set -euo pipefail
 
+          release_version="${{ needs.test.outputs.release_version }}"
           artifact_dir="dist/npm-bin-${{ matrix.id }}"
           mkdir -p "${artifact_dir}"
+
+          ldflags="-s -w -X github.com/deqiying/onesearch/internal/app.BuildVersion=${release_version}"
           CGO_ENABLED=0 GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" \
-            go build -trimpath -ldflags="-s -w" -o "${artifact_dir}/${{ matrix.binary_name }}" ./cmd/onesearch
-          cp .deploy/version "${artifact_dir}/version"
+            go build -trimpath -ldflags="${ldflags}" -o "${artifact_dir}/${{ matrix.binary_name }}" ./cmd/onesearch
 
       - name: Verify built binary
         if: matrix.goos == 'linux'
         shell: bash
         run: dist/npm-bin-linux-x64/onesearch --version
 
-      - name: Upload binary artifact
+      - name: Upload npm binary artifact
         uses: actions/upload-artifact@v6
         with:
           name: npm-bin-${{ matrix.id }}
@@ -129,9 +228,40 @@ jobs:
           compression-level: 0
           retention-days: 1
 
-  publish:
+  binary-release:
+    name: Publish GitHub Release
+    needs: binary-build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v7
+        with:
+          pattern: release-*
+          path: dist/release
+          merge-multiple: true
+
+      - name: Create checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd dist/release && sha256sum * > checksums.txt)
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" dist/release/* \
+            --title "${GITHUB_REF_NAME}" \
+            --notes "Release ${GITHUB_REF_NAME}"
+
+  npm-publish:
     name: Publish npm packages
-    needs: build
+    needs: npm-build
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
 
     steps:
