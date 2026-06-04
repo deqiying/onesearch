@@ -107,7 +107,8 @@ try {
 
     $unexpectedDirtyPaths = @($dirtyPaths | Where-Object { $allowedDirtyPaths -notcontains $_ })
     if ($unexpectedDirtyPaths.Count -gt 0) {
-        throw "Working tree has unrelated changes. Commit or stash them before preparing a release."
+        $details = ($unexpectedDirtyPaths | ForEach-Object { "  $_" }) -join [Environment]::NewLine
+        throw "Working tree has unrelated changes. Commit or stash them before preparing a release.$([Environment]::NewLine)$details"
     }
 
     & git rev-parse -q --verify "refs/tags/$tagName" *> $null
@@ -129,10 +130,15 @@ try {
         Write-Utf8NoBom -Path $entry.Key -Content $entry.Value
     }
 
-    Invoke-Checked git add -- $versionFiles
+    $gitAddArgs = @("add", "--") + $versionFiles
+    Invoke-Checked git @gitAddArgs
 
-    & git diff --cached --quiet -- $versionFiles
-    $hasStagedChanges = $LASTEXITCODE -ne 0
+    $gitDiffArgs = @("diff", "--cached", "--quiet", "--") + $versionFiles
+    & git @gitDiffArgs
+    if ($LASTEXITCODE -gt 1) {
+        throw "git diff failed with exit code $LASTEXITCODE"
+    }
+    $hasStagedChanges = $LASTEXITCODE -eq 1
 
     if ($hasStagedChanges) {
         Invoke-Checked git commit -m "发布 $Version"
