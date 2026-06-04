@@ -57,6 +57,34 @@ function Write-Utf8NoBom {
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
+function Get-ReleaseCommitMessage {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Version
+    )
+
+    # Keep this script ASCII-only here: Windows PowerShell 5.1 can read
+    # UTF-8-without-BOM script literals as ANSI and mojibake the commit title.
+    $releasePrefix = [string]::Concat([char]0x53D1, [char]0x5E03)
+    return "$releasePrefix $Version"
+}
+
+function Invoke-GitCommitWithUtf8Message {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message
+    )
+
+    $messageFile = [System.IO.Path]::GetTempFileName()
+    try {
+        Write-Utf8NoBom -Path $messageFile -Content ($Message + [Environment]::NewLine)
+        Invoke-Checked git commit -F $messageFile
+    }
+    finally {
+        Remove-Item -LiteralPath $messageFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Update-PackageVersion {
     param(
         [Parameter(Mandatory = $true)]
@@ -141,7 +169,7 @@ try {
     $hasStagedChanges = $LASTEXITCODE -eq 1
 
     if ($hasStagedChanges) {
-        Invoke-Checked git commit -m "发布 $Version"
+        Invoke-GitCommitWithUtf8Message -Message (Get-ReleaseCommitMessage -Version $Version)
     }
     else {
         Write-Host "No version file changes detected; tagging current HEAD."
