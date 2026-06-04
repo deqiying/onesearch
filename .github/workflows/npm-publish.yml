@@ -121,11 +121,13 @@ jobs:
         run: dist/npm-bin-linux-x64/onesearch --version
 
       - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: npm-bin-${{ matrix.id }}
           path: dist/npm-bin-${{ matrix.id }}/*
           if-no-files-found: error
+          compression-level: 0
+          retention-days: 1
 
   publish:
     name: Publish npm packages
@@ -144,19 +146,19 @@ jobs:
           package-manager-cache: false
 
       - name: Download Windows binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: npm-bin-win32-x64
           path: npm/packages/win32-x64/bin
 
       - name: Download Linux binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: npm-bin-linux-x64
           path: npm/packages/linux-x64/bin
 
       - name: Download macOS binary
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: npm-bin-darwin-arm64
           path: npm/packages/darwin-arm64/bin
