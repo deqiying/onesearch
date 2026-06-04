@@ -174,11 +174,11 @@ jobs:
           set -euo pipefail
 
           packages=(
-            npm/packages/win32-x64
-            npm/packages/linux-x64
-            npm/packages/darwin-arm64
-            npm/onesearch
-            npm/deqiying-onesearch
+            ./npm/packages/win32-x64
+            ./npm/packages/linux-x64
+            ./npm/packages/darwin-arm64
+            ./npm/onesearch
+            ./npm/deqiying-onesearch
           )
 
           for package_dir in "${packages[@]}"; do
@@ -190,14 +190,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          npm publish npm/packages/win32-x64 --access public
-          npm publish npm/packages/linux-x64 --access public
-          npm publish npm/packages/darwin-arm64 --access public
+          npm publish ./npm/packages/win32-x64 --access public
+          npm publish ./npm/packages/linux-x64 --access public
+          npm publish ./npm/packages/darwin-arm64 --access public
 
       - name: Publish entry packages
         shell: bash
         run: |
           set -euo pipefail
 
-          npm publish npm/onesearch
-          npm publish npm/deqiying-onesearch --access public
+          npm publish ./npm/onesearch
+          npm publish ./npm/deqiying-onesearch --access public
