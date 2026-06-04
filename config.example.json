@@ -1,0 +1,262 @@
+{
+  "schema_version": 1,
+  "defaults": {
+    "pipeline": "default",
+    "fallback_mode": "auto",
+    "validation_level": "balanced",
+    "minimum_profile": "standard",
+    "timeout_seconds": 30,
+    "ssl_verify": true,
+    "log_level": "INFO",
+    "log_to_file": false,
+    "log_dir": "logs",
+    "output_cleanup": true,
+    "retry": {
+      "max_attempts": 3,
+      "multiplier": 1,
+      "max_wait_seconds": 10
+    }
+  },
+  "pipelines": {
+    "default": [
+      "answer_search",
+      "source_search",
+      "docs_search",
+      "page_fetch"
+    ],
+    "research": [
+      "source_search",
+      "docs_search",
+      "page_fetch",
+      "site_map",
+      "repo_wiki"
+    ],
+    "docs": [
+      "docs_search",
+      "page_fetch"
+    ],
+    "crawl": [
+      "site_map",
+      "site_crawl",
+      "page_fetch"
+    ]
+  },
+  "routes": {
+    "answer_search": [
+      "xai",
+      "openai_compatible",
+      "openai_responses"
+    ],
+    "source_search": [
+      "exa",
+      "zhipu",
+      "tavily",
+      "firecrawl"
+    ],
+    "docs_search": [
+      "exa",
+      "context7"
+    ],
+    "page_fetch": [
+      "tavily",
+      "firecrawl"
+    ],
+    "site_map": [
+      "tavily",
+      "firecrawl"
+    ],
+    "site_crawl": [
+      "firecrawl"
+    ],
+    "repo_wiki": [
+      "deepwiki"
+    ],
+    "vertical_search": [
+      "anysearch"
+    ]
+  },
+  "profiles": {
+    "standard": {
+      "required_capabilities": [
+        "answer_search",
+        "docs_search",
+        "page_fetch"
+      ],
+      "optional_capabilities": [
+        "source_search",
+        "site_map",
+        "site_crawl",
+        "repo_wiki",
+        "vertical_search"
+      ]
+    },
+    "minimal": {
+      "required_capabilities": [
+        "answer_search"
+      ],
+      "optional_capabilities": [
+        "source_search",
+        "docs_search",
+        "page_fetch"
+      ]
+    },
+    "off": {
+      "required_capabilities": [],
+      "optional_capabilities": []
+    }
+  },
+  "providers": {
+    "xai": {
+      "enabled": false,
+      "adapter": "xai_responses",
+      "capabilities": [
+        "answer_search"
+      ],
+      "base_url": "https://api.x.ai/v1",
+      "api_key": "",
+      "api_key_env": "XAI_API_KEY",
+      "settings": {
+        "model": "grok-4-fast",
+        "tools": [
+          "web_search",
+          "x_search"
+        ]
+      }
+    },
+    "openai_compatible": {
+      "enabled": false,
+      "adapter": "openai_chat_completions",
+      "capabilities": [
+        "answer_search"
+      ],
+      "base_url": "https://api.openai.com/v1",
+      "api_key": "",
+      "api_key_env": "OPENAI_COMPATIBLE_API_KEY",
+      "settings": {
+        "model": "gpt-4.1",
+        "stream": false,
+        "tools": [],
+        "tool_choice": ""
+      }
+    },
+    "openai_responses": {
+      "enabled": false,
+      "adapter": "openai_responses",
+      "capabilities": [
+        "answer_search"
+      ],
+      "base_url": "https://api.openai.com/v1",
+      "api_key": "",
+      "api_key_env": "OPENAI_API_KEY",
+      "settings": {
+        "model": "gpt-4.1",
+        "stream": false,
+        "tools": [
+          "web_search"
+        ],
+        "tool_choice": "required"
+      }
+    },
+    "exa": {
+      "enabled": false,
+      "adapter": "exa",
+      "capabilities": [
+        "source_search",
+        "docs_search"
+      ],
+      "base_url": "https://api.exa.ai",
+      "api_key": "",
+      "api_key_env": "EXA_API_KEY",
+      "settings": {
+        "timeout_seconds": 30
+      }
+    },
+    "context7": {
+      "enabled": false,
+      "adapter": "context7",
+      "capabilities": [
+        "docs_search"
+      ],
+      "base_url": "https://context7.com",
+      "api_key": "",
+      "api_key_env": "CONTEXT7_API_KEY",
+      "settings": {
+        "timeout_seconds": 30
+      }
+    },
+    "zhipu": {
+      "enabled": false,
+      "adapter": "zhipu_web_search",
+      "capabilities": [
+        "source_search"
+      ],
+      "base_url": "https://open.bigmodel.cn/api",
+      "api_key": "",
+      "api_key_env": "ZHIPU_API_KEY",
+      "settings": {
+        "search_engine": "search_std",
+        "timeout_seconds": 30
+      }
+    },
+    "tavily": {
+      "enabled": false,
+      "adapter": "tavily",
+      "capabilities": [
+        "source_search",
+        "page_fetch",
+        "site_map"
+      ],
+      "base_url": "https://api.tavily.com",
+      "api_key": "",
+      "api_key_env": "TAVILY_API_KEY",
+      "settings": {
+        "timeout_seconds": 30
+      }
+    },
+    "firecrawl": {
+      "enabled": false,
+      "adapter": "firecrawl",
+      "capabilities": [
+        "source_search",
+        "page_fetch",
+        "site_map",
+        "site_crawl"
+      ],
+      "base_url": "https://api.firecrawl.dev/v2",
+      "api_key": "",
+      "api_key_env": "FIRECRAWL_API_KEY",
+      "settings": {
+        "timeout_seconds": 30
+      }
+    },
+    "deepwiki": {
+      "enabled": true,
+      "adapter": "deepwiki",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "base_url": "https://mcp.deepwiki.com/mcp",
+      "api_key": "",
+      "api_key_env": "DEEPWIKI_API_KEY",
+      "settings": {
+        "timeout_seconds": 30,
+        "anonymous_allowed": true
+      }
+    },
+    "anysearch": {
+      "enabled": true,
+      "adapter": "anysearch_mcp",
+      "capabilities": [
+        "vertical_search",
+        "page_fetch"
+      ],
+      "base_url": "https://api.anysearch.com/mcp",
+      "api_key": "",
+      "api_key_env": "ANYSEARCH_API_KEY",
+      "settings": {
+        "timeout_seconds": 30,
+        "anonymous_allowed": true
+      }
+    }
+  }
+}

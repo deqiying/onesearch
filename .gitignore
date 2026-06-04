@@ -1,0 +1,10 @@
+.idea/
+.ace-tool/
+.gocache/
+.gomodcache/
+.npm-cache/
+/bin/
+dist/
+scripts/
+npm/packages/*/bin/onesearch
+npm/packages/*/bin/onesearch.exe

@@ -1,0 +1,22 @@
+{
+  "name": "@deqiying/onesearch-linux-x64",
+  "version": "0.1.0",
+  "description": "Linux x64 binary for onesearch.",
+  "license": "UNLICENSED",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "files": [
+    "bin/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deqiying/onesearch.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

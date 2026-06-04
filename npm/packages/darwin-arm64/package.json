@@ -1,0 +1,22 @@
+{
+  "name": "@deqiying/onesearch-darwin-arm64",
+  "version": "0.1.0",
+  "description": "macOS arm64 binary for onesearch.",
+  "license": "UNLICENSED",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "files": [
+    "bin/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deqiying/onesearch.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

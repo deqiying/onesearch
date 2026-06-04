@@ -1,0 +1,172 @@
+# onesearch
+
+`onesearch` 是一个 CLI-first 的研究与证据工具，面向 AI 助手、脚本和终端用户。它把综合搜索、来源发现、文档检索、网页抓取、站点结构读取、Deep Research 离线规划、配置诊断和内置 skill 分发放在同一个可复现命令层里。
+
+`onesearch` 本身不是 MCP Server。AI 工具可以通过 `load_skill` 读取内置工作流，再按 CLI 命令执行搜索、抓取和验证。
+
+## 核心能力
+
+| 能力 | 命令 | 默认路由 |
+| --- | --- | --- |
+| 综合搜索 | `search` | `answer_search`: xAI、OpenAI-compatible、OpenAI Responses |
+| 来源发现 | `search --extra-sources`、`exa-search`、`zhipu-search` | `source_search`: Exa、Zhipu、Tavily、Firecrawl |
+| 文档检索 | `context7-library`、`context7-docs`、`exa-search` | `docs_search`: Exa、Context7 |
+| 网页抓取 | `fetch` | `page_fetch`: Tavily、Firecrawl |
+| 站点结构 | `map` | `site_map`: Tavily、Firecrawl |
+| 站点爬取 | `crawl` | `site_crawl`: Firecrawl |
+| 仓库 Wiki | `repo-wiki`、`search --repo-wiki` | `repo_wiki`: DeepWiki |
+| 垂直搜索 | `anysearch-*` | `vertical_search`: AnySearch |
+| 深度研究规划 | `deep` / `dr` | 本地离线 planner |
+| 内置工作流 | `load_skill` | `search`、`docs`、`fetch`、`deep-research`、`base` |
+| 配置诊断 | `doctor`、`config list`、`smoke` | 本地配置与 provider 状态 |
+
+## 构建
+
+```powershell
+go test ./...
+go build -o .\bin\onesearch.exe .\cmd\onesearch
+.\bin\onesearch.exe --version
+```
+
+开发时如果系统 Go cache 无写权限，可以把缓存放到项目目录：
+
+```powershell
+$env:GOCACHE='D:\Projects\Goland\onesearch\.gocache'
+go test ./...
+```
+
+## 配置架构
+
+配置文件默认位置：
+
+| 系统 | 路径 |
+| --- | --- |
+| Windows | `%LOCALAPPDATA%\onesearch\config.json` |
+| macOS / Linux | `~/.config/onesearch/config.json` |
+
+可用 `ONESEARCH_CONFIG_DIR` 指定配置目录。环境变量只用于密钥和少量本机覆盖项，整体能力编排以配置文件中的运行时 schema 为准。
+
+顶层结构：
+
+```json
+{
+  "schema_version": 1,
+  "defaults": {},
+  "pipelines": {},
+  "routes": {},
+  "profiles": {},
+  "providers": {}
+}
+```
+
+各层职责：
+
+- `defaults`：默认 pipeline、fallback、validation、minimum profile、超时、日志、重试和输出清理策略。
+- `pipelines`：把任务类型组织为能力链，例如 `default`、`research`、`docs`、`crawl`。
+- `routes`：每个能力的 provider 优先顺序；未列入 routes 但在 `providers.<id>.capabilities` 声明了该能力的 provider 会自动追加到对应能力组。
+- `profiles`：最低可用能力集合，例如 `standard` 要求 `answer_search`、`docs_search`、`page_fetch`。
+- `providers`：provider 的 adapter、capabilities、base_url、api_key、api_key_env、enabled 和 settings。
+
+首次运行普通命令时，如果配置文件不存在，`onesearch` 会自动创建配置目录和初始 `config.json`，然后继续使用初始配置执行。只有 `doctor` 会在诊断输出中提示本次是否创建了配置文件。初始配置中，强制依赖 API key 的 provider 默认 `"enabled": false`；不强制 API key 的匿名端点默认启用。DeepWiki 默认使用公开 MCP 端点查询公开仓库文档；如果配置 `DEEPWIKI_API_KEY`，则可用于需要凭据的私有文档查询。
+
+示例文件见 [config.example.json](D:/Projects/Goland/onesearch/config.example.json)。默认 `source_search` 路由为：
+
+```json
+["exa", "zhipu", "tavily", "firecrawl"]
+```
+
+## 常用配置命令
+
+```powershell
+onesearch config path --format json
+onesearch config list --format json
+onesearch doctor --format json
+```
+
+provider 开关、base URL、模型、settings 和 capabilities 直接编辑 `config.json` 的 `providers.<id>`；密钥可以直接写入 `api_key`，也可以通过 `api_key_env` 指向环境变量读取。两者都配置时，`api_key` 优先。`config list` 输出会脱敏直配密钥。
+
+OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远请求 `/v1/responses`，`openai_chat_completions` 永远请求 `/v1/chat/completions`，不会互相降级。两者都支持 JSON 与 SSE 响应解析；`providers.<id>.settings.stream` 控制是否主动发起流式请求，`search --stream/--no-stream` 可临时覆盖。`openai_responses` 默认启用 `tools: ["web_search"]` 和 `tool_choice: "required"`；`openai_compatible` 默认不附加工具，但可通过 `settings.tools` / `settings.tool_choice` 透传给支持 Chat Completions tools 的服务。`settings` 中的空字符串、空数组和空对象会保留内置默认值。
+
+`doctor` 默认输出适合 agent 解析的紧凑诊断 JSON，只列 `ok/status/error`、配置文件初始化状态、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。完整 schema、routes、providers 和 defaults 用 `config list --format json` 查看。
+
+## 常用命令
+
+```powershell
+onesearch search "今天有什么值得关注的 AI 新闻" --validation balanced --extra-sources 2 --format json
+onesearch fetch "https://example.com/article" --format markdown --output evidence.md
+onesearch exa-search "OpenAI Responses API documentation" --include-highlights --format json
+onesearch context7-library "react" "useEffect cleanup" --format json
+onesearch context7-docs "/facebook/react" "useEffect cleanup" --format json
+onesearch zhipu-search "今天国内 AI 新闻" --count 5 --format json
+onesearch map "https://docs.example.com" --instructions "Find API reference pages" --format json
+onesearch crawl "https://docs.example.com" --max-depth 2 --limit 20 --format json
+onesearch repo-wiki "microsoft/playwright" "MCP Browser Automation Server 是怎么实现的？" --format json
+onesearch search "分析 Playwright MCP Browser Automation Server 架构" --repo-wiki microsoft/playwright --validation strict --format json
+onesearch deep "OpenAI Responses API web_search 和 Chat Completions 联网搜索怎么选" --budget deep --format json
+onesearch smoke --mock --format json
+```
+
+输出格式：
+
+- `json`：给 agent 和脚本解析。
+- `markdown`：给人看诊断、结果和抓取正文。
+- `content`：只输出核心正文或短摘要。
+
+`search --format json` 默认输出统一搜索结果对象，只包含 `ok`、`query`、`used` 和 `meta`。`used` 是按能力名索引的唯一结果树，`used.<capability>.providers.<provider>.result` 展示本次实际使用了哪些能力、哪些 provider，以及每个 provider 返回的正文预览或来源；默认不会在最外层重复输出 `content`、`answer`、`sources` 或 `sources_count`，也不会把 `answer_search` 完整正文塞进 JSON，只保留 `content_preview` 和 `content_length`。只需要答案正文时使用 `--format content`；需要完整 JSON 正文、路由决策、provider attempts、capability 状态、primary/extra source 拆分等内部诊断信息时加 `--verbose`。
+
+错误详略：
+
+- 默认等同 `--quiet`：只输出 `ok/error_type/error`、耗时和少量命令上下文字段。
+- `--verbose`：保留完整诊断字段，例如 `diagnostics`、`provider_attempts`、`routing_decision`。
+- 当 `defaults.log_level` 为 `DEBUG` 时默认 verbose；显式 `--quiet` 会覆盖它。
+
+## 内置 Skill
+
+`load_skill` 直接输出内置 skill 的 `SKILL.md`，不读取 provider 配置、不联网、不写文件：
+
+```powershell
+onesearch load_skill search
+onesearch load_skill docs
+onesearch load_skill fetch
+onesearch load_skill deep-research
+```
+
+可用别名：
+
+- `base`、`onesearch`、`cli`
+- `search`、`web-search`、`source-search`
+- `docs`、`api-docs`、`documentation`
+- `fetch`、`page-fetch`、`evidence`
+- `deep-research`、`deep`、`research`
+
+## 证据策略
+
+`search` 默认 JSON 中每个 provider 的 `result.sources` 是候选来源，不等于已经校验正文。新闻、政策、财经、医疗、严肃评测和工具选型等高风险结论应先发现 URL，再用 `fetch` 抓取关键网页，最终只基于抓取正文下结论。
+
+## Deep Research
+
+`onesearch deep` 只生成离线计划，不调用 provider、不联网、不抓网页。计划里会给出 `intent_signals`、`decomposition`、`capability_plan`、`steps[]` 和 `gap_check`。真正研究从执行 `steps[].command` 开始。
+
+```powershell
+onesearch deep "帮我核验这个说法是真是假：某工具已经完全替代 Tavily 做 AI 搜索了" --format json
+onesearch deep "https://example.com/source" --format json
+```
+
+Deep Research 默认要求 `fetch_before_claim`：关键结论必须有抓取正文支撑，否则降级成未验证候选。
+
+## 项目结构
+
+```text
+cmd/onesearch/          CLI 入口
+internal/cli/           命令解析、参数处理和退出码
+internal/config/        配置路径、runtime schema、provider 解析、脱敏和默认值
+internal/service/       业务编排、routes、fallback、doctor、smoke、deep planner
+internal/providers/     Provider HTTP 调用与结果归一化
+internal/sources/       来源解析、去重、answer/source 拆分
+internal/output/        JSON / Markdown / content 渲染
+internal/skills/        内置 skill 与附属资产
+```
+
+## License
+
+MIT

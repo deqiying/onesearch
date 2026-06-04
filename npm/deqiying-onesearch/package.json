@@ -1,0 +1,29 @@
+{
+  "name": "@deqiying/onesearch",
+  "version": "0.1.0",
+  "description": "Scoped entry point for the onesearch CLI.",
+  "license": "UNLICENSED",
+  "bin": {
+    "onesearch": "bin/onesearch.js"
+  },
+  "files": [
+    "bin/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/deqiying/onesearch.git"
+  },
+  "bugs": {
+    "url": "https://github.com/deqiying/onesearch/issues"
+  },
+  "dependencies": {
+    "onesearch": "0.1.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
