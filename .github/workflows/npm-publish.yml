@@ -36,16 +36,20 @@ jobs:
         run: |
           set -euo pipefail
 
-          app_version="$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/app/app.go)"
-          if [[ -z "${app_version}" ]]; then
-            echo "Cannot read Version from internal/app/app.go" >&2
+          release_version="$(tr -d '\r\n' < .deploy/version)"
+          if [[ -z "${release_version}" ]]; then
+            echo "Cannot read release version from .deploy/version" >&2
+            exit 1
+          fi
+          if [[ ! "${release_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo ".deploy/version is not a valid semver value: ${release_version}" >&2
             exit 1
           fi
 
           if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
             tag_version="${GITHUB_REF_NAME#v}"
-            if [[ "${tag_version}" != "${app_version}" ]]; then
-              echo "Tag version ${tag_version} does not match app version ${app_version}" >&2
+            if [[ "${tag_version}" != "${release_version}" ]]; then
+              echo "Tag version ${tag_version} does not match .deploy/version ${release_version}" >&2
               exit 1
             fi
           fi
@@ -60,8 +64,8 @@ jobs:
 
           for package_json in "${packages[@]}"; do
             package_version="$(node -p "require('./${package_json}').version")"
-            if [[ "${package_version}" != "${app_version}" ]]; then
-              echo "${package_json} version ${package_version} does not match app version ${app_version}" >&2
+            if [[ "${package_version}" != "${release_version}" ]]; then
+              echo "${package_json} version ${package_version} does not match .deploy/version ${release_version}" >&2
               exit 1
             fi
           done
@@ -82,6 +86,7 @@ jobs:
             mkdir -p "$(dirname "${output}")"
             CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
               go build -trimpath -ldflags="-s -w" -o "${output}" ./cmd/onesearch
+            cp .deploy/version "$(dirname "${output}")/version"
           }
 
           build windows amd64 npm/packages/win32-x64/bin/onesearch.exe

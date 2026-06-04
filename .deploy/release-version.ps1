@@ -57,25 +57,6 @@ function Write-Utf8NoBom {
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
-function Update-AppVersion {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
-
-    $content = Get-Content -LiteralPath $Path -Raw
-    $regex = [regex]'(?m)^(\s*Version\s*=\s*")([^"]+)(")'
-    if (-not $regex.IsMatch($content)) {
-        throw "Cannot find Version constant in $Path"
-    }
-
-    return $regex.Replace(
-        $content,
-        { param($match) $match.Groups[1].Value + $Version + $match.Groups[3].Value },
-        1
-    )
-}
-
 function Update-PackageVersion {
     param(
         [Parameter(Mandatory = $true)]
@@ -100,7 +81,16 @@ function Update-PackageVersion {
 
 Push-Location $repoRoot
 try {
-    $allowedDirtyPaths = @(".deploy/version")
+    $versionFiles = @(
+        ".deploy/version",
+        "npm/packages/win32-x64/package.json",
+        "npm/packages/linux-x64/package.json",
+        "npm/packages/darwin-arm64/package.json",
+        "npm/onesearch/package.json",
+        "npm/deqiying-onesearch/package.json"
+    )
+
+    $allowedDirtyPaths = $versionFiles
     $statusLines = @(Get-CheckedOutput git status --porcelain)
     $dirtyPaths = @()
     foreach ($line in $statusLines) {
@@ -125,16 +115,6 @@ try {
         throw "Tag $tagName already exists."
     }
 
-    $versionFiles = @(
-        ".deploy/version",
-        "internal/app/app.go",
-        "npm/packages/win32-x64/package.json",
-        "npm/packages/linux-x64/package.json",
-        "npm/packages/darwin-arm64/package.json",
-        "npm/onesearch/package.json",
-        "npm/deqiying-onesearch/package.json"
-    )
-
     $updates = @{}
     foreach ($file in $versionFiles) {
         if ($file -eq ".deploy/version") {
@@ -142,19 +122,13 @@ try {
         }
 
         $fullPath = Join-Path $repoRoot $file
-        if ($file -eq "internal/app/app.go") {
-            $updates[$fullPath] = Update-AppVersion -Path $fullPath
-        }
-        else {
-            $updates[$fullPath] = Update-PackageVersion -Path $fullPath
-        }
+        $updates[$fullPath] = Update-PackageVersion -Path $fullPath
     }
 
     foreach ($entry in $updates.GetEnumerator()) {
         Write-Utf8NoBom -Path $entry.Key -Content $entry.Value
     }
 
-    Invoke-Checked gofmt internal/app/app.go
     Invoke-Checked git add -- $versionFiles
 
     & git diff --cached --quiet -- $versionFiles

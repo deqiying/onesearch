@@ -8,3 +8,4 @@ dist/
 scripts/
 npm/packages/*/bin/onesearch
 npm/packages/*/bin/onesearch.exe
+npm/packages/*/bin/version
