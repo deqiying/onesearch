@@ -10,8 +10,8 @@ permissions:
   id-token: write
 
 jobs:
-  publish:
-    name: Publish npm packages
+  test:
+    name: Test
     runs-on: ubuntu-latest
 
     steps:
@@ -73,28 +73,100 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - name: Build npm platform binaries
+  build:
+    name: Build ${{ matrix.id }}
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: win32-x64
+            goos: windows
+            goarch: amd64
+            binary_name: onesearch.exe
+          - id: linux-x64
+            goos: linux
+            goarch: amd64
+            binary_name: onesearch
+          - id: darwin-arm64
+            goos: darwin
+            goarch: arm64
+            binary_name: onesearch
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Build binary
         shell: bash
         run: |
           set -euo pipefail
 
-          build() {
-            local goos="$1"
-            local goarch="$2"
-            local output="$3"
-
-            mkdir -p "$(dirname "${output}")"
-            CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
-              go build -trimpath -ldflags="-s -w" -o "${output}" ./cmd/onesearch
-            cp .deploy/version "$(dirname "${output}")/version"
-          }
-
-          build windows amd64 npm/packages/win32-x64/bin/onesearch.exe
-          build linux amd64 npm/packages/linux-x64/bin/onesearch
-          build darwin arm64 npm/packages/darwin-arm64/bin/onesearch
+          artifact_dir="dist/npm-bin-${{ matrix.id }}"
+          mkdir -p "${artifact_dir}"
+          CGO_ENABLED=0 GOOS="${{ matrix.goos }}" GOARCH="${{ matrix.goarch }}" \
+            go build -trimpath -ldflags="-s -w" -o "${artifact_dir}/${{ matrix.binary_name }}" ./cmd/onesearch
+          cp .deploy/version "${artifact_dir}/version"
 
       - name: Verify built binary
-        run: npm/packages/linux-x64/bin/onesearch --version
+        if: matrix.goos == 'linux'
+        shell: bash
+        run: dist/npm-bin-linux-x64/onesearch --version
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-bin-${{ matrix.id }}
+          path: dist/npm-bin-${{ matrix.id }}/*
+          if-no-files-found: error
+
+  publish:
+    name: Publish npm packages
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Download Windows binary
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-bin-win32-x64
+          path: npm/packages/win32-x64/bin
+
+      - name: Download Linux binary
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-bin-linux-x64
+          path: npm/packages/linux-x64/bin
+
+      - name: Download macOS binary
+        uses: actions/download-artifact@v4
+        with:
+          name: npm-bin-darwin-arm64
+          path: npm/packages/darwin-arm64/bin
+
+      - name: Verify downloaded binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x npm/packages/linux-x64/bin/onesearch npm/packages/darwin-arm64/bin/onesearch
+          npm/packages/linux-x64/bin/onesearch --version
 
       - name: Pack dry run
         shell: bash
