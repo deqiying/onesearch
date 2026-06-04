@@ -1,0 +1,126 @@
+name: Publish npm packages
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish npm packages
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          check-latest: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Verify release version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          app_version="$(sed -nE 's/^[[:space:]]*Version[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/app/app.go)"
+          if [[ -z "${app_version}" ]]; then
+            echo "Cannot read Version from internal/app/app.go" >&2
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            if [[ "${tag_version}" != "${app_version}" ]]; then
+              echo "Tag version ${tag_version} does not match app version ${app_version}" >&2
+              exit 1
+            fi
+          fi
+
+          packages=(
+            npm/packages/win32-x64/package.json
+            npm/packages/linux-x64/package.json
+            npm/packages/darwin-arm64/package.json
+            npm/onesearch/package.json
+            npm/deqiying-onesearch/package.json
+          )
+
+          for package_json in "${packages[@]}"; do
+            package_version="$(node -p "require('./${package_json}').version")"
+            if [[ "${package_version}" != "${app_version}" ]]; then
+              echo "${package_json} version ${package_version} does not match app version ${app_version}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build npm platform binaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          build() {
+            local goos="$1"
+            local goarch="$2"
+            local output="$3"
+
+            mkdir -p "$(dirname "${output}")"
+            CGO_ENABLED=0 GOOS="${goos}" GOARCH="${goarch}" \
+              go build -trimpath -ldflags="-s -w" -o "${output}" ./cmd/onesearch
+          }
+
+          build windows amd64 npm/packages/win32-x64/bin/onesearch.exe
+          build linux amd64 npm/packages/linux-x64/bin/onesearch
+          build darwin arm64 npm/packages/darwin-arm64/bin/onesearch
+
+      - name: Verify built binary
+        run: npm/packages/linux-x64/bin/onesearch --version
+
+      - name: Pack dry run
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          packages=(
+            npm/packages/win32-x64
+            npm/packages/linux-x64
+            npm/packages/darwin-arm64
+            npm/onesearch
+            npm/deqiying-onesearch
+          )
+
+          for package_dir in "${packages[@]}"; do
+            npm pack "${package_dir}" --dry-run
+          done
+
+      - name: Publish platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm publish npm/packages/win32-x64 --access public
+          npm publish npm/packages/linux-x64 --access public
+          npm publish npm/packages/darwin-arm64 --access public
+
+      - name: Publish entry packages
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          npm publish npm/onesearch
+          npm publish npm/deqiying-onesearch --access public
