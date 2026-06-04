@@ -78,7 +78,8 @@ function Invoke-GitCommitWithUtf8Message {
     $messageFile = [System.IO.Path]::GetTempFileName()
     try {
         Write-Utf8NoBom -Path $messageFile -Content ($Message + [Environment]::NewLine)
-        Invoke-Checked git commit -F $messageFile
+        $gitCommitArgs = @("commit", "-F", $messageFile)
+        Invoke-Checked git @gitCommitArgs
     }
     finally {
         Remove-Item -LiteralPath $messageFile -Force -ErrorAction SilentlyContinue
