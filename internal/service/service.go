@@ -20,16 +20,55 @@ type Service struct {
 }
 
 type SearchOptions struct {
-	Platform      string
-	Model         string
-	ExtraSources  int
-	Validation    string
-	Fallback      string
-	Providers     string
-	Stream        *bool
-	RepoWiki      string
-	RepoWikiMode  string
-	RepoWikiQuery string
+	Platform        string
+	Model           string
+	ExtraSources    int
+	FetchSources    int
+	Validation      string
+	Fallback        string
+	Providers       string
+	ProviderFilters map[string]string
+	Stream          *bool
+	RepoWiki        string
+	RepoWikiMode    string
+	RepoWikiQuery   string
+}
+
+func (o SearchOptions) providerFilter(capability string) string {
+	capability = config.V2CapabilityName(capability)
+	if o.ProviderFilters != nil {
+		if value := strings.TrimSpace(o.ProviderFilters[capability]); value != "" {
+			return value
+		}
+	}
+	if !usesLegacySearchProviderFilter(capability) {
+		return "auto"
+	}
+	return valueOr(o.Providers, "auto")
+}
+
+func usesLegacySearchProviderFilter(capability string) bool {
+	switch capability {
+	case "answer_search", "source_search", "docs_search":
+		return true
+	default:
+		return false
+	}
+}
+
+func (o SearchOptions) providerFiltersForDiagnostics() map[string]any {
+	out := map[string]any{}
+	for key, value := range o.ProviderFilters {
+		key = config.V2CapabilityName(key)
+		if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {
+			continue
+		}
+		out[key] = strings.TrimSpace(value)
+	}
+	if len(out) == 0 {
+		return nil
+	}
+	return out
 }
 
 type MapOptions struct {
@@ -76,7 +115,7 @@ func (s *Service) Search(ctx context.Context, query string, options SearchOption
 		out["validation_level"] = validation
 		return out
 	}
-	mainConfigs, err := s.mainProviderConfigs(options.Model, options.Providers, options.Stream)
+	mainConfigs, err := s.mainProviderConfigs(options.Model, options.providerFilter("answer_search"), options.Stream)
 	if err != nil {
 		out := emptySearch(start, sessionID, query, "parameter_error", err.Error())
 		out["validation_level"] = validation
@@ -117,6 +156,7 @@ func (s *Service) Search(ctx context.Context, query string, options SearchOption
 		"validation_level":         validation,
 		"fallback_mode":            fallback,
 		"providers":                valueOr(options.Providers, "auto"),
+		"provider_filters":         options.providerFiltersForDiagnostics(),
 		"answer_search_chain":      providerNames(selected),
 		"openai_compatible_stream": openAIStream(selected),
 	}
@@ -168,15 +208,16 @@ func (s *Service) Search(ctx context.Context, query string, options SearchOption
 		"mode":  success.Mode,
 		"model": success.Model,
 	}))}
-	extraSources, extraAttempts := s.extraSources(ctx, query, options.ExtraSources)
+	extraSources, extraAttempts := s.extraSources(ctx, query, options.ExtraSources, options.providerFilter("source_search"))
 	attempts = append(attempts, extraAttempts...)
 	if len(extraSources) > 0 {
 		used = append(used, usedCapabilitiesFromSourceAttempts("source_search", "extra_sources", extraSources, extraAttempts)...)
 	}
 	var supplementalSources []map[string]any
+	var sourceSearchSources []map[string]any
 	if validation == "balanced" || validation == "strict" {
 		if docsIntent {
-			found, docsAttempts := s.runDocsSearchFallback(ctx, query, options.Providers, fallback)
+			found, docsAttempts := s.runDocsSearchFallback(ctx, query, options.providerFilter("docs_search"), fallback)
 			attempts = append(attempts, docsAttempts...)
 			supplementalSources = append(supplementalSources, found...)
 			if len(found) > 0 {
@@ -184,15 +225,16 @@ func (s *Service) Search(ctx context.Context, query string, options SearchOption
 			}
 		}
 		if zhCurrentIntent || validation == "strict" {
-			found, webAttempts := s.runWebSearchFallback(ctx, query, max(1, valueOrInt(options.ExtraSources, 3)), options.Providers, fallback)
+			found, webAttempts := s.runWebSearchFallback(ctx, query, max(1, valueOrInt(options.ExtraSources, 3)), options.providerFilter("source_search"), fallback)
 			attempts = append(attempts, webAttempts...)
 			supplementalSources = append(supplementalSources, found...)
+			sourceSearchSources = append(sourceSearchSources, found...)
 			if len(found) > 0 {
 				used = append(used, usedCapabilitiesFromSourceAttempts("source_search", "current_sources", found, webAttempts)...)
 			}
 		}
 		if fetchIntent {
-			found, fetchAttempts := s.runWebFetchFallback(ctx, strings.TrimSpace(query), fallback)
+			found, fetchAttempts := s.runWebFetchFallback(ctx, strings.TrimSpace(query), options.providerFilter("page_fetch"), fallback)
 			attempts = append(attempts, fetchAttempts...)
 			if truthy(found["ok"]) {
 				supplementalSources = append(supplementalSources, map[string]any{"url": found["url"], "provider": found["provider"], "description": truncate(stringValue(found["content"]), 300)})
@@ -200,9 +242,19 @@ func (s *Service) Search(ctx context.Context, query string, options SearchOption
 			}
 		}
 	}
+	if options.FetchSources > 0 {
+		fetched, fetchAttempts := s.fetchSourceCandidates(ctx, sources.Merge(sourceSearchSources, extraSources), options.FetchSources, options.providerFilter("page_fetch"), fallback)
+		attempts = append(attempts, fetchAttempts...)
+		if len(fetched) > 0 {
+			used = append(used, usedCapabilityFromFetchedSources(fetched, fetchAttempts))
+			for _, item := range fetched {
+				supplementalSources = append(supplementalSources, map[string]any{"url": item["url"], "provider": item["provider"], "description": stringValue(item["content_preview"])})
+			}
+		}
+	}
 	if strings.TrimSpace(options.RepoWiki) != "" {
 		repoQuery := firstNonEmpty(strings.TrimSpace(options.RepoWikiQuery), query)
-		found, repoAttempts := s.runRepoWikiFallback(ctx, options.RepoWiki, repoQuery, options.RepoWikiMode, "auto", fallback)
+		found, repoAttempts := s.runRepoWikiFallback(ctx, options.RepoWiki, repoQuery, options.RepoWikiMode, options.providerFilter("repo_wiki"), fallback)
 		attempts = append(attempts, repoAttempts...)
 		if truthy(found["ok"]) {
 			used = append(used, usedCapabilityFromRepoWiki(found, repoAttempts))
@@ -266,7 +318,7 @@ func searchDiagnostics(minimum map[string]any, routing any, attempts any) map[st
 
 func (s *Service) Fetch(ctx context.Context, targetURL string) map[string]any {
 	start := time.Now()
-	result, attempts := s.runWebFetchFallback(ctx, targetURL, s.defaultString("fallback_mode", config.DefaultFallbackMode))
+	result, attempts := s.runWebFetchFallback(ctx, targetURL, "auto", s.defaultString("fallback_mode", config.DefaultFallbackMode))
 	if truthy(result["ok"]) {
 		result["provider_attempts"] = attemptsToMaps(attempts)
 		result["fallback_used"] = fallbackUsed(attempts)
@@ -766,47 +818,44 @@ func (s *Service) callMainProvider(ctx context.Context, cfg mainProviderConfig, 
 	return cfg.Search(ctx, query, platform)
 }
 
-func (s *Service) extraSources(ctx context.Context, query string, count int) ([]map[string]any, []providers.Attempt) {
+func (s *Service) extraSources(ctx context.Context, query string, count int, filter string) ([]map[string]any, []providers.Attempt) {
 	var attempts []providers.Attempt
 	var merged []map[string]any
 	if count <= 0 {
 		return nil, nil
 	}
-	hasTavily := containsString(s.sourceSearchProviders("tavily"), "tavily")
-	hasFirecrawl := containsString(s.sourceSearchProviders("firecrawl"), "firecrawl")
-	tavilyCount, firecrawlCount := 0, 0
-	if hasTavily && hasFirecrawl {
-		tavilyCount = max(1, int(float64(count)*0.6+0.5))
-		firecrawlCount = count - tavilyCount
-	} else if hasTavily {
-		tavilyCount = count
-	} else if hasFirecrawl {
-		firecrawlCount = count
+	selected := s.resolvedProviders("source_search", filter)
+	if len(selected) == 0 {
+		return nil, nil
 	}
-	if tavilyCount > 0 {
-		start := time.Now()
-		provider, _ := s.providerByID("tavily")
-		results, err := providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 90))}.Search(ctx, query, tavilyCount)
-		if err == nil && len(results) > 0 {
-			attempts = append(attempts, attempt("source_search", "tavily", "ok", start, len(results), "", ""))
-			merged = append(merged, extraResultsToSources(results, "tavily")...)
+	remaining := count
+	for index, provider := range selected {
+		if remaining <= 0 {
+			break
 		}
-	}
-	if firecrawlCount > 0 {
+		providerCount := max(1, remaining/(len(selected)-index))
 		start := time.Now()
-		provider, _ := s.providerByID("firecrawl")
-		results, err := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Search(ctx, query, firecrawlCount)
+		results, err := s.searchWithSourceProvider(ctx, provider, query, providerCount)
 		if err == nil && len(results) > 0 {
-			attempts = append(attempts, attempt("source_search", "firecrawl", "ok", start, len(results), "", ""))
-			merged = append(merged, extraResultsToSources(results, "firecrawl")...)
+			attempts = append(attempts, attempt("source_search", provider.ID, "ok", start, len(results), "", ""))
+			merged = append(merged, extraResultsToSources(results, provider.ID)...)
+			remaining -= len(results)
+			continue
 		}
+		status := "empty"
+		errType, msg := "", ""
+		if err != nil {
+			status = "error"
+			errType, msg = providers.ErrorPayload(err)
+		}
+		attempts = append(attempts, attempt("source_search", provider.ID, status, start, 0, errType, msg))
 	}
 	return sources.Merge(merged), attempts
 }
 
-func (s *Service) runWebFetchFallback(ctx context.Context, targetURL, fallback string) (map[string]any, []providers.Attempt) {
+func (s *Service) runWebFetchFallback(ctx context.Context, targetURL, filter, fallback string) (map[string]any, []providers.Attempt) {
 	var attempts []providers.Attempt
-	for _, provider := range limitFallback(s.resolvedProviders("page_fetch", "auto"), fallback) {
+	for _, provider := range limitFallback(s.resolvedProviders("page_fetch", filter), fallback) {
 		start := time.Now()
 		var content string
 		var err error
@@ -839,35 +888,53 @@ func (s *Service) runWebFetchFallback(ctx context.Context, targetURL, fallback s
 	return map[string]any{"ok": false}, attempts
 }
 
+func (s *Service) fetchSourceCandidates(ctx context.Context, candidates []map[string]any, limit int, filter, fallback string) ([]map[string]any, []providers.Attempt) {
+	if limit <= 0 {
+		return nil, nil
+	}
+	var fetched []map[string]any
+	var attempts []providers.Attempt
+	seen := map[string]struct{}{}
+	for _, candidate := range candidates {
+		if len(fetched) >= limit {
+			break
+		}
+		targetURL := strings.TrimSpace(stringValue(candidate["url"]))
+		if !strings.HasPrefix(strings.ToLower(targetURL), "http://") && !strings.HasPrefix(strings.ToLower(targetURL), "https://") {
+			continue
+		}
+		if _, ok := seen[targetURL]; ok {
+			continue
+		}
+		seen[targetURL] = struct{}{}
+		found, fetchAttempts := s.runWebFetchFallback(ctx, targetURL, filter, fallback)
+		attempts = append(attempts, fetchAttempts...)
+		if !truthy(found["ok"]) {
+			continue
+		}
+		content := stringValue(found["content"])
+		item := map[string]any{
+			"url":             targetURL,
+			"provider":        stringValue(found["provider"]),
+			"content_preview": truncate(content, 500),
+			"content_length":  len(content),
+		}
+		if title := strings.TrimSpace(stringValue(candidate["title"])); title != "" {
+			item["source_title"] = title
+		}
+		if provider := strings.TrimSpace(stringValue(candidate["provider"])); provider != "" {
+			item["source_provider"] = provider
+		}
+		fetched = append(fetched, item)
+	}
+	return fetched, attempts
+}
+
 func (s *Service) runWebSearchFallback(ctx context.Context, query string, count int, filter, fallback string) ([]map[string]any, []providers.Attempt) {
 	var attempts []providers.Attempt
 	for _, provider := range limitFallback(s.resolvedProviders("source_search", filter), fallback) {
 		start := time.Now()
-		var results []map[string]any
-		var err error
-		if provider.ID == "exa" {
-			data := s.ExaSearch(ctx, query, providers.ExaOptions{NumResults: count, IncludeHighlights: true})
-			if truthy(data["ok"]) {
-				results = providers.NormalizeSourceResults(asMapSlice(data["results"]), "exa")
-			} else {
-				err = fmt.Errorf("%s", data["error"])
-			}
-		} else if provider.ID == "zhipu" {
-			data := s.ZhipuSearch(ctx, query, providers.ZhipuOptions{Count: count})
-			if truthy(data["ok"]) {
-				results = providers.NormalizeSourceResults(asMapSlice(data["results"]), "zhipu")
-			} else {
-				err = fmt.Errorf("%s", data["error"])
-			}
-		} else if provider.ID == "tavily" {
-			raw, e := providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 90))}.Search(ctx, query, count)
-			err = e
-			results = providers.NormalizeSourceResults(raw, "tavily")
-		} else if provider.ID == "firecrawl" {
-			raw, e := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Search(ctx, query, count)
-			err = e
-			results = providers.NormalizeSourceResults(raw, "firecrawl")
-		}
+		results, err := s.searchWithSourceProvider(ctx, provider, query, count)
 		if err == nil && len(results) > 0 {
 			attempts = append(attempts, attempt("source_search", provider.ID, "ok", start, len(results), "", ""))
 			return results, attempts
@@ -881,6 +948,31 @@ func (s *Service) runWebSearchFallback(ctx context.Context, query string, count 
 		attempts = append(attempts, attempt("source_search", provider.ID, status, start, 0, errType, msg))
 	}
 	return nil, attempts
+}
+
+func (s *Service) searchWithSourceProvider(ctx context.Context, provider config.ResolvedProvider, query string, count int) ([]map[string]any, error) {
+	switch provider.ID {
+	case "exa":
+		data := s.ExaSearch(ctx, query, providers.ExaOptions{NumResults: count, IncludeHighlights: true})
+		if truthy(data["ok"]) {
+			return providers.NormalizeSourceResults(asMapSlice(data["results"]), "exa"), nil
+		}
+		return nil, fmt.Errorf("%s", data["error"])
+	case "zhipu":
+		data := s.ZhipuSearch(ctx, query, providers.ZhipuOptions{Count: count})
+		if truthy(data["ok"]) {
+			return providers.NormalizeSourceResults(asMapSlice(data["results"]), "zhipu"), nil
+		}
+		return nil, fmt.Errorf("%s", data["error"])
+	case "tavily":
+		raw, err := providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 90))}.Search(ctx, query, count)
+		return providers.NormalizeSourceResults(raw, "tavily"), err
+	case "firecrawl":
+		raw, err := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Search(ctx, query, count)
+		return providers.NormalizeSourceResults(raw, "firecrawl"), err
+	default:
+		return nil, fmt.Errorf("unsupported source_search provider: %s", provider.ID)
+	}
 }
 
 func (s *Service) runDocsSearchFallback(ctx context.Context, query, filter, fallback string) ([]map[string]any, []providers.Attempt) {
@@ -1208,6 +1300,43 @@ func usedCapabilityFromFetch(found map[string]any, attempts []providers.Attempt)
 		attempt = providers.Attempt{Provider: provider, Status: "ok", ResultCount: 1}
 	}
 	return searchUsedCapability("page_fetch", "page_evidence", providerResult(provider, attempt, result, nil))
+}
+
+func usedCapabilityFromFetchedSources(fetched []map[string]any, attempts []providers.Attempt) map[string]any {
+	providerBuckets := map[string][]map[string]any{}
+	for _, item := range fetched {
+		provider := strings.TrimSpace(stringValue(item["provider"]))
+		if provider == "" {
+			provider = okAttemptProvider(attempts, "page_fetch")
+		}
+		if provider == "" {
+			provider = "unknown"
+		}
+		providerBuckets[provider] = append(providerBuckets[provider], item)
+	}
+	providerIDs := make([]string, 0, len(providerBuckets))
+	for provider := range providerBuckets {
+		providerIDs = append(providerIDs, provider)
+	}
+	sort.Strings(providerIDs)
+	var providerResults []map[string]any
+	for _, provider := range providerIDs {
+		attempt := okAttempt(attempts, "page_fetch", provider)
+		if attempt.Provider == "" {
+			attempt = providers.Attempt{Provider: provider, Status: "ok", ResultCount: len(providerBuckets[provider])}
+		}
+		result := map[string]any{
+			"pages":       providerBuckets[provider],
+			"pages_count": len(providerBuckets[provider]),
+		}
+		if len(providerBuckets[provider]) == 1 {
+			for _, key := range []string{"url", "content_preview", "content_length"} {
+				result[key] = providerBuckets[provider][0][key]
+			}
+		}
+		providerResults = append(providerResults, providerResult(provider, attempt, result, nil))
+	}
+	return searchUsedCapability("page_fetch", "source_evidence", providerResults...)
 }
 
 func usedCapabilityFromRepoWiki(found map[string]any, attempts []providers.Attempt) map[string]any {

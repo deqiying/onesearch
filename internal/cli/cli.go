@@ -99,9 +99,15 @@ func runSearch(ctx context.Context, svc *service.Service, args []string) int {
 	platform := fs.String("platform", "", "")
 	model := fs.String("model", "", "")
 	extra := fs.Int("extra-sources", 0, "")
+	fetchSources := fs.Int("fetch-sources", 0, "")
 	validation := fs.String("validation", "", "")
 	fallback := fs.String("fallback", "", "")
 	providerFilter := fs.String("providers", "auto", "")
+	answerProviders := fs.String("answer-providers", "", "")
+	sourceProviders := fs.String("source-providers", "", "")
+	docsProviders := fs.String("docs-providers", "", "")
+	fetchProviders := fs.String("fetch-providers", "", "")
+	repoProviders := fs.String("repo-providers", "", "")
 	repoWiki := fs.String("repo-wiki", "", "")
 	repoWikiMode := fs.String("repo-wiki-mode", "", "")
 	repoWikiQuery := fs.String("repo-wiki-query", "", "")
@@ -117,6 +123,15 @@ func runSearch(ctx context.Context, svc *service.Service, args []string) int {
 	if fs.NArg() < 1 {
 		return printParameterError("search", "search requires query", makeFormatOutput(outputFlags, svc))
 	}
+	providers, providerFilters, err := parseSearchProviderFilters(*providerFilter)
+	if err != nil {
+		return printParameterError("search", err.Error(), makeFormatOutput(outputFlags, svc))
+	}
+	providerFilters = overlayProviderFilter(providerFilters, "answer_search", *answerProviders)
+	providerFilters = overlayProviderFilter(providerFilters, "source_search", *sourceProviders)
+	providerFilters = overlayProviderFilter(providerFilters, "docs_search", *docsProviders)
+	providerFilters = overlayProviderFilter(providerFilters, "page_fetch", *fetchProviders)
+	providerFilters = overlayProviderFilter(providerFilters, "repo_wiki", *repoProviders)
 	query := fs.Arg(0)
 	var stream *bool
 	if streamFlag.set {
@@ -129,7 +144,7 @@ func runSearch(ctx context.Context, svc *service.Service, args []string) int {
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds*float64(time.Second)))
 	defer cancel()
-	data := svc.Search(ctx, query, service.SearchOptions{Platform: *platform, Model: *model, ExtraSources: *extra, Validation: *validation, Fallback: *fallback, Providers: *providerFilter, Stream: stream, RepoWiki: *repoWiki, RepoWikiMode: *repoWikiMode, RepoWikiQuery: *repoWikiQuery})
+	data := svc.Search(ctx, query, service.SearchOptions{Platform: *platform, Model: *model, ExtraSources: *extra, FetchSources: *fetchSources, Validation: *validation, Fallback: *fallback, Providers: providers, ProviderFilters: providerFilters, Stream: stream, RepoWiki: *repoWiki, RepoWikiMode: *repoWikiMode, RepoWikiQuery: *repoWikiQuery})
 	if ctx.Err() == context.DeadlineExceeded {
 		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Search timed out after %g seconds", *timeoutSeconds), "query": query, "content": "", "sources": []map[string]any{}, "sources_count": 0, "timeout_seconds": *timeoutSeconds}
 	}
@@ -431,6 +446,75 @@ func runLoadSkill(args []string) int {
 		fmt.Println()
 	}
 	return 0
+}
+
+func parseSearchProviderFilters(raw string) (string, map[string]string, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || strings.EqualFold(raw, "auto") {
+		return "auto", nil, nil
+	}
+	if !strings.Contains(raw, "=") && !strings.Contains(raw, ":") {
+		return raw, nil, nil
+	}
+	filters := map[string]string{}
+	for _, part := range strings.Split(raw, ";") {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		idx := strings.Index(part, "=")
+		if idx < 0 {
+			idx = strings.Index(part, ":")
+		}
+		if idx < 0 {
+			return "", nil, fmt.Errorf("provider filter %q must use capability=providers", part)
+		}
+		capability := normalizeCapabilityFilterKey(strings.TrimSpace(part[:idx]))
+		value := strings.TrimSpace(part[idx+1:])
+		if capability == "" || value == "" {
+			return "", nil, fmt.Errorf("provider filter %q must include capability and provider list", part)
+		}
+		filters[capability] = value
+	}
+	if len(filters) == 0 {
+		return "auto", nil, nil
+	}
+	return "auto", filters, nil
+}
+
+func overlayProviderFilter(filters map[string]string, capability, value string) map[string]string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return filters
+	}
+	if filters == nil {
+		filters = map[string]string{}
+	}
+	filters[config.V2CapabilityName(capability)] = value
+	return filters
+}
+
+func normalizeCapabilityFilterKey(value string) string {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "answer", "answer_search", "search":
+		return "answer_search"
+	case "source", "sources", "source_search":
+		return "source_search"
+	case "docs", "doc", "documentation", "docs_search":
+		return "docs_search"
+	case "fetch", "page", "page_fetch":
+		return "page_fetch"
+	case "repo", "repo_wiki", "repository", "repository_wiki":
+		return "repo_wiki"
+	case "site_map", "map":
+		return "site_map"
+	case "site_crawl", "crawl":
+		return "site_crawl"
+	case "vertical", "vertical_search":
+		return "vertical_search"
+	default:
+		return config.V2CapabilityName(value)
+	}
 }
 
 type formatOutput struct {

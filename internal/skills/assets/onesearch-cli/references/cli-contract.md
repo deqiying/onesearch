@@ -109,6 +109,24 @@ OpenAI protocol adapters normalize base URLs before appending endpoints. `openai
 
 AnySearch must not be treated as the default `source_search` route unless runtime configuration explicitly changes the route.
 
+`search` supports capability-level provider filters. The explicit flags are:
+
+- `--answer-providers`
+- `--source-providers`
+- `--docs-providers`
+- `--fetch-providers`
+- `--repo-providers`
+
+`--providers` also accepts a scoped expression such as:
+
+```powershell
+onesearch search "query" --providers "answer_search=openai_responses;source_search=tavily;page_fetch=firecrawl" --format json
+```
+
+A legacy unscoped value such as `--providers openai_responses` is still treated as the provider filter for normal search routing (`answer_search`, `source_search`, `docs_search`). `page_fetch` and `repo_wiki` continue to use their capability routes unless an explicit `--fetch-providers`, `--repo-providers`, or scoped `--providers` filter is supplied. Agents should perform vertical intent recognition themselves, then choose the appropriate `onesearch` capability and provider filters; `onesearch` does not infer domain-specific vertical tasks.
+
+`search --fetch-sources N` automatically runs `page_fetch` on the first N URL candidates discovered by `source_search`. This is intended for agent-selected high-confidence source discovery flows, such as official ranking pages or current structured pages. The fetched evidence appears under `used.page_fetch` with role `source_evidence`.
+
 ## Output contract
 
 Common fields:
@@ -147,6 +165,7 @@ Default search success fields:
 - `used.answer_search.providers.<provider>.result.content_length`: original answer length before compacting.
 - `used.<capability>.providers.<provider>.result.sources`: provider-owned source candidates. Source entries keep quality and provenance fields such as `capability`, `provider`, `title`, `url`, `published_date`, `description`, `snippet`, `id`, and `library_id`.
 - `used.page_fetch.providers.<provider>.result.content_preview`: page text preview for `page_fetch`.
+- `used.page_fetch.providers.<provider>.result.pages`: compact fetched pages when `search --fetch-sources N` is used.
 - `used.repo_wiki.providers.deepwiki.result.content_preview`: compact DeepWiki repository context when `search --repo-wiki` is used.
 
 `meta` keeps compact run metadata such as `session_id`, `validation_level`, `elapsed_ms`, and `fallback_used`.

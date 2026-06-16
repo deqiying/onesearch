@@ -103,6 +103,7 @@ OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远�
 
 ```powershell
 onesearch search "今天有什么值得关注的 AI 新闻" --validation balanced --extra-sources 2 --format json
+onesearch search "微博热搜前十 当前官方榜单" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
 onesearch fetch "https://example.com/article" --format markdown --output evidence.md
 onesearch exa-search "OpenAI Responses API documentation" --include-highlights --format json
 onesearch context7-library "react" "useEffect cleanup" --format json
@@ -123,6 +124,22 @@ onesearch smoke --mock --format json
 - `content`：只输出核心正文或短摘要。
 
 `search --format json` 默认输出统一搜索结果对象，只包含 `ok`、`query`、`used` 和 `meta`。`used` 是按能力名索引的唯一结果树，`used.<capability>.providers.<provider>.result` 展示本次实际使用了哪些能力、哪些 provider，以及每个 provider 返回的正文预览或来源；默认不会在最外层重复输出 `content`、`answer`、`sources` 或 `sources_count`，也不会把 `answer_search` 完整正文塞进 JSON，只保留 `content_preview` 和 `content_length`。只需要答案正文时使用 `--format content`；需要完整 JSON 正文、路由决策、provider attempts、capability 状态、primary/extra source 拆分等内部诊断信息时加 `--verbose`。
+
+`search` 支持按能力过滤 provider。可以用独立参数：
+
+```powershell
+onesearch search "query" --answer-providers openai_responses --source-providers tavily --fetch-providers firecrawl --format json
+```
+
+也可以用 `--providers` 传入能力级过滤表达式，分号分隔能力，逗号分隔 provider：
+
+```powershell
+onesearch search "query" --providers "answer_search=openai_responses;source_search=tavily;page_fetch=firecrawl" --format json
+```
+
+没有能力名前缀的 `--providers openai_responses` 保留为兼容写法，用于普通搜索路由中的 `answer_search`、`source_search`、`docs_search`；`page_fetch` 和 `repo_wiki` 默认仍按各自能力路由自动选择，除非显式传入 `--fetch-providers` / `--repo-providers` 或 scoped `--providers`。调用 agent 需要垂直意图时，应由 agent 先判断任务类型，再选择 `source_search`、`page_fetch`、`repo_wiki` 等能力及 provider 组合；`onesearch` 本身不内置业务垂直意图识别。
+
+当 agent 已经把查询约束到高置信来源场景时，可以用 `--fetch-sources N` 让 `search` 在 `source_search` 发现候选 URL 后自动抓取前 N 个候选页面。抓取结果会出现在 `used.page_fetch`，角色为 `source_evidence`；这适合榜单、价格、政策、新闻等需要先发现再取正文的任务。
 
 错误详略：
 
@@ -151,7 +168,7 @@ onesearch load_skill deep-research
 
 ## 证据策略
 
-`search` 默认 JSON 中每个 provider 的 `result.sources` 是候选来源，不等于已经校验正文。新闻、政策、财经、医疗、严肃评测和工具选型等高风险结论应先发现 URL，再用 `fetch` 抓取关键网页，最终只基于抓取正文下结论。
+`search` 默认 JSON 中每个 provider 的 `result.sources` 是候选来源，不等于已经校验正文。新闻、政策、财经、医疗、严肃评测和工具选型等高风险结论应先发现 URL，再用 `fetch` 或 `search --fetch-sources N` 抓取关键网页，最终只基于抓取正文下结论。
 
 ## Deep Research
 

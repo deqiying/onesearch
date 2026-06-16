@@ -413,6 +413,173 @@ func TestSearchForcedRepoWikiIgnoresAnswerProviderFilter(t *testing.T) {
 	}
 }
 
+func TestSearchCapabilityProviderFilterUsesSourceProviderOnly(t *testing.T) {
+	var exaCalls int
+	exa := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		exaCalls++
+		_, _ = w.Write([]byte(`{"results":[{"title":"Exa","url":"https://exa.example/source"}]}`))
+	}))
+	defer exa.Close()
+	tavily := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/search" {
+			http.NotFound(w, r)
+			return
+		}
+		_, _ = w.Write([]byte(`{"results":[{"title":"Official","url":"https://official.example/rank","content":"official source"}]}`))
+	}))
+	defer tavily.Close()
+	openai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}]}`))
+	}))
+	defer openai.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"answer_search": []any{"openai_responses"},
+			"source_search": []any{"exa", "tavily"},
+		},
+		"profiles": map[string]any{
+			"standard": map[string]any{
+				"required_capabilities": []any{"answer_search"},
+			},
+		},
+		"providers": map[string]any{
+			"openai_responses": map[string]any{
+				"enabled":      true,
+				"adapter":      "openai_responses",
+				"capabilities": []any{"answer_search"},
+				"base_url":     openai.URL,
+				"api_key":      "test-key",
+				"settings":     map[string]any{"model": "gpt-test"},
+			},
+			"exa": map[string]any{
+				"enabled":      true,
+				"adapter":      "exa",
+				"capabilities": []any{"source_search"},
+				"base_url":     exa.URL,
+				"api_key":      "test-key",
+			},
+			"tavily": map[string]any{
+				"enabled":      true,
+				"adapter":      "tavily",
+				"capabilities": []any{"source_search"},
+				"base_url":     tavily.URL,
+				"api_key":      "test-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).Search(t.Context(), "今天榜单", SearchOptions{
+		Validation: "strict",
+		Providers:  "openai_responses",
+		ProviderFilters: map[string]string{
+			"source_search": "tavily",
+		},
+	})
+	if got["ok"] != true {
+		t.Fatalf("search failed: %#v", got)
+	}
+	if exaCalls != 0 {
+		t.Fatalf("capability-level source filter should skip exa, calls = %d", exaCalls)
+	}
+	attempts := got["provider_attempts"].([]map[string]any)
+	var sourceProvider string
+	for _, attempt := range attempts {
+		if attempt["capability"] == "source_search" && attempt["status"] == "ok" {
+			sourceProvider = attempt["provider"].(string)
+		}
+	}
+	if sourceProvider != "tavily" {
+		t.Fatalf("source provider = %q, attempts = %#v", sourceProvider, attempts)
+	}
+}
+
+func TestSearchFetchSourcesAddsPageEvidence(t *testing.T) {
+	tavily := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/search":
+			_, _ = w.Write([]byte(`{"results":[{"title":"Official rank","url":"https://official.example/rank","content":"official rank page"}]}`))
+		case "/extract":
+			_, _ = w.Write([]byte(`{"results":[{"raw_content":"# Official rank\n\n1. alpha\n2. beta"}]}`))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer tavily.Close()
+	openai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}]}`))
+	}))
+	defer openai.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"answer_search": []any{"openai_responses"},
+			"source_search": []any{"tavily"},
+			"page_fetch":    []any{"tavily"},
+		},
+		"profiles": map[string]any{
+			"standard": map[string]any{
+				"required_capabilities": []any{"answer_search"},
+			},
+		},
+		"providers": map[string]any{
+			"openai_responses": map[string]any{
+				"enabled":      true,
+				"adapter":      "openai_responses",
+				"capabilities": []any{"answer_search"},
+				"base_url":     openai.URL,
+				"api_key":      "test-key",
+				"settings":     map[string]any{"model": "gpt-test"},
+			},
+			"tavily": map[string]any{
+				"enabled":      true,
+				"adapter":      "tavily",
+				"capabilities": []any{"source_search", "page_fetch"},
+				"base_url":     tavily.URL,
+				"api_key":      "test-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).Search(t.Context(), "今天榜单", SearchOptions{
+		Validation:   "strict",
+		Providers:    "openai_responses",
+		FetchSources: 1,
+		ProviderFilters: map[string]string{
+			"source_search": "tavily",
+		},
+	})
+	if got["ok"] != true {
+		t.Fatalf("search failed: %#v", got)
+	}
+	used := got["used"].([]map[string]any)
+	var pageEvidence map[string]any
+	for _, item := range used {
+		if item["capability"] == "page_fetch" && item["role"] == "source_evidence" {
+			pageEvidence = item
+		}
+	}
+	if pageEvidence == nil {
+		t.Fatalf("used missing page_fetch source_evidence: %#v", used)
+	}
+	provider := pageEvidence["providers"].([]map[string]any)[0]
+	result := provider["result"].(map[string]any)
+	pages := result["pages"].([]map[string]any)
+	if len(pages) != 1 || pages[0]["url"] != "https://official.example/rank" || !strings.Contains(pages[0]["content_preview"].(string), "Official rank") {
+		t.Fatalf("fetched pages = %#v", pages)
+	}
+}
+
 func TestQuietRepoWikiOutputOmitsFullContent(t *testing.T) {
 	fullContent := strings.Repeat("repo detail ", 130)
 	rendered := output.RenderWithOptions("repo-wiki", map[string]any{

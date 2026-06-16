@@ -219,6 +219,13 @@ func mergeResult(left, right map[string]any) map[string]any {
 	} else if value, ok := right["sources_count"]; ok && stringValue(value) != "" {
 		merged["sources_count"] = value
 	}
+	pages := mergeCompactPages(asAnySlice(left["pages"]), asAnySlice(right["pages"]))
+	if len(pages) > 0 {
+		merged["pages"] = pages
+		merged["pages_count"] = len(pages)
+	} else if value, ok := right["pages_count"]; ok && stringValue(value) != "" {
+		merged["pages_count"] = value
+	}
 	return merged
 }
 
@@ -239,6 +246,12 @@ func compactProviderResult(value any) map[string]any {
 		out["sources_count"] = len(sources)
 	} else if value, ok := result["sources_count"]; ok && stringValue(value) != "" {
 		out["sources_count"] = value
+	}
+	if pages := compactFetchedPages(result["pages"]); len(pages) > 0 {
+		out["pages"] = pages
+		out["pages_count"] = len(pages)
+	} else if value, ok := result["pages_count"]; ok && stringValue(value) != "" {
+		out["pages_count"] = value
 	}
 	return out
 }
@@ -315,6 +328,29 @@ func mergeCompactSources(lists ...[]any) []map[string]any {
 	return out
 }
 
+func mergeCompactPages(lists ...[]any) []map[string]any {
+	seen := map[string]struct{}{}
+	var out []map[string]any
+	for _, list := range lists {
+		for _, raw := range list {
+			item := asMap(raw)
+			if len(item) == 0 {
+				continue
+			}
+			key := stringValue(item["url"])
+			if key == "" {
+				continue
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
 func compactSearchSources(value any) []map[string]any {
 	rawSources := asAnySlice(value)
 	sources := make([]map[string]any, 0, len(rawSources))
@@ -334,6 +370,27 @@ func compactSearchSources(value any) []map[string]any {
 		}
 	}
 	return sources
+}
+
+func compactFetchedPages(value any) []map[string]any {
+	rawPages := asAnySlice(value)
+	pages := make([]map[string]any, 0, len(rawPages))
+	for _, raw := range rawPages {
+		page := asMap(raw)
+		if len(page) == 0 {
+			continue
+		}
+		item := map[string]any{}
+		for _, key := range []string{"url", "source_title", "source_provider", "content_preview", "content_length"} {
+			if value, ok := page[key]; ok && stringValue(value) != "" {
+				item[key] = value
+			}
+		}
+		if len(item) > 0 {
+			pages = append(pages, item)
+		}
+	}
+	return pages
 }
 
 func compactErrorMessage(value string) string {
