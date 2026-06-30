@@ -1,6 +1,6 @@
 {
   "name": "onesearch",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "CLI-first multi-source web research for AI agents and terminal users.",
   "license": "UNLICENSED",
   "bin": {
@@ -21,9 +21,9 @@
     "url": "https://github.com/deqiying/onesearch/issues"
   },
   "optionalDependencies": {
-    "@deqiying/onesearch-darwin-arm64": "0.2.0",
-    "@deqiying/onesearch-linux-x64": "0.2.0",
-    "@deqiying/onesearch-win32-x64": "0.2.0"
+    "@deqiying/onesearch-darwin-arm64": "0.2.1",
+    "@deqiying/onesearch-linux-x64": "0.2.1",
+    "@deqiying/onesearch-win32-x64": "0.2.1"
   },
   "publishConfig": {
     "access": "public"
