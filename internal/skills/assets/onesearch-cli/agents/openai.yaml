@@ -1,3 +1,3 @@
 display_name: Onesearch CLI
-short_description: Web search, fetch, docs, crawl, repo wiki via CLI
-default_prompt: Use $onesearch-cli for source-backed web research through the local Onesearch CLI.
+short_description: Current web search, fetch, docs, crawl, repo wiki via CLI
+default_prompt: Use $onesearch-cli for current web research, hot/trending lists, source-backed facts, and fetch/docs workflows through the local Onesearch CLI.

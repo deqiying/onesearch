@@ -1,6 +1,6 @@
 ---
 name: onesearch-search
-description: Use when an AI agent needs Onesearch for answer search, source discovery, current information, Chinese or domain-filtered web search, or search-result triage before fetching evidence.
+description: Use when an AI agent needs Onesearch for answer search, source discovery, current/latest/today information, news, prices, rankings, hot searches, trending topics, social-media hot lists such as Weibo 热搜/微博热搜前十, Chinese or domain-filtered web search, or search-result triage before fetching evidence.
 ---
 
 # Onesearch Search Skill
@@ -12,6 +12,7 @@ Prefer these commands:
 ```powershell
 onesearch search "query" --validation balanced --extra-sources 3 --format json
 onesearch search "query" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
+onesearch search "微博热搜前十 当前榜单" --validation strict --source-providers zhipu --extra-sources 3 --format json
 onesearch search "query" --repo-wiki owner/repo --validation strict --format json
 onesearch tavily search "query" --max-results 5 --format json
 onesearch exa web-search "query" --include-highlights --format json
@@ -21,6 +22,7 @@ onesearch zhipu search "query" --count 10 --format json
 Routing guidance:
 
 - `search` is the normal first pass for broad answers. For real-time or fast-changing information, prefer `search --extra-sources 2` or `search --extra-sources 3` as the first pass so the agent can compare source candidates instead of relying on one synthesized answer.
+- Treat user wording such as "today", "latest", "current", "实时", "今天", "最新", "热搜", "热榜", "榜单", "排名", "top", or "前十" as a strong signal to use Onesearch instead of answering from memory.
 - Default `search --format json` returns `ok`, `query`, `used`, and `meta`; inspect `used.answer_search.providers.<provider>.result.content_preview` for the compact answer preview and `used.<capability>.providers.<provider>.result.sources` for provider-owned source candidates. Use `--format content` or `--verbose` when complete answer text is required.
 - Add `--extra-sources 2` or `--extra-sources 3` when the task needs source coverage instead of only one synthesized answer. Good cases include volatile current information, rankings or lists, market/public-opinion snapshots, comparison research, and any question where different sources may disagree or update at different speeds.
 - For rankings, lists, schedules, prices, leaderboards, and other structured current results, treat `answer_search` as synthesis only. Prefer list/table content from `source_search` results or fetched pages as the final basis.

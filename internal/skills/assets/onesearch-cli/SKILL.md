@@ -1,6 +1,6 @@
 ---
 name: onesearch-cli
-description: Use when an AI agent needs Onesearch CLI capabilities, current web search, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, or provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands through a reproducible local CLI.
+description: Use when an AI agent needs Onesearch CLI capabilities for current/latest/today web facts, news, prices, rankings, hot searches, trending topics, social-media hot lists such as Weibo 热搜/微博热搜前十, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, or provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands through a reproducible local CLI.
 ---
 
 # Onesearch CLI Router
@@ -30,6 +30,7 @@ Use workflow commands when the user describes the task. Use provider direct comm
 | Explicit AnySearch vertical or experimental search | `anysearch` | `onesearch anysearch ...` |
 | Chinese, China-specific, or Zhipu direct source discovery | `zhipu` | `onesearch zhipu search ...` |
 | Broad answer search, current source discovery, or source triage | `search` | `onesearch search ...` |
+| Today's/latest rankings, hot searches, trending topics, social-media hot lists, or top-N summaries | `search` | `onesearch search "微博热搜前十 当前榜单" ...` |
 | API, SDK, package, framework, or official documentation lookup | `docs` | `onesearch context7 ...`, `onesearch exa ...` |
 | URL evidence, page fetch, site map, or bounded crawl | `fetch` | `onesearch fetch ...`, `onesearch map ...`, provider fetch/map/crawl |
 | Offline multi-step research planning | `deep-research` | `onesearch deep ...` |
