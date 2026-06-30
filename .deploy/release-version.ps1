@@ -120,7 +120,7 @@ try {
     )
 
     $allowedDirtyPaths = $versionFiles
-    $statusLines = @(Get-CheckedOutput git status --porcelain)
+    $statusLines = @(Get-CheckedOutput git status --porcelain --untracked-files=all)
     $dirtyPaths = @()
     foreach ($line in $statusLines) {
         if ($line.Length -lt 4) {
