@@ -1,11 +1,30 @@
 ---
 name: onesearch-context7
-description: Use when an AI agent needs Context7 through Onesearch for resolve_library_id, query_docs, library resolution, API docs, SDK docs, framework docs, or package documentation lookup.
+description: Use when an AI agent needs Context7 through Onesearch, especially when the user names Context7, resolve_library_id, query_docs, library resolution, current API docs, SDK docs, framework docs, package documentation, version-specific usage, setup, migration, or MCP Context7 replacement through the Onesearch CLI.
 ---
 
 # Onesearch Context7
 
 Use Context7 for library, SDK, API, package, and framework documentation. Resolve the library first, then query focused docs.
+
+## Bridge Contract
+
+This skill is the source document for agent-facing Context7 bridge skills. When a task names Context7, `resolve_library_id`, `query_docs`, current library docs, API signatures, SDK setup, package options, framework configuration, version-specific examples, or migration guidance, route through Onesearch instead of looking for a direct Context7 MCP tool.
+
+If command details may have changed, run:
+
+```powershell
+onesearch skills show context7 --format content
+```
+
+Use the provider command family by default:
+
+```powershell
+onesearch context7 resolve-library-id "library" --format json
+onesearch context7 query-docs "/org/project" "focused docs question" --format json
+```
+
+Use `onesearch mcp resolve_library_id ...` and `onesearch mcp query_docs ...` only for mechanical migration from original MCP tool names.
 
 ## Commands
 

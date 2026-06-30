@@ -1,11 +1,20 @@
 ---
 name: onesearch-docs
-description: Use when an AI agent needs Onesearch for API, SDK, package, library, framework, or official documentation lookup with docs_search routing.
+description: Use when an AI agent needs Onesearch for API, SDK, package, library, framework, or official documentation lookup with docs_search routing, especially current docs, version-specific usage, setup, migration, Context7 resolution, query_docs, or Exa official docs discovery through the Onesearch CLI.
 ---
 
 # Onesearch Docs Skill
 
 Use this skill for documentation and API-reference questions. Run `onesearch doctor --format json` first when configuration is uncertain.
+
+## Bridge Contract
+
+For documentation tasks, prefer provider-specific bridge docs when the user names a provider or original MCP tool:
+
+- Context7, `resolve_library_id`, or `query_docs`: load `onesearch skills show context7 --format content`.
+- Exa, `web_search_exa`, or official docs page discovery: load `onesearch skills show exa --format content`.
+
+Use this workflow skill when the user asks by intent, such as current API docs, SDK setup, package options, library examples, framework configuration, version-specific behavior, or migration guidance.
 
 Prefer these commands:
 

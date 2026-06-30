@@ -1,11 +1,32 @@
 ---
 name: onesearch-firecrawl
-description: Use when an AI agent needs Firecrawl through Onesearch for firecrawl_search, firecrawl_scrape, firecrawl_map, firecrawl_crawl, web search, page scraping, site mapping, or crawl job submission.
+description: Use when an AI agent needs Firecrawl through Onesearch, especially when the user names Firecrawl, firecrawl_search, firecrawl_scrape, firecrawl_map, firecrawl_crawl, robust web search, page scraping, markdown extraction, site mapping, crawl job submission, or Firecrawl MCP replacement through the Onesearch CLI.
 ---
 
 # Onesearch Firecrawl
 
 Use Firecrawl for web search, robust page scraping, site mapping, and crawl job submission. Prefer Firecrawl direct commands when the task names a Firecrawl MCP tool or needs Firecrawl-specific output.
+
+## Bridge Contract
+
+This skill is the source document for agent-facing Firecrawl bridge skills. When a task names Firecrawl, `firecrawl_search`, `firecrawl_scrape`, `firecrawl_map`, `firecrawl_crawl`, robust scraping, markdown extraction, site mapping, or crawl job submission, route through Onesearch instead of looking for a direct Firecrawl MCP tool.
+
+If command details may have changed, run:
+
+```powershell
+onesearch skills show firecrawl --format content
+```
+
+Use the provider command family by default:
+
+```powershell
+onesearch firecrawl search "query" --format json
+onesearch firecrawl scrape "https://example.com" --format json
+onesearch firecrawl map "https://example.com" --format json
+onesearch firecrawl crawl "https://example.com" --format json
+```
+
+Use `onesearch mcp firecrawl_search ...`, `onesearch mcp firecrawl_scrape ...`, `onesearch mcp firecrawl_map ...`, and `onesearch mcp firecrawl_crawl ...` only for mechanical migration from original MCP tool names.
 
 ## Commands
 

@@ -1,11 +1,25 @@
 ---
 name: onesearch-mcp-tools
-description: Use when an AI agent starts from an original MCP tool name and needs to route to the matching provider-specific Onesearch skill and command.
+description: Use when an AI agent starts from an original MCP tool name, removed MCP server, legacy MCP workflow, or provider tool alias and needs to route to the matching provider-specific Onesearch skill and command instead of falling back to generic web search.
 ---
 
 # Onesearch MCP Tool Router
 
 Use this skill as a migration index from original MCP tool names to provider-specific Onesearch skills. For detailed command options and examples, load the provider skill named in the table.
+
+## Bridge Contract
+
+When an original MCP tool name is present in the user request, logs, config, docs, or prior workflow, treat that tool name as a strong Onesearch routing signal. Do not downgrade the task to generic browser search or general web search just because the direct MCP tool is unavailable.
+
+Load the provider-specific skill first when the task needs provider options:
+
+```powershell
+onesearch skills show context7 --format content
+onesearch skills show exa --format content
+onesearch skills show tavily --format content
+onesearch skills show firecrawl --format content
+onesearch skills show deepwiki --format content
+```
 
 ## Route By Original Tool Name
 

@@ -1,11 +1,30 @@
 ---
 name: onesearch-exa
-description: Use when an AI agent needs Exa through Onesearch for web_search_exa, web_fetch_exa, low-noise source discovery, official docs discovery, product pages, papers, or page content fetch via Exa contents.
+description: Use when an AI agent needs Exa through Onesearch, especially when the user names Exa, web_search_exa, web_fetch_exa, semantic web discovery, low-noise source discovery, official docs discovery, product pages, papers, known-domain search, or clean page content fetch via the Onesearch CLI.
 ---
 
 # Onesearch Exa
 
 Use Exa for low-noise web discovery, official documentation, papers, product pages, known-domain searches, and Exa contents fetches.
+
+## Bridge Contract
+
+This skill is the source document for agent-facing Exa bridge skills. When a task names Exa, `web_search_exa`, `web_fetch_exa`, semantic web discovery, best-page lookup, official docs discovery, papers, product pages, or clean markdown/content fetch, route through Onesearch instead of looking for a direct Exa MCP tool.
+
+If command details may have changed, run:
+
+```powershell
+onesearch skills show exa --format content
+```
+
+Use the provider command family by default:
+
+```powershell
+onesearch exa web-search "query" --format json
+onesearch exa web-fetch "https://example.com" --format json
+```
+
+Use `onesearch mcp web_search_exa ...` and `onesearch mcp web_fetch_exa ...` only for mechanical migration from original MCP tool names.
 
 ## Commands
 

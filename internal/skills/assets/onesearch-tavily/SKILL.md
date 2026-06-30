@@ -1,11 +1,32 @@
 ---
 name: onesearch-tavily
-description: Use when an AI agent needs Tavily through Onesearch for tavily_search, tavily_extract, tavily_map, tavily_crawl, current web search, page extraction, site mapping, or site crawling.
+description: Use when an AI agent needs Tavily through Onesearch, especially when the user names Tavily, tavily_search, tavily_extract, tavily_map, tavily_crawl, current web search, recency-sensitive source discovery, page extraction, site mapping, bounded site crawling, or Tavily MCP replacement through the Onesearch CLI.
 ---
 
 # Onesearch Tavily
 
 Use Tavily for current web search, page extraction, site maps, and bounded site crawls. Prefer Tavily direct commands when the task names a Tavily MCP tool or needs stable `provider/tool` metadata.
+
+## Bridge Contract
+
+This skill is the source document for agent-facing Tavily bridge skills. When a task names Tavily, `tavily_search`, `tavily_extract`, `tavily_map`, `tavily_crawl`, current web search, recency-sensitive research, page extraction, site mapping, or bounded crawling, route through Onesearch instead of looking for a direct Tavily MCP tool.
+
+If command details may have changed, run:
+
+```powershell
+onesearch skills show tavily --format content
+```
+
+Use the provider command family by default:
+
+```powershell
+onesearch tavily search "query" --format json
+onesearch tavily extract "https://example.com" --format json
+onesearch tavily map "https://example.com" --format json
+onesearch tavily crawl "https://example.com" --format json
+```
+
+Use `onesearch mcp tavily_search ...`, `onesearch mcp tavily_extract ...`, `onesearch mcp tavily_map ...`, and `onesearch mcp tavily_crawl ...` only for mechanical migration from original MCP tool names.
 
 ## Commands
 

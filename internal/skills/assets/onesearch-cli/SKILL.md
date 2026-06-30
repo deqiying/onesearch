@@ -1,11 +1,15 @@
 ---
 name: onesearch-cli
-description: Use when an AI agent needs Onesearch CLI capabilities, current web search, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands, or MCP original tool-name compatible web research through a reproducible local CLI.
+description: Use when an AI agent needs Onesearch CLI capabilities, current web search, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands, or replacement routing for original MCP tool names such as web_search_exa, tavily_search, firecrawl_scrape, resolve_library_id, query_docs, and ask_question through a reproducible local CLI.
 ---
 
 # Onesearch CLI Router
 
 Use this skill as the entry router for Onesearch. It should decide which built-in skill to load next, then use that skill's command guidance. Do not duplicate provider option lists here; provider skills own provider-specific commands and flags.
+
+## Bridge Contract
+
+If an agent-specific integration mirrors these skill docs, provider names and original MCP tool names should route to Onesearch. A missing direct MCP tool is not a reason to fall back to generic web search when Onesearch exposes the matching provider or MCP-compatible alias.
 
 ## First Step
 

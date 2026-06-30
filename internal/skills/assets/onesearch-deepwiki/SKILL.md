@@ -1,11 +1,31 @@
 ---
 name: onesearch-deepwiki
-description: Use when an AI agent needs DeepWiki through Onesearch for ask_question, read_wiki_structure, read_wiki_contents, GitHub repository architecture, module summaries, or generated repository wiki context.
+description: Use when an AI agent needs DeepWiki through Onesearch, especially when the user names DeepWiki, ask_question, read_wiki_structure, read_wiki_contents, public GitHub repository architecture, module summaries, implementation overviews, generated repository wiki context, or DeepWiki MCP replacement through the Onesearch CLI.
 ---
 
 # Onesearch DeepWiki
 
 Use DeepWiki for public GitHub repository architecture questions, implementation overviews, wiki structure, and generated repository context.
+
+## Bridge Contract
+
+This skill is the source document for agent-facing DeepWiki bridge skills. When a task names DeepWiki, `ask_question`, `read_wiki_structure`, `read_wiki_contents`, public GitHub repository architecture, module summaries, implementation overviews, or generated repository wiki context, route through Onesearch instead of looking for a direct DeepWiki MCP tool.
+
+If command details may have changed, run:
+
+```powershell
+onesearch skills show deepwiki --format content
+```
+
+Use the provider command family by default:
+
+```powershell
+onesearch deepwiki ask-question "owner/repo" "question" --format json
+onesearch deepwiki read-wiki-structure "owner/repo" --format json
+onesearch deepwiki read-wiki-contents "owner/repo" --format json
+```
+
+Use `onesearch mcp ask_question ...`, `onesearch mcp read_wiki_structure ...`, and `onesearch mcp read_wiki_contents ...` only for mechanical migration from original MCP tool names.
 
 ## Commands
 
