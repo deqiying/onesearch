@@ -11,15 +11,22 @@ Prefer these commands:
 
 ```powershell
 onesearch fetch "https://example.com/page" --format json
+onesearch tavily extract "https://example.com/page" --format json
+onesearch firecrawl scrape "https://example.com/page" --format json
+onesearch exa web-fetch "https://example.com/page" --max-characters 12000 --format json
 onesearch map "https://example.com" --instructions "find API docs" --format json
+onesearch tavily map "https://example.com" --instructions "find API docs" --format json
+onesearch tavily crawl "https://example.com" --max-depth 2 --limit 20 --format json
 ```
 
 Workflow:
 
 - Use `fetch` for claim-level evidence. Its output is evidence; search output is only discovery.
+- Use `tavily extract`, `firecrawl scrape`, or `exa web-fetch` when the task explicitly needs a provider-direct command or MCP-compatible tool metadata such as `tavily_extract`, `firecrawl_scrape`, or `web_fetch_exa`.
 - Use `map` to discover site structure before selecting pages to fetch.
+- Use `tavily map` or `tavily crawl` when you need direct Tavily `tavily_map` / `tavily_crawl` behavior.
 - For multi-source work, fetch the few key sources that support the answer rather than dumping every discovered URL.
 - Distinguish fetched evidence from candidates in your final answer.
 - If `fetch` returns a config error, run `doctor` and report the missing `page_fetch` provider instead of silently switching tools.
 
-`page_fetch` currently routes through configured Tavily and Firecrawl providers. Provider availability is visible in `doctor`.
+`page_fetch` currently routes through configured Tavily, Firecrawl, and Exa providers. Provider availability is visible in `doctor`.

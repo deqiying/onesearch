@@ -73,6 +73,24 @@ func TestProviderCapabilitiesAutoRegisterRoutes(t *testing.T) {
 	}
 }
 
+func TestDefaultCompatibilityCapabilitiesIncludeExaFetchAndTavilyCrawl(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t, nil)
+	runtime := LoadRuntime(cfg)
+
+	exa := runtime.Providers["exa"]
+	if !containsCapability(exa.Capabilities, "page_fetch") {
+		t.Fatalf("exa capabilities = %#v, want page_fetch for web_fetch_exa", exa.Capabilities)
+	}
+	tavily := runtime.Providers["tavily"]
+	if !containsCapability(tavily.Capabilities, "site_crawl") {
+		t.Fatalf("tavily capabilities = %#v, want site_crawl for tavily_crawl", tavily.Capabilities)
+	}
+	if got := runtime.Routes["site_crawl"]; !reflect.DeepEqual(got, []string{"tavily", "firecrawl"}) {
+		t.Fatalf("site_crawl route = %#v, want tavily then firecrawl", got)
+	}
+}
+
 func TestOpenAIResponsesAdapterIsSupported(t *testing.T) {
 	clearProviderEnv(t)
 	t.Setenv("OPENAI_API_KEY", "openai-secret")

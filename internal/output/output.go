@@ -29,6 +29,8 @@ func RenderWithOptions(command string, data map[string]any, options Options) str
 			data = compactSearchResult(data)
 		} else if command == "repo-wiki" && format != "content" && format != "markdown" {
 			data = compactContentResult(data)
+		} else if stringValue(data["tool"]) != "" && format != "content" && format != "markdown" {
+			data = compactContentResult(data)
 		}
 	}
 	switch format {
@@ -85,23 +87,65 @@ func compactSearchResult(data map[string]any) map[string]any {
 
 func compactContentResult(data map[string]any) map[string]any {
 	out := map[string]any{"ok": data["ok"]}
-	for _, key := range []string{"query", "url", "repo", "provider", "tool", "mode", "elapsed_ms", "fallback_used"} {
+	for _, key := range []string{"query", "url", "repo", "library_id", "provider", "tool", "mode", "id", "job_id", "status", "success", "total", "elapsed_ms", "fallback_used"} {
 		if value, ok := data[key]; ok && stringValue(value) != "" {
 			out[key] = value
 		}
+	}
+	if urls := asStrings(data["urls"]); len(urls) > 0 {
+		out["urls"] = urls
 	}
 	if content := stringValue(data["content"]); content != "" {
 		out["content_preview"] = previewText(content, 1200)
 		out["content_length"] = len(content)
 	}
 	if result := asMap(data["result"]); len(result) > 0 {
-		out["result"] = compactProviderResult(result)
+		if compacted := compactProviderResult(result); keepNestedProviderResult(out, compacted) {
+			out["result"] = compacted
+		}
 	}
-	if results := compactSearchSources(data["results"]); len(results) > 0 {
+	if results := compactToolResults(data["results"]); len(results) > 0 {
 		out["results"] = results
 		out["results_count"] = len(results)
 	}
 	return out
+}
+
+func compactToolResults(value any) []map[string]any {
+	rawItems := asAnySlice(value)
+	out := make([]map[string]any, 0, len(rawItems))
+	for _, raw := range rawItems {
+		item := compactToolItem(raw)
+		if len(item) > 0 {
+			out = append(out, item)
+		}
+	}
+	return out
+}
+
+func compactToolItem(value any) map[string]any {
+	switch typed := value.(type) {
+	case string:
+		if strings.TrimSpace(typed) == "" {
+			return nil
+		}
+		return map[string]any{"url": typed}
+	case map[string]any:
+		out := map[string]any{}
+		for _, key := range []string{"capability", "provider", "title", "url", "id", "library_id", "description", "snippet", "published_date", "publishedDate", "author", "score", "status"} {
+			if value, ok := typed[key]; ok && stringValue(value) != "" {
+				out[key] = value
+			}
+		}
+		content := firstNonEmpty(stringValue(typed["content"]), stringValue(typed["text"]), stringValue(typed["raw_content"]), stringValue(typed["markdown"]))
+		if content != "" {
+			out["content_preview"] = previewText(content, 1200)
+			out["content_length"] = len(content)
+		}
+		return out
+	default:
+		return nil
+	}
 }
 
 func compactSearchUsed(value any) map[string]any {
@@ -236,7 +280,7 @@ func compactProviderResult(value any) map[string]any {
 		out["content_preview"] = previewText(content, 1200)
 		out["content_length"] = len(content)
 	}
-	for _, key := range []string{"url", "repo", "tool", "query", "content_preview", "content_length"} {
+	for _, key := range []string{"url", "repo", "tool", "query", "id", "status", "success", "content_preview", "content_length"} {
 		if value, ok := result[key]; ok && stringValue(value) != "" {
 			out[key] = value
 		}
@@ -254,6 +298,18 @@ func compactProviderResult(value any) map[string]any {
 		out["pages_count"] = value
 	}
 	return out
+}
+
+func keepNestedProviderResult(parent, result map[string]any) bool {
+	if len(result) == 0 {
+		return false
+	}
+	for _, key := range []string{"content_preview", "content_length", "sources", "sources_count", "pages", "pages_count"} {
+		if _, ok := result[key]; ok {
+			return true
+		}
+	}
+	return stringValue(parent["id"]) == "" && stringValue(parent["status"]) == "" && stringValue(parent["success"]) == ""
 }
 
 func compactSearchMeta(data map[string]any) map[string]any {
@@ -444,6 +500,9 @@ func content(command string, data map[string]any) string {
 			return status(data["ok"]) + ": " + err + "\n"
 		}
 		return ""
+	}
+	if text := stringValue(data["content"]); text != "" {
+		return text + "\n"
 	}
 	if command == "deep" || data["mode"] == "deep_research" {
 		return "Deep Research plan for: " + stringValue(data["question"]) + "\nThis command only plans; execute the listed CLI steps to perform live research.\n"

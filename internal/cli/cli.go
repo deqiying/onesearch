@@ -25,7 +25,7 @@ var aliases = map[string]string{
 	"z": "zhipu-search", "zp": "zhipu-search",
 	"as-domains": "anysearch-domains", "as-search": "anysearch-search", "as": "anysearch-search", "as-extract": "anysearch-extract", "as-batch": "anysearch-batch",
 	"c7": "context7-library", "ctx7": "context7-library", "c7d": "context7-docs", "c7docs": "context7-docs", "ctx7-docs": "context7-docs",
-	"dr": "deep", "sm": "smoke", "d": "doctor", "mdl": "model", "cfg": "config", "load-skill": "load_skill", "reg": "regression",
+	"dr": "deep", "sm": "smoke", "d": "doctor", "mdl": "model", "cfg": "config", "skill": "skills", "load-skill": "load_skill", "reg": "regression",
 }
 
 func Execute(args []string) int {
@@ -41,10 +41,13 @@ func Execute(args []string) int {
 		printHelp()
 		return 0
 	}
-	command := canonical(args[0])
 	cfg := config.Load()
 	svc := service.New(cfg)
 	ctx := context.Background()
+	if shouldDispatchProviderCommand(args[0], args[1:]) {
+		return runProviderCommand(ctx, svc, args[0], args[1:])
+	}
+	command := canonical(args[0])
 	switch command {
 	case "search":
 		return runSearch(ctx, svc, args[1:])
@@ -84,8 +87,10 @@ func Execute(args []string) int {
 		return runModel(svc, args[1:])
 	case "config":
 		return runConfig(svc, args[1:])
+	case "skills":
+		return runSkills(svc, args[1:])
 	case "load_skill":
-		return runLoadSkill(args[1:])
+		return runLoadSkill(svc, args[1:])
 	case "regression":
 		return printCommand("smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", verbosity: "quiet"})
 	default:
@@ -432,9 +437,12 @@ func runConfig(svc *service.Service, args []string) int {
 	return printCommand("config", data, makeFormatOutput(outputFlags, svc))
 }
 
-func runLoadSkill(args []string) int {
+func runLoadSkill(svc *service.Service, args []string) int {
 	if len(args) < 1 {
 		return parameterError("load_skill requires skill name")
+	}
+	if canonicalSkillsSubcommand(args[0]) == "list" {
+		return runSkills(svc, args)
 	}
 	text, err := skills.ReadMarkdown(args[0])
 	if err != nil {
@@ -736,5 +744,5 @@ func printHelp() {
 	fmt.Println("Commands:")
 	fmt.Println("  search, fetch, map, crawl, repo-wiki, exa-search, exa-similar, zhipu-search")
 	fmt.Println("  context7-library, context7-docs, anysearch-*, deep, doctor, smoke")
-	fmt.Println("  config, model, load_skill, regression")
+	fmt.Println("  config, model, skills, load_skill, regression")
 }

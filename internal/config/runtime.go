@@ -388,7 +388,7 @@ func defaultRuntimeRoutes() map[string][]string {
 		"docs_search":     {"exa", "context7"},
 		"page_fetch":      {"tavily", "firecrawl"},
 		"site_map":        {"tavily", "firecrawl"},
-		"site_crawl":      {"firecrawl"},
+		"site_crawl":      {"tavily", "firecrawl"},
 		"repo_wiki":       {"deepwiki"},
 		"vertical_search": {"anysearch"},
 	}
@@ -437,7 +437,7 @@ func defaultProviders() map[string]ProviderDefinition {
 		"exa": {
 			ID:           "exa",
 			Adapter:      AdapterExa,
-			Capabilities: []string{"source_search", "docs_search"},
+			Capabilities: []string{"source_search", "docs_search", "page_fetch"},
 			BaseURL:      DefaultExaBaseURL,
 			APIKeyEnv:    "EXA_API_KEY",
 			Enabled:      false,
@@ -466,7 +466,7 @@ func defaultProviders() map[string]ProviderDefinition {
 		"tavily": {
 			ID:           "tavily",
 			Adapter:      AdapterTavily,
-			Capabilities: []string{"source_search", "page_fetch", "site_map"},
+			Capabilities: []string{"source_search", "page_fetch", "site_map", "site_crawl"},
 			BaseURL:      DefaultTavilyAPIURL,
 			APIKeyEnv:    "TAVILY_API_KEY",
 			Enabled:      false,

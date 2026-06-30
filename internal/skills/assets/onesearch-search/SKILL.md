@@ -13,6 +13,8 @@ Prefer these commands:
 onesearch search "query" --validation balanced --extra-sources 3 --format json
 onesearch search "query" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
 onesearch search "query" --repo-wiki owner/repo --validation strict --format json
+onesearch tavily search "query" --max-results 5 --format json
+onesearch exa web-search "query" --include-highlights --format json
 onesearch exa-search "query" --include-highlights --format json
 onesearch zhipu-search "query" --count 10 --format json
 ```
@@ -29,7 +31,9 @@ Routing guidance:
 - Do not bind `--extra-sources` to fixed keywords. The calling agent should decide from user intent, required confidence, freshness risk, and whether multi-source evidence is needed.
 - Keep `--extra-sources` small by default. Use `2` or `3` for normal multi-source checks; increase it only when the user explicitly asks for broad coverage or deep comparison.
 - Add `--repo-wiki owner/repo` when the agent knows repository architecture context is needed; results appear under `used.repo_wiki`.
-- `exa-search` is best for low-noise source discovery, official docs pages, papers, product pages, and known-domain searches.
+- `tavily search` is the preferred direct Tavily command when you need MCP-compatible `tavily_search` behavior and stable provider/tool metadata in the JSON envelope.
+- `exa web-search` is the preferred direct Exa command when you need MCP-compatible `web_search_exa` behavior. `exa-search` remains supported as the legacy flat command.
+- `exa-search` is best for low-noise source discovery, official docs pages, papers, product pages, and known-domain searches when using the legacy flat command style.
 - `zhipu-search` is best for Chinese, China-specific, current, or domain-filtered source discovery.
 - Search results are discovery candidates. Fetch key URLs before making high-risk or claim-level statements.
 - Do not use AnySearch as the default `source_search` route; keep it to explicit experimental commands unless the runtime route is explicitly configured.

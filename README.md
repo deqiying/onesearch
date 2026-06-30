@@ -11,13 +11,13 @@
 | 综合搜索 | `search` | `answer_search`: xAI、OpenAI-compatible、OpenAI Responses |
 | 来源发现 | `search --extra-sources`、`exa-search`、`zhipu-search` | `source_search`: Exa、Zhipu、Tavily、Firecrawl |
 | 文档检索 | `context7-library`、`context7-docs`、`exa-search` | `docs_search`: Exa、Context7 |
-| 网页抓取 | `fetch` | `page_fetch`: Tavily、Firecrawl |
+| 网页抓取 | `fetch` | `page_fetch`: Tavily、Firecrawl、Exa |
 | 站点结构 | `map` | `site_map`: Tavily、Firecrawl |
-| 站点爬取 | `crawl` | `site_crawl`: Firecrawl |
+| 站点爬取 | `crawl` | `site_crawl`: Tavily、Firecrawl |
 | 仓库 Wiki | `repo-wiki`、`search --repo-wiki` | `repo_wiki`: DeepWiki |
 | 垂直搜索 | `anysearch-*` | `vertical_search`: AnySearch |
 | 深度研究规划 | `deep` / `dr` | 本地离线 planner |
-| 内置工作流 | `load_skill` | `search`、`docs`、`fetch`、`deep-research`、`base` |
+| 内置技能路由 | `skills`、`load_skill` | `onesearch-cli` 主路由，`exa`、`tavily` 等 provider 技能，`search`、`docs`、`fetch` 等工作流技能 |
 | 配置诊断 | `doctor`、`config list`、`smoke` | 本地配置与 provider 状态 |
 
 ## 构建
@@ -106,8 +106,13 @@ onesearch search "今天有什么值得关注的 AI 新闻" --validation balance
 onesearch search "微博热搜前十 当前官方榜单" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
 onesearch fetch "https://example.com/article" --format markdown --output evidence.md
 onesearch exa-search "OpenAI Responses API documentation" --include-highlights --format json
+onesearch exa web-search "OpenAI Responses API documentation" --include-highlights --format json
+onesearch exa web-fetch "https://example.com/article" --max-characters 12000 --format json
+onesearch tavily search "今天国内 AI 新闻" --max-results 5 --format json
+onesearch tavily extract "https://example.com/article" --format content
 onesearch context7-library "react" "useEffect cleanup" --format json
 onesearch context7-docs "/facebook/react" "useEffect cleanup" --format json
+onesearch context7 query-docs "/facebook/react" "useEffect cleanup" --format json
 onesearch zhipu-search "今天国内 AI 新闻" --count 5 --format json
 onesearch map "https://docs.example.com" --instructions "Find API reference pages" --format json
 onesearch crawl "https://docs.example.com" --max-depth 2 --limit 20 --format json
@@ -115,6 +120,55 @@ onesearch repo-wiki "microsoft/playwright" "MCP Browser Automation Server 是怎
 onesearch search "分析 Playwright MCP Browser Automation Server 架构" --repo-wiki microsoft/playwright --validation strict --format json
 onesearch deep "OpenAI Responses API web_search 和 Chat Completions 联网搜索怎么选" --budget deep --format json
 onesearch smoke --mock --format json
+```
+
+## Provider 分组命令与 MCP tool 名兼容
+
+主推新格式：
+
+```powershell
+onesearch <provider> <command> [args] [--format json|markdown|content]
+```
+
+已支持的常用分组命令：
+
+```powershell
+onesearch exa web-search "query"
+onesearch exa web-fetch "https://example.com"
+onesearch tavily search "query"
+onesearch tavily extract "https://example.com"
+onesearch tavily map "https://example.com"
+onesearch tavily crawl "https://example.com"
+onesearch firecrawl search "query"
+onesearch firecrawl scrape "https://example.com"
+onesearch firecrawl map "https://example.com"
+onesearch firecrawl crawl "https://example.com"
+onesearch context7 resolve-library-id "react"
+onesearch context7 query-docs "/facebook/react" "useEffect cleanup"
+onesearch deepwiki ask-question "microsoft/playwright" "架构是什么？"
+onesearch deepwiki read-wiki-structure "microsoft/playwright"
+onesearch deepwiki read-wiki-contents "microsoft/playwright"
+onesearch anysearch search "query"
+```
+
+为迁移 MCP 调用，provider 分组内也兼容原始 tool 名：
+
+```powershell
+onesearch exa web_search_exa "query"
+onesearch exa web_fetch_exa "https://example.com"
+onesearch tavily tavily_search "query"
+onesearch tavily tavily_extract "https://example.com"
+onesearch context7 query_docs "/facebook/react" "useEffect cleanup"
+onesearch deepwiki ask_question "microsoft/playwright" "架构是什么？"
+```
+
+全局 `mcp` 入口用于机械迁移脚本，不作为日常主推写法：
+
+```powershell
+onesearch mcp web_search_exa "query"
+onesearch mcp tavily_search "query"
+onesearch mcp query_docs "/facebook/react" "useEffect cleanup"
+onesearch mcp ask_question "microsoft/playwright" "架构是什么？"
 ```
 
 输出格式：
@@ -149,21 +203,52 @@ onesearch search "query" --providers "answer_search=openai_responses;source_sear
 
 ## 内置 Skill
 
+`onesearch-cli` 是主路由技能，只负责根据用户意图选择后续工作流技能或 provider 技能。每个 provider 独立维护自己的技能，例如 `exa`、`tavily`、`firecrawl`、`context7`、`deepwiki`、`anysearch`、`zhipu`；这些技能中描述对应工具有哪些命令、作用和使用方法。
+
+查询内置 skill 清单和详情：
+
+```powershell
+onesearch skills list --format json
+onesearch skills list --capability page_fetch --format json
+onesearch skills show onesearch-cli --format content
+onesearch skills show exa --format content
+onesearch skills show tavily --format content
+onesearch skills show mcp-tools --format content
+```
+
 `load_skill` 直接输出内置 skill 的 `SKILL.md`，不读取 provider 配置、不联网、不写文件：
 
 ```powershell
+onesearch load_skill list --format json
+onesearch load_skill onesearch-cli
 onesearch load_skill search
 onesearch load_skill docs
 onesearch load_skill fetch
+onesearch load_skill exa
+onesearch load_skill tavily
+onesearch load_skill firecrawl
+onesearch load_skill context7
+onesearch load_skill deepwiki
+onesearch load_skill anysearch
+onesearch load_skill zhipu
+onesearch load_skill mcp-tools
 onesearch load_skill deep-research
 ```
 
 可用别名：
 
-- `base`、`onesearch`、`cli`
+- `onesearch-cli`、`base`、`onesearch`、`cli`、`router`
 - `search`、`web-search`、`source-search`
 - `docs`、`api-docs`、`documentation`
 - `fetch`、`page-fetch`、`evidence`
+- `exa`、`exa-tools`、`web_search_exa`、`web_fetch_exa`
+- `tavily`、`tavily-tools`、`tavily_search`、`tavily_extract`、`tavily_map`、`tavily_crawl`
+- `firecrawl`、`firecrawl-tools`、`firecrawl_search`、`firecrawl_scrape`、`firecrawl_map`、`firecrawl_crawl`
+- `context7`、`context7-tools`、`ctx7`、`resolve_library_id`、`query_docs`
+- `deepwiki`、`deepwiki-tools`、`ask_question`、`read_wiki_structure`、`read_wiki_contents`
+- `anysearch`、`anysearch-tools`、`as`
+- `zhipu`、`zhipu-tools`、`zhipu-search`、`zp`
+- `mcp-tools`、`mcp`、`mcp-compat`、`mcp-tool-compat`、`provider-tools`
 - `deep-research`、`deep`、`research`
 
 ## 证据策略

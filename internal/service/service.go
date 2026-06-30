@@ -407,11 +407,14 @@ func (s *Service) Crawl(ctx context.Context, targetURL string, options CrawlOpti
 		options.Timeout = 180
 	}
 	for _, provider := range s.runtime().ResolveProviders(s.Config, "site_crawl", "auto", false) {
-		if provider.ID == "firecrawl" {
+		switch provider.ID {
+		case "tavily":
+			return providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 150))}.Crawl(ctx, targetURL, providers.TavilyCrawlOptions{MaxDepth: options.MaxDepth, Limit: options.Limit, TimeoutSeconds: options.Timeout})
+		case "firecrawl":
 			return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Crawl(ctx, targetURL, options.MaxDepth, options.Limit)
 		}
 	}
-	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": "site_crawl 没有可用 provider；请检查 routes.site_crawl 和 providers.firecrawl。"}
+	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": "site_crawl 没有可用 provider；请检查 routes.site_crawl 和 providers.tavily/providers.firecrawl。"}
 }
 
 func (s *Service) RepoWiki(ctx context.Context, repo, question, mode string) map[string]any {

@@ -20,10 +20,18 @@ type Definition struct {
 }
 
 var definitions = []Definition{
-	{ID: "onesearch-cli", Folder: "onesearch-cli", Aliases: []string{"base", "onesearch", "cli"}, Capabilities: []string{"all"}, Description: "Full Onesearch CLI orchestration skill."},
+	{ID: "onesearch-cli", Folder: "onesearch-cli", Aliases: []string{"base", "onesearch", "cli", "router"}, Capabilities: []string{"routing"}, Description: "Onesearch CLI capabilities for web search, evidence fetch, docs lookup, site crawl, repo wiki, deep research planning, and provider-direct MCP-compatible commands."},
+	{ID: "exa", Folder: "onesearch-exa", Aliases: []string{"exa-tools", "web_search_exa", "web_fetch_exa"}, Capabilities: []string{"source_search", "docs_search", "page_fetch"}, Description: "Exa provider commands, original MCP aliases, and usage guidance."},
+	{ID: "tavily", Folder: "onesearch-tavily", Aliases: []string{"tavily-tools", "tavily_search", "tavily_extract", "tavily_map", "tavily_crawl"}, Capabilities: []string{"source_search", "page_fetch", "site_map", "site_crawl"}, Description: "Tavily provider commands, original MCP aliases, and usage guidance."},
+	{ID: "firecrawl", Folder: "onesearch-firecrawl", Aliases: []string{"firecrawl-tools", "firecrawl_search", "firecrawl_scrape", "firecrawl_map", "firecrawl_crawl"}, Capabilities: []string{"source_search", "page_fetch", "site_map", "site_crawl"}, Description: "Firecrawl provider commands, original MCP aliases, and usage guidance."},
+	{ID: "context7", Folder: "onesearch-context7", Aliases: []string{"context7-tools", "ctx7", "resolve_library_id", "query_docs"}, Capabilities: []string{"docs_search"}, Description: "Context7 provider commands, original MCP aliases, and usage guidance."},
+	{ID: "deepwiki", Folder: "onesearch-deepwiki", Aliases: []string{"deepwiki-tools", "ask_question", "read_wiki_structure", "read_wiki_contents"}, Capabilities: []string{"repo_wiki"}, Description: "DeepWiki provider commands, original MCP aliases, and usage guidance."},
+	{ID: "anysearch", Folder: "onesearch-anysearch", Aliases: []string{"anysearch-tools", "as"}, Capabilities: []string{"vertical_search", "page_fetch"}, Description: "AnySearch provider commands and usage guidance."},
+	{ID: "zhipu", Folder: "onesearch-zhipu", Aliases: []string{"zhipu-tools", "zhipu-search", "zp"}, Capabilities: []string{"source_search"}, Description: "Zhipu search command and usage guidance."},
 	{ID: "search", Folder: "onesearch-search", Aliases: []string{"web-search", "source-search"}, Capabilities: []string{"answer_search", "source_search"}, Description: "Search and source discovery workflow."},
 	{ID: "docs", Folder: "onesearch-docs", Aliases: []string{"api-docs", "documentation"}, Capabilities: []string{"docs_search"}, Description: "API, SDK, library, and framework documentation workflow."},
 	{ID: "fetch", Folder: "onesearch-fetch", Aliases: []string{"page-fetch", "evidence"}, Capabilities: []string{"page_fetch", "site_map"}, Description: "URL fetch, evidence extraction, and site map workflow."},
+	{ID: "mcp-tools", Folder: "onesearch-mcp-tools", Aliases: []string{"mcp", "mcp-compat", "mcp-tool-compat", "provider-tools"}, Capabilities: []string{"source_search", "docs_search", "page_fetch", "site_map", "site_crawl", "repo_wiki"}, Description: "MCP original tool-name compatibility workflow."},
 	{ID: "deep-research", Folder: "onesearch-deep-research", Aliases: []string{"deep", "research"}, Capabilities: []string{"deep_planner", "research"}, Description: "Offline Deep Research planning and execution workflow."},
 }
 
@@ -73,12 +81,34 @@ func LoadFiles(name string) ([]File, error) {
 	return files, nil
 }
 
+func Definitions() []Definition {
+	out := make([]Definition, 0, len(definitions))
+	for _, def := range definitions {
+		out = append(out, cloneDefinition(def))
+	}
+	return out
+}
+
+func Describe(name string) (Definition, error) {
+	def, ok := resolve(name)
+	if !ok {
+		return Definition{}, fmt.Errorf("Unknown skill: %s. Available skills: %s", name, strings.Join(Names(), ", "))
+	}
+	return cloneDefinition(def), nil
+}
+
 func Names() []string {
 	out := make([]string, 0, len(definitions))
 	for _, def := range definitions {
 		out = append(out, def.ID)
 	}
 	return out
+}
+
+func cloneDefinition(def Definition) Definition {
+	def.Aliases = append([]string{}, def.Aliases...)
+	def.Capabilities = append([]string{}, def.Capabilities...)
+	return def
 }
 
 func resolve(name string) (Definition, bool) {

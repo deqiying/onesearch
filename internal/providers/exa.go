@@ -23,6 +23,10 @@ type ExaOptions struct {
 	Category           string
 }
 
+type ExaFetchOptions struct {
+	MaxCharacters int
+}
+
 func (p Exa) Search(ctx context.Context, query string, options ExaOptions) map[string]any {
 	start := time.Now()
 	if options.NumResults <= 0 {
@@ -72,6 +76,49 @@ func (p Exa) Search(ctx context.Context, query string, options ExaOptions) map[s
 	}
 }
 
+func (p Exa) Fetch(ctx context.Context, urls []string, options ExaFetchOptions) map[string]any {
+	start := time.Now()
+	urls = nonEmptyStrings(urls)
+	if len(urls) == 0 {
+		return map[string]any{"ok": false, "provider": "exa", "tool": "web_fetch_exa", "error_type": "parameter_error", "error": "web_fetch_exa requires at least one url", "elapsed_ms": Elapsed(start)}
+	}
+	textOption := any(true)
+	if options.MaxCharacters > 0 {
+		textOption = map[string]any{"maxCharacters": options.MaxCharacters}
+	}
+	payload := map[string]any{
+		"urls": urls,
+		"text": textOption,
+	}
+	var data map[string]any
+	err := PostJSON(ctx, Client(p.Timeout), strings.TrimRight(p.APIURL, "/")+"/contents", map[string]string{"x-api-key": p.APIKey}, payload, &data)
+	if err != nil {
+		errorType, message := ErrorPayload(err)
+		return map[string]any{"ok": false, "provider": "exa", "tool": "web_fetch_exa", "urls": urls, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
+	}
+	results := normalizeExaFetchResults(asMaps(data["results"]))
+	content := joinedResultContent(results)
+	out := map[string]any{
+		"ok":         true,
+		"provider":   "exa",
+		"tool":       "web_fetch_exa",
+		"urls":       urls,
+		"results":    results,
+		"total":      len(results),
+		"content":    content,
+		"elapsed_ms": Elapsed(start),
+	}
+	if len(urls) == 1 {
+		out["url"] = urls[0]
+	}
+	for _, key := range []string{"statuses", "requestId", "costDollars"} {
+		if data[key] != nil {
+			out[key] = data[key]
+		}
+	}
+	return out
+}
+
 func (p Exa) Similar(ctx context.Context, url string, numResults int) map[string]any {
 	start := time.Now()
 	if numResults <= 0 {
@@ -86,6 +133,35 @@ func (p Exa) Similar(ctx context.Context, url string, numResults int) map[string
 	}
 	results := normalizeExaResults(asMaps(data["results"]), false, false)
 	return map[string]any{"ok": true, "url": url, "results": results, "total": len(results), "elapsed_ms": Elapsed(start)}
+}
+
+func normalizeExaFetchResults(items []map[string]any) []map[string]any {
+	out := make([]map[string]any, 0, len(items))
+	for _, item := range items {
+		result := map[string]any{
+			"id":            item["id"],
+			"title":         stringValue(item["title"]),
+			"url":           firstNonEmpty(stringValue(item["url"]), stringValue(item["id"])),
+			"publishedDate": item["publishedDate"],
+			"author":        stringValue(item["author"]),
+		}
+		for _, key := range []string{"text", "summary", "image", "favicon"} {
+			if value := item[key]; stringValue(value) != "" {
+				result[key] = value
+			}
+		}
+		if highlights, ok := item["highlights"].([]any); ok {
+			result["highlights"] = highlights
+		}
+		if scores, ok := item["highlightScores"].([]any); ok {
+			result["highlightScores"] = scores
+		}
+		if subpages, ok := item["subpages"].([]any); ok {
+			result["subpages"] = subpages
+		}
+		out = append(out, result)
+	}
+	return out
 }
 
 func normalizeExaResults(items []map[string]any, includeText, includeHighlights bool) []map[string]any {
@@ -116,4 +192,24 @@ func normalizeExaResults(items []map[string]any, includeText, includeHighlights 
 		out = append(out, result)
 	}
 	return out
+}
+
+func nonEmptyStrings(items []string) []string {
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		if text := strings.TrimSpace(item); text != "" {
+			out = append(out, text)
+		}
+	}
+	return out
+}
+
+func joinedResultContent(items []map[string]any) string {
+	var parts []string
+	for _, item := range items {
+		if text := strings.TrimSpace(stringValue(item["text"])); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	return strings.TrimSpace(strings.Join(parts, "\n\n"))
 }

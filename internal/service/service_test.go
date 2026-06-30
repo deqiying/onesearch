@@ -756,7 +756,7 @@ func TestCrawlUsesFirecrawlProvider(t *testing.T) {
 		if payload["maxDiscoveryDepth"] != float64(3) || payload["limit"] != float64(7) {
 			t.Fatalf("crawl payload = %#v", payload)
 		}
-		_, _ = w.Write([]byte(`{"id":"crawl-1","status":"processing"}`))
+		_, _ = w.Write([]byte(`{"success":true,"id":"crawl-1","url":"https://example.com"}`))
 	}))
 	defer server.Close()
 
@@ -781,12 +781,54 @@ func TestCrawlUsesFirecrawlProvider(t *testing.T) {
 	}
 
 	got := New(cfg).Crawl(t.Context(), "https://example.com", CrawlOptions{MaxDepth: 3, Limit: 7})
-	if got["ok"] != true || got["provider"] != "firecrawl" {
+	if got["ok"] != true || got["provider"] != "firecrawl" || got["tool"] != "firecrawl_crawl" || got["id"] != "crawl-1" || got["status"] != "submitted" {
 		t.Fatalf("crawl result = %#v", got)
 	}
 	result := got["result"].(map[string]any)
 	if result["id"] != "crawl-1" {
 		t.Fatalf("crawl result payload = %#v", result)
+	}
+}
+
+func TestCrawlUsesTavilyProvider(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/crawl" {
+			t.Fatalf("tavily path = %s, want /crawl", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload["max_depth"] != float64(3) || payload["limit"] != float64(7) {
+			t.Fatalf("crawl payload = %#v", payload)
+		}
+		_, _ = w.Write([]byte(`{"results":[{"url":"https://example.com/docs","raw_content":"docs"}]}`))
+	}))
+	defer server.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"site_crawl": []any{"tavily"},
+		},
+		"providers": map[string]any{
+			"tavily": map[string]any{
+				"enabled":      true,
+				"adapter":      "tavily",
+				"capabilities": []any{"site_crawl"},
+				"base_url":     server.URL,
+				"api_key":      "tavily-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).Crawl(t.Context(), "https://example.com", CrawlOptions{MaxDepth: 3, Limit: 7})
+	if got["ok"] != true || got["provider"] != "tavily" || got["tool"] != "tavily_crawl" {
+		t.Fatalf("crawl result = %#v", got)
 	}
 }
 
