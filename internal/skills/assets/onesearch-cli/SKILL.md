@@ -1,15 +1,15 @@
 ---
 name: onesearch-cli
-description: Use when an AI agent needs Onesearch CLI capabilities, current web search, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands, or replacement routing for original MCP tool names such as web_search_exa, tavily_search, firecrawl_scrape, resolve_library_id, query_docs, and ask_question through a reproducible local CLI.
+description: Use when an AI agent needs Onesearch CLI capabilities, current web search, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, or provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands through a reproducible local CLI.
 ---
 
 # Onesearch CLI Router
 
 Use this skill as the entry router for Onesearch. It should decide which built-in skill to load next, then use that skill's command guidance. Do not duplicate provider option lists here; provider skills own provider-specific commands and flags.
 
-## Bridge Contract
+## Agent Routing Primer
 
-If an agent-specific integration mirrors these skill docs, provider names and original MCP tool names should route to Onesearch. A missing direct MCP tool is not a reason to fall back to generic web search when Onesearch exposes the matching provider or MCP-compatible alias.
+Use workflow commands when the user describes the task. Use provider direct commands when the user names a provider. Use workflow `--provider` when the user wants workflow output while forcing an upstream provider.
 
 ## First Step
 
@@ -22,14 +22,13 @@ If an agent-specific integration mirrors these skill docs, provider names and or
 
 | User intent | Load this skill | Typical command family |
 | --- | --- | --- |
-| Original MCP tool name such as `web_search_exa`, `tavily_search`, `query_docs`, or `ask_question` | `mcp-tools` | `onesearch mcp <tool>` or provider-group equivalent |
 | Exa source search, official docs discovery, papers, product pages, or Exa page fetch | `exa` | `onesearch exa ...` |
 | Tavily search, extract, map, or crawl | `tavily` | `onesearch tavily ...` |
 | Firecrawl search, scrape, map, or crawl | `firecrawl` | `onesearch firecrawl ...` |
 | Context7 library resolution or docs snippets | `context7` | `onesearch context7 ...` |
 | DeepWiki repository architecture or wiki context | `deepwiki` | `onesearch deepwiki ...` |
 | Explicit AnySearch vertical or experimental search | `anysearch` | `onesearch anysearch ...` |
-| Chinese, China-specific, or Zhipu direct source discovery | `zhipu` | `onesearch zhipu-search ...` |
+| Chinese, China-specific, or Zhipu direct source discovery | `zhipu` | `onesearch zhipu search ...` |
 | Broad answer search, current source discovery, or source triage | `search` | `onesearch search ...` |
 | API, SDK, package, framework, or official documentation lookup | `docs` | `onesearch context7 ...`, `onesearch exa ...` |
 | URL evidence, page fetch, site map, or bounded crawl | `fetch` | `onesearch fetch ...`, `onesearch map ...`, provider fetch/map/crawl |
@@ -56,7 +55,6 @@ onesearch skills list --format json
 onesearch skills list --capability page_fetch --format json
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
-onesearch skills show mcp-tools --format content
 onesearch load_skill exa
 onesearch load_skill tavily
 onesearch doctor --format json
@@ -65,8 +63,8 @@ onesearch config list --format json
 
 ## Routing Rules
 
-- Prefer the most specific provider skill when the user names a provider or original MCP tool.
-- Use `mcp-tools` only as a compatibility index from original MCP tool names to provider skills.
+- Prefer the most specific provider skill when the user names a provider.
+- Use workflow `--provider` when the user names a provider but still wants workflow-shaped output.
 - Use workflow skills (`search`, `docs`, `fetch`, `deep-research`) when the user asks by task intent rather than provider name.
 - Treat search results as discovery candidates. Fetch or extract key URLs before claim-level conclusions.
 - Keep API keys out of final answers. `doctor` and `config list` mask secrets.

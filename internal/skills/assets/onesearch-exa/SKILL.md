@@ -1,6 +1,6 @@
 ---
 name: onesearch-exa
-description: Use when an AI agent needs Exa through Onesearch, especially when the user names Exa, web_search_exa, web_fetch_exa, semantic web discovery, low-noise source discovery, official docs discovery, product pages, papers, known-domain search, or clean page content fetch via the Onesearch CLI.
+description: Use when an AI agent needs Exa through Onesearch, especially when the user names Exa, semantic web discovery, low-noise source discovery, official docs discovery, product pages, papers, known-domain search, similar-page discovery, or clean page content fetch via the Onesearch CLI.
 ---
 
 # Onesearch Exa
@@ -9,7 +9,7 @@ Use Exa for low-noise web discovery, official documentation, papers, product pag
 
 ## Bridge Contract
 
-This skill is the source document for agent-facing Exa bridge skills. When a task names Exa, `web_search_exa`, `web_fetch_exa`, semantic web discovery, best-page lookup, official docs discovery, papers, product pages, or clean markdown/content fetch, route through Onesearch instead of looking for a direct Exa MCP tool.
+This skill is the source document for agent-facing Exa provider direct commands. When a task names Exa, semantic web discovery, best-page lookup, official docs discovery, papers, product pages, similar pages, or clean markdown/content fetch, route through Onesearch.
 
 If command details may have changed, run:
 
@@ -22,25 +22,16 @@ Use the provider command family by default:
 ```powershell
 onesearch exa web-search "query" --format json
 onesearch exa web-fetch "https://example.com" --format json
+onesearch exa similar "https://example.com" --format json
 ```
-
-Use `onesearch mcp web_search_exa ...` and `onesearch mcp web_fetch_exa ...` only for mechanical migration from original MCP tool names.
 
 ## Commands
 
-| Purpose | Preferred command | MCP-compatible alias |
-| --- | --- | --- |
-| Web search | `onesearch exa web-search "query"` | `onesearch exa web_search_exa "query"` |
-| Page fetch | `onesearch exa web-fetch "https://example.com"` | `onesearch exa web_fetch_exa "https://example.com"` |
-| Similar pages | `onesearch exa-similar "https://example.com"` | Legacy flat command only |
-| Legacy search | `onesearch exa-search "query"` | Legacy flat command |
-
-Global MCP migration aliases:
-
-```powershell
-onesearch mcp web_search_exa "query" --format json
-onesearch mcp web_fetch_exa "https://example.com" --format json
-```
+| Purpose | Command |
+| --- | --- |
+| Web search | `onesearch exa web-search "query"` |
+| Page fetch | `onesearch exa web-fetch "https://example.com"` |
+| Similar pages | `onesearch exa similar "https://example.com"` |
 
 ## Usage
 
@@ -49,7 +40,7 @@ onesearch exa web-search "OpenAI Responses API documentation" --max-results 5 --
 onesearch exa web-search "vector database benchmark" --include-domains docs.example.com arxiv.org --format json
 onesearch exa web-fetch "https://example.com/article" --max-characters 12000 --format json
 onesearch exa web-fetch "https://example.com/article" --format content
-onesearch exa-similar "https://example.com/article" --num-results 5 --format json
+onesearch exa similar "https://example.com/article" --num-results 5 --format json
 ```
 
 ## Options

@@ -3,59 +3,39 @@ package cli
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/deqiying/onesearch/internal/providers"
 	"github.com/deqiying/onesearch/internal/service"
 )
 
-type providerToolRoute struct {
-	provider string
-	tool     string
-}
-
 var providerToolAliases = map[string]map[string]string{
 	"exa": {
-		"web-search":     "web_search_exa",
-		"web_search_exa": "web_search_exa",
-		"web-fetch":      "web_fetch_exa",
-		"web_fetch_exa":  "web_fetch_exa",
+		"web-search": "web_search_exa",
+		"web-fetch":  "web_fetch_exa",
+		"similar":    "find_similar",
 	},
 	"tavily": {
-		"search":         "tavily_search",
-		"tavily_search":  "tavily_search",
-		"extract":        "tavily_extract",
-		"tavily_extract": "tavily_extract",
-		"map":            "tavily_map",
-		"tavily_map":     "tavily_map",
-		"crawl":          "tavily_crawl",
-		"tavily_crawl":   "tavily_crawl",
+		"search":  "tavily_search",
+		"extract": "tavily_extract",
+		"map":     "tavily_map",
+		"crawl":   "tavily_crawl",
 	},
 	"firecrawl": {
-		"search":           "firecrawl_search",
-		"firecrawl_search": "firecrawl_search",
-		"scrape":           "firecrawl_scrape",
-		"firecrawl_scrape": "firecrawl_scrape",
-		"map":              "firecrawl_map",
-		"firecrawl_map":    "firecrawl_map",
-		"crawl":            "firecrawl_crawl",
-		"firecrawl_crawl":  "firecrawl_crawl",
+		"search": "firecrawl_search",
+		"scrape": "firecrawl_scrape",
+		"map":    "firecrawl_map",
+		"crawl":  "firecrawl_crawl",
 	},
 	"context7": {
 		"resolve-library-id": "resolve_library_id",
-		"resolve_library_id": "resolve_library_id",
-		"library":            "resolve_library_id",
 		"query-docs":         "query_docs",
-		"query_docs":         "query_docs",
-		"docs":               "query_docs",
 	},
 	"deepwiki": {
 		"ask-question":        "ask_question",
-		"ask_question":        "ask_question",
 		"read-wiki-structure": "read_wiki_structure",
-		"read_wiki_structure": "read_wiki_structure",
 		"read-wiki-contents":  "read_wiki_contents",
-		"read_wiki_contents":  "read_wiki_contents",
 	},
 	"anysearch": {
 		"domains": "domains",
@@ -63,50 +43,17 @@ var providerToolAliases = map[string]map[string]string{
 		"extract": "extract",
 		"batch":   "batch",
 	},
-}
-
-var mcpToolRoutes = map[string]providerToolRoute{
-	"web_search_exa":      {provider: "exa", tool: "web_search_exa"},
-	"web_fetch_exa":       {provider: "exa", tool: "web_fetch_exa"},
-	"tavily_search":       {provider: "tavily", tool: "tavily_search"},
-	"tavily_extract":      {provider: "tavily", tool: "tavily_extract"},
-	"tavily_map":          {provider: "tavily", tool: "tavily_map"},
-	"tavily_crawl":        {provider: "tavily", tool: "tavily_crawl"},
-	"firecrawl_search":    {provider: "firecrawl", tool: "firecrawl_search"},
-	"firecrawl_scrape":    {provider: "firecrawl", tool: "firecrawl_scrape"},
-	"firecrawl_map":       {provider: "firecrawl", tool: "firecrawl_map"},
-	"firecrawl_crawl":     {provider: "firecrawl", tool: "firecrawl_crawl"},
-	"resolve_library_id":  {provider: "context7", tool: "resolve_library_id"},
-	"query_docs":          {provider: "context7", tool: "query_docs"},
-	"ask_question":        {provider: "deepwiki", tool: "ask_question"},
-	"read_wiki_structure": {provider: "deepwiki", tool: "read_wiki_structure"},
-	"read_wiki_contents":  {provider: "deepwiki", tool: "read_wiki_contents"},
+	"zhipu": {
+		"search": "zhipu_search",
+	},
 }
 
 func shouldDispatchProviderCommand(command string, args []string) bool {
-	if command == "mcp" {
-		return true
-	}
-	if _, ok := providerToolAliases[command]; !ok {
-		return false
-	}
-	if command != "exa" {
-		return true
-	}
-	if len(args) == 0 {
-		return false
-	}
-	if isHelpToken(args[0]) {
-		return true
-	}
-	_, ok := canonicalProviderTool(command, args[0])
+	_, ok := providerToolAliases[command]
 	return ok
 }
 
 func runProviderCommand(ctx context.Context, svc *service.Service, provider string, args []string) int {
-	if provider == "mcp" {
-		return runMCPCommand(ctx, svc, args)
-	}
 	if len(args) == 0 {
 		return printProviderError(provider, "provider command requires subcommand", args, svc)
 	}
@@ -131,21 +78,11 @@ func runProviderCommand(ctx context.Context, svc *service.Service, provider stri
 		return runDeepWikiGroup(ctx, svc, tool, args[1:])
 	case "anysearch":
 		return runAnySearchGroup(ctx, svc, tool, args[1:])
+	case "zhipu":
+		return runZhipuGroup(ctx, svc, tool, args[1:])
 	default:
 		return printProviderError(provider, "unsupported provider command: "+provider, args[1:], svc)
 	}
-}
-
-func runMCPCommand(ctx context.Context, svc *service.Service, args []string) int {
-	if len(args) == 0 {
-		return printProviderError("mcp", "mcp requires original tool name", args, svc)
-	}
-	route, ok := mcpToolRoutes[args[0]]
-	if !ok {
-		return printProviderError("mcp", "unsupported MCP tool: "+args[0], args[1:], svc)
-	}
-	next := append([]string{route.tool}, args[1:]...)
-	return runProviderCommand(ctx, svc, route.provider, next)
 }
 
 func runExaGroup(ctx context.Context, svc *service.Service, tool string, args []string) int {
@@ -190,6 +127,18 @@ func runExaGroup(ctx context.Context, svc *service.Service, tool string, args []
 			return printProviderToolParameterError("exa", tool, "web_fetch_exa requires at least one url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.ExaFetch(ctx, urls, providers.ExaFetchOptions{MaxCharacters: *maxCharacters}), "exa", tool)
+		return printCommand("exa", data, makeFormatOutput(outputFlags, svc))
+	case "find_similar":
+		fs := flagSet("exa similar")
+		numResults := fs.Int("num-results", 5, "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("exa", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("exa", tool, "similar requires url", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.ExaSimilar(ctx, fs.Arg(0), *numResults), "exa", tool)
 		return printCommand("exa", data, makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("exa", "unsupported exa tool: "+tool, args, svc)
@@ -389,11 +338,11 @@ func runDeepWikiGroup(ctx context.Context, svc *service.Service, tool string, ar
 		if fs.NArg() < 2 {
 			return printProviderToolParameterError("deepwiki", tool, "ask_question requires repo and question", outputFlags, svc)
 		}
-		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), fs.Arg(1), "ask"), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), fs.Arg(1), service.RepoWikiOptions{Mode: "ask", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
 	case "read_wiki_structure":
-		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", "structure"), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", service.RepoWikiOptions{Mode: "structure", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
 	case "read_wiki_contents":
-		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", "contents"), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", service.RepoWikiOptions{Mode: "contents", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("deepwiki", "unsupported deepwiki tool: "+tool, args, svc)
 	}
@@ -411,6 +360,29 @@ func runAnySearchGroup(ctx context.Context, svc *service.Service, tool string, a
 		return runAnyBatch(ctx, svc, args)
 	default:
 		return printProviderError("anysearch", "unsupported anysearch tool: "+tool, args, svc)
+	}
+}
+
+func runZhipuGroup(ctx context.Context, svc *service.Service, tool string, args []string) int {
+	switch tool {
+	case "zhipu_search":
+		fs := flagSet("zhipu search")
+		count := fs.Int("count", 10, "")
+		engine := fs.String("search-engine", "", "")
+		recency := fs.String("search-recency-filter", "noLimit", "")
+		domain := fs.String("search-domain-filter", "", "")
+		contentSize := fs.String("content-size", "medium", "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("zhipu", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("zhipu", tool, "zhipu search requires query", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.ZhipuSearch(ctx, fs.Arg(0), providers.ZhipuOptions{Count: *count, SearchEngine: *engine, SearchRecencyFilter: *recency, SearchDomainFilter: *domain, ContentSize: *contentSize}), "zhipu", tool)
+		return printCommand("zhipu", data, makeFormatOutput(outputFlags, svc))
+	default:
+		return printProviderError("zhipu", "unsupported zhipu tool: "+tool, args, svc)
 	}
 }
 
@@ -445,16 +417,13 @@ func printProviderHelp(provider string) {
 	if aliases := providerToolAliases[provider]; len(aliases) > 0 {
 		fmt.Println()
 		fmt.Println("Commands:")
-		seen := map[string]struct{}{}
-		for alias, tool := range aliases {
-			if alias == tool {
-				continue
-			}
-			if _, ok := seen[tool]; ok {
-				continue
-			}
-			seen[tool] = struct{}{}
-			fmt.Println("  " + alias + " (" + tool + ")")
+		names := make([]string, 0, len(aliases))
+		for alias := range aliases {
+			names = append(names, alias)
+		}
+		sort.Strings(names)
+		for _, alias := range names {
+			fmt.Println("  " + alias)
 		}
 	}
 }

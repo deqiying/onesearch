@@ -52,37 +52,36 @@ func TestOverlayProviderFilterOverridesScopedExpression(t *testing.T) {
 	}
 }
 
-func TestProviderCommandAliasesCoverMCPToolNames(t *testing.T) {
+func TestProviderCommandsExposeOnlyHumanReadableSubcommands(t *testing.T) {
 	for provider, cases := range map[string]map[string]string{
 		"exa": {
-			"web-search":     "web_search_exa",
-			"web_search_exa": "web_search_exa",
-			"web-fetch":      "web_fetch_exa",
-			"web_fetch_exa":  "web_fetch_exa",
+			"web-search": "web_search_exa",
+			"web-fetch":  "web_fetch_exa",
+			"similar":    "find_similar",
 		},
 		"tavily": {
-			"search":         "tavily_search",
-			"tavily_search":  "tavily_search",
-			"extract":        "tavily_extract",
-			"tavily_extract": "tavily_extract",
-			"map":            "tavily_map",
-			"tavily_map":     "tavily_map",
-			"crawl":          "tavily_crawl",
-			"tavily_crawl":   "tavily_crawl",
+			"search":  "tavily_search",
+			"extract": "tavily_extract",
+			"map":     "tavily_map",
+			"crawl":   "tavily_crawl",
 		},
 		"context7": {
 			"resolve-library-id": "resolve_library_id",
-			"resolve_library_id": "resolve_library_id",
 			"query-docs":         "query_docs",
-			"query_docs":         "query_docs",
 		},
 		"deepwiki": {
 			"ask-question":        "ask_question",
-			"ask_question":        "ask_question",
 			"read-wiki-structure": "read_wiki_structure",
-			"read_wiki_structure": "read_wiki_structure",
 			"read-wiki-contents":  "read_wiki_contents",
-			"read_wiki_contents":  "read_wiki_contents",
+		},
+		"anysearch": {
+			"domains": "domains",
+			"search":  "search",
+			"extract": "extract",
+			"batch":   "batch",
+		},
+		"zhipu": {
+			"search": "zhipu_search",
 		},
 	} {
 		for alias, want := range cases {
@@ -92,47 +91,42 @@ func TestProviderCommandAliasesCoverMCPToolNames(t *testing.T) {
 			}
 		}
 	}
-}
-
-func TestGlobalMCPRoutesOriginalToolNames(t *testing.T) {
-	for tool, want := range map[string]providerToolRoute{
-		"web_search_exa":      {provider: "exa", tool: "web_search_exa"},
-		"web_fetch_exa":       {provider: "exa", tool: "web_fetch_exa"},
-		"tavily_search":       {provider: "tavily", tool: "tavily_search"},
-		"tavily_extract":      {provider: "tavily", tool: "tavily_extract"},
-		"tavily_map":          {provider: "tavily", tool: "tavily_map"},
-		"tavily_crawl":        {provider: "tavily", tool: "tavily_crawl"},
-		"firecrawl_search":    {provider: "firecrawl", tool: "firecrawl_search"},
-		"firecrawl_scrape":    {provider: "firecrawl", tool: "firecrawl_scrape"},
-		"firecrawl_map":       {provider: "firecrawl", tool: "firecrawl_map"},
-		"firecrawl_crawl":     {provider: "firecrawl", tool: "firecrawl_crawl"},
-		"resolve_library_id":  {provider: "context7", tool: "resolve_library_id"},
-		"query_docs":          {provider: "context7", tool: "query_docs"},
-		"ask_question":        {provider: "deepwiki", tool: "ask_question"},
-		"read_wiki_structure": {provider: "deepwiki", tool: "read_wiki_structure"},
-		"read_wiki_contents":  {provider: "deepwiki", tool: "read_wiki_contents"},
+	for provider, aliases := range map[string][]string{
+		"exa":       {"web_search_exa", "web_fetch_exa"},
+		"tavily":    {"tavily_search", "tavily_extract", "tavily_map", "tavily_crawl"},
+		"firecrawl": {"firecrawl_search", "firecrawl_scrape", "firecrawl_map", "firecrawl_crawl"},
+		"context7":  {"resolve_library_id", "query_docs", "library", "docs"},
+		"deepwiki":  {"ask_question", "read_wiki_structure", "read_wiki_contents"},
 	} {
-		if got := mcpToolRoutes[tool]; got != want {
-			t.Fatalf("mcp route %s = %#v, want %#v", tool, got, want)
+		for _, alias := range aliases {
+			if got, ok := canonicalProviderTool(provider, alias); ok {
+				t.Fatalf("%s %s unexpectedly maps to %q", provider, alias, got)
+			}
 		}
 	}
 }
 
-func TestExaProviderCommandDoesNotStealLegacyExaAlias(t *testing.T) {
-	if shouldDispatchProviderCommand("exa", []string{"golang"}) {
-		t.Fatal("onesearch exa <query> should keep legacy exa-search alias behavior")
+func TestGlobalMCPCommandNoLongerDispatches(t *testing.T) {
+	if shouldDispatchProviderCommand("mcp", []string{"web_search_exa"}) {
+		t.Fatal("mcp compatibility router should not dispatch")
 	}
-	if shouldDispatchProviderCommand("exa", []string{"search", "golang"}) {
-		t.Fatal("onesearch exa search <query> should keep legacy exa-search alias behavior")
+	if code := Execute([]string{"mcp", "web_search_exa"}); code != 2 {
+		t.Fatalf("mcp command exit code = %d, want 2", code)
 	}
-	if shouldDispatchProviderCommand("exa", []string{"fetch", "golang"}) {
-		t.Fatal("onesearch exa fetch <query> should keep legacy exa-search alias behavior")
+}
+
+func TestExaProviderCommandDispatchesProviderGroupOnly(t *testing.T) {
+	if !shouldDispatchProviderCommand("exa", nil) {
+		t.Fatal("onesearch exa should dispatch provider group help/error")
+	}
+	if !shouldDispatchProviderCommand("exa", []string{"golang"}) {
+		t.Fatal("onesearch exa <query> should dispatch provider group and return parameter error")
 	}
 	if !shouldDispatchProviderCommand("exa", []string{"web-search", "golang"}) {
 		t.Fatal("onesearch exa web-search should dispatch provider group command")
 	}
-	if shouldDispatchProviderCommand("exa", []string{"--", "web-search"}) {
-		t.Fatal("onesearch exa -- web-search should keep legacy exa-search alias behavior")
+	if !shouldDispatchProviderCommand("exa", []string{"similar", "https://example.com"}) {
+		t.Fatal("onesearch exa similar should dispatch provider group command")
 	}
 }
 
@@ -171,21 +165,24 @@ func TestSkillsListCommandIncludesProviderSkills(t *testing.T) {
 		item := raw.(map[string]any)
 		found[item["id"].(string)] = true
 	}
-	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "mcp-tools"} {
+	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu"} {
 		if !found[id] {
 			t.Fatalf("skills list missing %s: %#v", id, got["skills"])
 		}
+	}
+	if found["mcp-tools"] {
+		t.Fatalf("skills list should not include mcp-tools: %#v", got["skills"])
 	}
 }
 
 func TestSkillsShowCommandPrintsContent(t *testing.T) {
 	t.Setenv("ONESEARCH_CONFIG_DIR", t.TempDir())
 	output := captureStdout(t, func() {
-		if code := Execute([]string{"skills", "show", "mcp", "--format", "content"}); code != 0 {
+		if code := Execute([]string{"skills", "show", "onesearch-cli", "--format", "content"}); code != 0 {
 			t.Fatalf("exit code = %d, want 0", code)
 		}
 	})
-	if !strings.Contains(output, "Onesearch MCP Tool Router") || !strings.Contains(output, "onesearch mcp web_search_exa") {
+	if !strings.Contains(output, "Onesearch CLI Router") || !strings.Contains(output, "provider direct") {
 		t.Fatalf("skills show content = %q", output)
 	}
 }
@@ -196,8 +193,8 @@ func TestSkillsShowProviderSkillPrintsToolCommands(t *testing.T) {
 		name string
 		want []string
 	}{
-		{name: "exa", want: []string{"Onesearch Exa", "web_search_exa", "onesearch exa web-fetch"}},
-		{name: "tavily", want: []string{"Onesearch Tavily", "tavily_crawl", "onesearch tavily extract"}},
+		{name: "exa", want: []string{"Onesearch Exa", "onesearch exa web-search", "onesearch exa web-fetch", "onesearch exa similar"}},
+		{name: "tavily", want: []string{"Onesearch Tavily", "onesearch tavily search", "onesearch tavily extract"}},
 	} {
 		output := captureStdout(t, func() {
 			if code := Execute([]string{"skills", "show", tc.name, "--format", "content"}); code != 0 {
@@ -228,8 +225,11 @@ func TestSkillsListCapabilityFilterIncludesProviderSkills(t *testing.T) {
 		item := raw.(map[string]any)
 		found[item["id"].(string)] = true
 	}
-	if !found["tavily"] || !found["firecrawl"] || !found["mcp-tools"] {
+	if !found["tavily"] || !found["firecrawl"] {
 		t.Fatalf("site_crawl skills missing provider entries: %#v", got["skills"])
+	}
+	if found["mcp-tools"] {
+		t.Fatalf("site_crawl skills should not include mcp-tools: %#v", got["skills"])
 	}
 	if found["onesearch-cli"] {
 		t.Fatalf("site_crawl filter should not include router-only skill: %#v", got["skills"])

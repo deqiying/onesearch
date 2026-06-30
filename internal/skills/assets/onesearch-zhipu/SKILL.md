@@ -1,6 +1,6 @@
 ---
 name: onesearch-zhipu
-description: Use when an AI agent needs Zhipu through Onesearch for Chinese web search, China-specific current information, domain-filtered Chinese source discovery, or the zhipu-search command.
+description: Use when an AI agent needs Zhipu through Onesearch for Chinese web search, China-specific current information, domain-filtered Chinese source discovery, or the Zhipu provider direct search command.
 ---
 
 # Onesearch Zhipu
@@ -10,22 +10,15 @@ Use Zhipu for Chinese, China-specific, current, or domain-filtered source discov
 ## Command
 
 ```powershell
-onesearch zhipu-search "query" --format json
-```
-
-Short aliases:
-
-```powershell
-onesearch z "query" --format json
-onesearch zp "query" --format json
+onesearch zhipu search "query" --format json
 ```
 
 ## Usage
 
 ```powershell
-onesearch zhipu-search "今天国内 AI 新闻" --count 5 --format json
-onesearch zhipu-search "某政策 最新 解读" --count 10 --content-size medium --format json
-onesearch zhipu-search "站点内信息" --search-domain-filter example.cn --format json
+onesearch zhipu search "今天国内 AI 新闻" --count 5 --format json
+onesearch zhipu search "某政策 最新 解读" --count 10 --content-size medium --format json
+onesearch zhipu search "站点内信息" --search-domain-filter example.cn --format json
 ```
 
 ## Options

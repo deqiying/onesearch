@@ -489,7 +489,7 @@ func ExitCode(data map[string]any) int {
 }
 
 func content(command string, data map[string]any) string {
-	if command == "search" || command == "fetch" || command == "repo-wiki" || command == "context7-docs" {
+	if command == "search" || command == "fetch" || command == "repo-wiki" {
 		if text := stringValue(data["content"]); text != "" {
 			return text + "\n"
 		}
@@ -752,16 +752,6 @@ func titleFor(command string) string {
 		return "Onesearch Fetch"
 	case "map":
 		return "Onesearch Map"
-	case "exa-search":
-		return "Exa Search"
-	case "exa-similar":
-		return "Exa Similar"
-	case "zhipu-search":
-		return "Zhipu Search"
-	case "context7-library":
-		return "Context7 Library"
-	case "context7-docs":
-		return "Context7 Docs"
 	default:
 		return "Onesearch"
 	}

@@ -12,19 +12,14 @@ import (
 	"github.com/deqiying/onesearch/internal/app"
 	"github.com/deqiying/onesearch/internal/config"
 	"github.com/deqiying/onesearch/internal/output"
-	"github.com/deqiying/onesearch/internal/providers"
 	"github.com/deqiying/onesearch/internal/service"
 	"github.com/deqiying/onesearch/internal/skills"
 )
 
 var aliases = map[string]string{
 	"s": "search", "f": "fetch", "m": "map",
-	"cr":  "crawl",
-	"rw":  "repo-wiki",
-	"exa": "exa-search", "x": "exa-search", "xs": "exa-similar",
-	"z": "zhipu-search", "zp": "zhipu-search",
-	"as-domains": "anysearch-domains", "as-search": "anysearch-search", "as": "anysearch-search", "as-extract": "anysearch-extract", "as-batch": "anysearch-batch",
-	"c7": "context7-library", "ctx7": "context7-library", "c7d": "context7-docs", "c7docs": "context7-docs", "ctx7-docs": "context7-docs",
+	"cr": "crawl",
+	"rw": "repo-wiki",
 	"dr": "deep", "sm": "smoke", "d": "doctor", "mdl": "model", "cfg": "config", "skill": "skills", "load-skill": "load_skill", "reg": "regression",
 }
 
@@ -59,24 +54,6 @@ func Execute(args []string) int {
 		return runCrawl(ctx, svc, args[1:])
 	case "repo-wiki":
 		return runRepoWiki(ctx, svc, args[1:])
-	case "exa-search":
-		return runExaSearch(ctx, svc, args[1:])
-	case "exa-similar":
-		return runExaSimilar(ctx, svc, args[1:])
-	case "zhipu-search":
-		return runZhipu(ctx, svc, args[1:])
-	case "anysearch-domains":
-		return runAnyDomains(ctx, svc, args[1:])
-	case "anysearch-search":
-		return runAnySearch(ctx, svc, args[1:])
-	case "anysearch-extract":
-		return runAnyExtract(ctx, svc, args[1:])
-	case "anysearch-batch":
-		return runAnyBatch(ctx, svc, args[1:])
-	case "context7-library":
-		return runContext7Library(ctx, svc, args[1:])
-	case "context7-docs":
-		return runContext7Docs(ctx, svc, args[1:])
 	case "deep":
 		return runDeep(svc, args[1:])
 	case "doctor":
@@ -157,7 +134,12 @@ func runSearch(ctx context.Context, svc *service.Service, args []string) int {
 }
 
 func runFetch(ctx context.Context, svc *service.Service, args []string) int {
+	if hasHelpToken(args) {
+		printWorkflowHelp("fetch")
+		return 0
+	}
 	fs := flagSet("fetch")
+	provider := fs.String("provider", "auto", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return printParameterError("fetch", err.Error(), makeFormatOutput(outputFlags, svc))
@@ -165,16 +147,21 @@ func runFetch(ctx context.Context, svc *service.Service, args []string) int {
 	if fs.NArg() < 1 {
 		return printParameterError("fetch", "fetch requires url", makeFormatOutput(outputFlags, svc))
 	}
-	return printCommand("fetch", svc.Fetch(ctx, fs.Arg(0)), makeFormatOutput(outputFlags, svc))
+	return printCommand("fetch", svc.Fetch(ctx, fs.Arg(0), service.FetchOptions{Provider: *provider}), makeFormatOutput(outputFlags, svc))
 }
 
 func runMap(ctx context.Context, svc *service.Service, args []string) int {
+	if hasHelpToken(args) {
+		printWorkflowHelp("map")
+		return 0
+	}
 	fs := flagSet("map")
 	instructions := fs.String("instructions", "", "")
 	maxDepth := fs.Int("max-depth", 1, "")
 	maxBreadth := fs.Int("max-breadth", 20, "")
 	limit := fs.Int("limit", 50, "")
 	timeoutSeconds := fs.Int("timeout", 150, "")
+	provider := fs.String("provider", "auto", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return printParameterError("map", err.Error(), makeFormatOutput(outputFlags, svc))
@@ -182,15 +169,20 @@ func runMap(ctx context.Context, svc *service.Service, args []string) int {
 	if fs.NArg() < 1 {
 		return printParameterError("map", "map requires url", makeFormatOutput(outputFlags, svc))
 	}
-	data := svc.Map(ctx, fs.Arg(0), service.MapOptions{Instructions: *instructions, MaxDepth: *maxDepth, MaxBreadth: *maxBreadth, Limit: *limit, Timeout: *timeoutSeconds})
+	data := svc.Map(ctx, fs.Arg(0), service.MapOptions{Instructions: *instructions, MaxDepth: *maxDepth, MaxBreadth: *maxBreadth, Limit: *limit, Timeout: *timeoutSeconds, Provider: *provider})
 	return printCommand("map", data, makeFormatOutput(outputFlags, svc))
 }
 
 func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
+	if hasHelpToken(args) {
+		printWorkflowHelp("crawl")
+		return 0
+	}
 	fs := flagSet("crawl")
 	maxDepth := fs.Int("max-depth", 2, "")
 	limit := fs.Int("limit", 20, "")
 	timeoutSeconds := fs.Int("timeout", 180, "")
+	provider := fs.String("provider", "auto", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
 		return printParameterError("crawl", err.Error(), makeFormatOutput(outputFlags, svc))
@@ -200,7 +192,7 @@ func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds)*time.Second)
 	defer cancel()
-	data := svc.Crawl(ctx, fs.Arg(0), service.CrawlOptions{MaxDepth: *maxDepth, Limit: *limit, Timeout: *timeoutSeconds})
+	data := svc.Crawl(ctx, fs.Arg(0), service.CrawlOptions{MaxDepth: *maxDepth, Limit: *limit, Timeout: *timeoutSeconds, Provider: *provider})
 	if ctx.Err() == context.DeadlineExceeded {
 		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Crawl timed out after %d seconds", *timeoutSeconds), "url": fs.Arg(0), "timeout_seconds": *timeoutSeconds}
 	}
@@ -208,8 +200,13 @@ func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
 }
 
 func runRepoWiki(ctx context.Context, svc *service.Service, args []string) int {
+	if hasHelpToken(args) {
+		printWorkflowHelp("repo-wiki")
+		return 0
+	}
 	fs := flagSet("repo-wiki")
 	mode := fs.String("mode", "", "")
+	provider := fs.String("provider", "auto", "")
 	timeoutSeconds := fs.Float64("timeout", 60, "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
@@ -224,147 +221,65 @@ func runRepoWiki(ctx context.Context, svc *service.Service, args []string) int {
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds*float64(time.Second)))
 	defer cancel()
-	data := svc.RepoWiki(ctx, fs.Arg(0), question, *mode)
+	data := svc.RepoWiki(ctx, fs.Arg(0), question, service.RepoWikiOptions{Mode: *mode, Provider: *provider})
 	if ctx.Err() == context.DeadlineExceeded {
 		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Repo wiki timed out after %g seconds", *timeoutSeconds), "repo": fs.Arg(0), "timeout_seconds": *timeoutSeconds}
 	}
 	return printCommand("repo-wiki", data, makeFormatOutput(outputFlags, svc))
 }
 
-func runExaSearch(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("exa-search")
-	numResults := fs.Int("num-results", 5, "")
-	searchType := fs.String("search-type", "neural", "")
-	includeText := fs.Bool("include-text", false, "")
-	includeHighlights := fs.Bool("include-highlights", false, "")
-	startDate := fs.String("start-published-date", "", "")
-	category := fs.String("category", "", "")
-	includeDomains := stringListFlag{}
-	excludeDomains := stringListFlag{}
-	fs.Var(&includeDomains, "include-domains", "")
-	fs.Var(&excludeDomains, "exclude-domains", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError("exa-search", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError("exa-search", "exa-search requires query", makeFormatOutput(outputFlags, svc))
-	}
-	data := svc.ExaSearch(ctx, fs.Arg(0), providers.ExaOptions{NumResults: *numResults, SearchType: *searchType, IncludeText: *includeText, IncludeHighlights: *includeHighlights, StartPublishedDate: *startDate, IncludeDomains: includeDomains.values, ExcludeDomains: excludeDomains.values, Category: *category})
-	return printCommand("exa-search", data, makeFormatOutput(outputFlags, svc))
-}
-
-func runExaSimilar(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("exa-similar")
-	numResults := fs.Int("num-results", 5, "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError("exa-similar", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError("exa-similar", "exa-similar requires url", makeFormatOutput(outputFlags, svc))
-	}
-	return printCommand("exa-similar", svc.ExaSimilar(ctx, fs.Arg(0), *numResults), makeFormatOutput(outputFlags, svc))
-}
-
-func runZhipu(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("zhipu-search")
-	count := fs.Int("count", 10, "")
-	engine := fs.String("search-engine", "", "")
-	recency := fs.String("search-recency-filter", "noLimit", "")
-	domain := fs.String("search-domain-filter", "", "")
-	contentSize := fs.String("content-size", "medium", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError("zhipu-search", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError("zhipu-search", "zhipu-search requires query", makeFormatOutput(outputFlags, svc))
-	}
-	data := svc.ZhipuSearch(ctx, fs.Arg(0), providers.ZhipuOptions{Count: *count, SearchEngine: *engine, SearchRecencyFilter: *recency, SearchDomainFilter: *domain, ContentSize: *contentSize})
-	return printCommand("zhipu-search", data, makeFormatOutput(outputFlags, svc))
-}
-
 func runAnyDomains(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch-domains")
+	fs := flagSet("anysearch domains")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("anysearch-domains", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "domains", err.Error(), outputFlags, svc)
 	}
 	domain := ""
 	if fs.NArg() > 0 {
 		domain = fs.Arg(0)
 	}
-	return printCommand("anysearch-domains", svc.AnySearch().Domains(ctx, domain), makeFormatOutput(outputFlags, svc))
+	return printCommand("anysearch", svc.AnySearch().Domains(ctx, domain), makeFormatOutput(outputFlags, svc))
 }
 
 func runAnySearch(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch-search")
+	fs := flagSet("anysearch search")
 	domain := fs.String("domain", "", "")
 	subDomain := fs.String("sub-domain", "", "")
 	maxResults := fs.Int("max-results", 5, "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("anysearch-search", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "search", err.Error(), outputFlags, svc)
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("anysearch-search", "anysearch-search requires query", makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "search", "anysearch search requires query", outputFlags, svc)
 	}
-	return printCommand("anysearch-search", svc.AnySearch().Search(ctx, fs.Arg(0), *domain, *subDomain, *maxResults), makeFormatOutput(outputFlags, svc))
+	return printCommand("anysearch", svc.AnySearch().Search(ctx, fs.Arg(0), *domain, *subDomain, *maxResults), makeFormatOutput(outputFlags, svc))
 }
 
 func runAnyExtract(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch-extract")
+	fs := flagSet("anysearch extract")
 	maxLength := fs.Int("max-length", 20000, "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("anysearch-extract", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "extract", err.Error(), outputFlags, svc)
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("anysearch-extract", "anysearch-extract requires url", makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "extract", "anysearch extract requires url", outputFlags, svc)
 	}
-	return printCommand("anysearch-extract", svc.AnySearch().Extract(ctx, fs.Arg(0), *maxLength), makeFormatOutput(outputFlags, svc))
+	return printCommand("anysearch", svc.AnySearch().Extract(ctx, fs.Arg(0), *maxLength), makeFormatOutput(outputFlags, svc))
 }
 
 func runAnyBatch(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch-batch")
+	fs := flagSet("anysearch batch")
 	maxResults := fs.Int("max-results", 3, "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("anysearch-batch", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "batch", err.Error(), outputFlags, svc)
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("anysearch-batch", "anysearch-batch requires at least one query", makeFormatOutput(outputFlags, svc))
+		return printProviderToolParameterError("anysearch", "batch", "anysearch batch requires at least one query", outputFlags, svc)
 	}
-	return printCommand("anysearch-batch", svc.AnySearch().Batch(ctx, fs.Args(), *maxResults), makeFormatOutput(outputFlags, svc))
-}
-
-func runContext7Library(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("context7-library")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError("context7-library", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError("context7-library", "context7-library requires name", makeFormatOutput(outputFlags, svc))
-	}
-	query := ""
-	if fs.NArg() > 1 {
-		query = fs.Arg(1)
-	}
-	return printCommand("context7-library", svc.Context7Library(ctx, fs.Arg(0), query), makeFormatOutput(outputFlags, svc))
-}
-
-func runContext7Docs(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("context7-docs")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError("context7-docs", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 2 {
-		return printParameterError("context7-docs", "context7-docs requires library_id and query", makeFormatOutput(outputFlags, svc))
-	}
-	return printCommand("context7-docs", svc.Context7Docs(ctx, fs.Arg(0), fs.Arg(1)), makeFormatOutput(outputFlags, svc))
+	return printCommand("anysearch", svc.AnySearch().Batch(ctx, fs.Args(), *maxResults), makeFormatOutput(outputFlags, svc))
 }
 
 func runDeep(svc *service.Service, args []string) int {
@@ -621,6 +536,15 @@ func parse(fs *flag.FlagSet, args []string) error {
 	return fs.Parse(reorderFlags(fs, args))
 }
 
+func hasHelpToken(args []string) bool {
+	for _, arg := range args {
+		if isHelpToken(arg) {
+			return true
+		}
+	}
+	return false
+}
+
 func reorderFlags(fs *flag.FlagSet, args []string) []string {
 	var flags []string
 	var positionals []string
@@ -739,10 +663,37 @@ func printHelp() {
 	fmt.Println(app.Description)
 	fmt.Println()
 	fmt.Println("Usage:")
-	fmt.Println("  onesearch <command> [args] [--format json|markdown|content] [--quiet|--verbose]")
+	fmt.Println("  onesearch <workflow> [args] [flags]")
+	fmt.Println("  onesearch <provider> <command> [args] [flags]")
 	fmt.Println()
-	fmt.Println("Commands:")
-	fmt.Println("  search, fetch, map, crawl, repo-wiki, exa-search, exa-similar, zhipu-search")
-	fmt.Println("  context7-library, context7-docs, anysearch-*, deep, doctor, smoke")
+	fmt.Println("Workflow / capability:")
+	fmt.Println("  search, fetch, map, crawl, repo-wiki, deep")
+	fmt.Println()
+	fmt.Println("Provider direct:")
+	fmt.Println("  exa web-search|web-fetch|similar")
+	fmt.Println("  tavily search|extract|map|crawl")
+	fmt.Println("  firecrawl search|scrape|map|crawl")
+	fmt.Println("  context7 resolve-library-id|query-docs")
+	fmt.Println("  deepwiki ask-question|read-wiki-structure|read-wiki-contents")
+	fmt.Println("  anysearch domains|search|extract|batch")
+	fmt.Println("  zhipu search")
+	fmt.Println()
+	fmt.Println("Utility:")
 	fmt.Println("  config, model, skills, load_skill, regression")
+	fmt.Println("  doctor, smoke")
+}
+
+func printWorkflowHelp(command string) {
+	switch command {
+	case "fetch":
+		fmt.Println("onesearch fetch <url> [--provider auto|provider[,provider...]] [--format json|markdown|content] [--output path]")
+	case "map":
+		fmt.Println("onesearch map <url> [--provider auto|provider[,provider...]] [--instructions text] [--max-depth n] [--max-breadth n] [--limit n] [--timeout seconds] [--format json|markdown|content]")
+	case "crawl":
+		fmt.Println("onesearch crawl <url> [--provider auto|provider[,provider...]] [--max-depth n] [--limit n] [--timeout seconds] [--format json|markdown|content]")
+	case "repo-wiki":
+		fmt.Println("onesearch repo-wiki <owner/repo> [question] [--provider auto|provider[,provider...]] [--mode ask|structure|contents] [--timeout seconds] [--format json|markdown|content]")
+	default:
+		fmt.Println("onesearch " + command + " [args] [flags]")
+	}
 }

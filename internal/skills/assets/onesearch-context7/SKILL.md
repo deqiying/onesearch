@@ -1,6 +1,6 @@
 ---
 name: onesearch-context7
-description: Use when an AI agent needs Context7 through Onesearch, especially when the user names Context7, resolve_library_id, query_docs, library resolution, current API docs, SDK docs, framework docs, package documentation, version-specific usage, setup, migration, or MCP Context7 replacement through the Onesearch CLI.
+description: Use when an AI agent needs Context7 through Onesearch, especially when the user names Context7, library resolution, current API docs, SDK docs, framework docs, package documentation, version-specific usage, setup, or migration through the Onesearch CLI.
 ---
 
 # Onesearch Context7
@@ -9,7 +9,7 @@ Use Context7 for library, SDK, API, package, and framework documentation. Resolv
 
 ## Bridge Contract
 
-This skill is the source document for agent-facing Context7 bridge skills. When a task names Context7, `resolve_library_id`, `query_docs`, current library docs, API signatures, SDK setup, package options, framework configuration, version-specific examples, or migration guidance, route through Onesearch instead of looking for a direct Context7 MCP tool.
+This skill is the source document for agent-facing Context7 provider direct commands. When a task names Context7, current library docs, API signatures, SDK setup, package options, framework configuration, version-specific examples, or migration guidance, route through Onesearch.
 
 If command details may have changed, run:
 
@@ -24,23 +24,12 @@ onesearch context7 resolve-library-id "library" --format json
 onesearch context7 query-docs "/org/project" "focused docs question" --format json
 ```
 
-Use `onesearch mcp resolve_library_id ...` and `onesearch mcp query_docs ...` only for mechanical migration from original MCP tool names.
-
 ## Commands
 
-| Purpose | Preferred command | MCP-compatible alias |
-| --- | --- | --- |
-| Resolve library | `onesearch context7 resolve-library-id "react"` | `onesearch context7 resolve_library_id "react"` |
-| Query docs | `onesearch context7 query-docs "/facebook/react" "query"` | `onesearch context7 query_docs "/facebook/react" "query"` |
-| Legacy resolve | `onesearch context7-library "react" "hooks"` | Legacy flat command |
-| Legacy docs | `onesearch context7-docs "/facebook/react" "query"` | Legacy flat command |
-
-Global MCP migration aliases:
-
-```powershell
-onesearch mcp resolve_library_id "react" --format json
-onesearch mcp query_docs "/facebook/react" "useEffect cleanup" --format json
-```
+| Purpose | Command |
+| --- | --- |
+| Resolve library | `onesearch context7 resolve-library-id "react"` |
+| Query docs | `onesearch context7 query-docs "/facebook/react" "query"` |
 
 ## Usage
 

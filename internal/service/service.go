@@ -77,12 +77,23 @@ type MapOptions struct {
 	MaxBreadth   int
 	Limit        int
 	Timeout      int
+	Provider     string
 }
 
 type CrawlOptions struct {
 	MaxDepth int
 	Limit    int
 	Timeout  int
+	Provider string
+}
+
+type FetchOptions struct {
+	Provider string
+}
+
+type RepoWikiOptions struct {
+	Mode     string
+	Provider string
 }
 
 func New(cfg *config.Config) *Service {
@@ -316,18 +327,19 @@ func searchDiagnostics(minimum map[string]any, routing any, attempts any) map[st
 	return out
 }
 
-func (s *Service) Fetch(ctx context.Context, targetURL string) map[string]any {
+func (s *Service) Fetch(ctx context.Context, targetURL string, options FetchOptions) map[string]any {
 	start := time.Now()
-	result, attempts := s.runWebFetchFallback(ctx, targetURL, "auto", s.defaultString("fallback_mode", config.DefaultFallbackMode))
+	filter := valueOr(options.Provider, "auto")
+	result, attempts := s.runWebFetchFallback(ctx, targetURL, filter, s.defaultString("fallback_mode", config.DefaultFallbackMode))
 	if truthy(result["ok"]) {
 		result["provider_attempts"] = attemptsToMaps(attempts)
 		result["fallback_used"] = fallbackUsed(attempts)
 		result["elapsed_ms"] = providers.Elapsed(start)
 		return result
 	}
-	if len(s.pageFetchProviders()) == 0 {
+	if len(attempts) == 0 {
 		result["error_type"] = "config_error"
-		result["error"] = "page_fetch 没有可用 provider，请配置 routes.page_fetch 中任一 provider 的 API key。"
+		result["error"] = capabilityProviderError("page_fetch", filter, "请检查 routes.page_fetch、provider capabilities 和 API key。")
 	} else {
 		result["error_type"] = "network_error"
 		result["error"] = "所有提取服务均未能获取内容"
@@ -356,8 +368,9 @@ func (s *Service) Map(ctx context.Context, targetURL string, options MapOptions)
 	if options.Timeout <= 0 {
 		options.Timeout = 150
 	}
+	filter := valueOr(options.Provider, "auto")
 	var attempts []providers.Attempt
-	for _, provider := range s.runtime().ResolveProviders(s.Config, "site_map", "auto", false) {
+	for _, provider := range s.runtime().ResolveProviders(s.Config, "site_map", filter, false) {
 		start := time.Now()
 		var data map[string]any
 		switch provider.ID {
@@ -393,7 +406,7 @@ func (s *Service) Map(ctx context.Context, targetURL string, options MapOptions)
 	if len(attempts) > 0 {
 		return map[string]any{"ok": false, "url": targetURL, "error_type": "network_error", "error": "所有 site_map provider 均未返回同域结果", "provider_attempts": attemptsToMaps(attempts), "fallback_used": fallbackUsed(attempts), "elapsed_ms": providers.Elapsed(overallStart)}
 	}
-	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": "site_map 没有可用 provider；请检查 routes.site_map 和对应 provider 配置。", "elapsed_ms": providers.Elapsed(overallStart)}
+	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": capabilityProviderError("site_map", filter, "请检查 routes.site_map、provider capabilities 和 API key。"), "elapsed_ms": providers.Elapsed(overallStart)}
 }
 
 func (s *Service) Crawl(ctx context.Context, targetURL string, options CrawlOptions) map[string]any {
@@ -406,7 +419,8 @@ func (s *Service) Crawl(ctx context.Context, targetURL string, options CrawlOpti
 	if options.Timeout <= 0 {
 		options.Timeout = 180
 	}
-	for _, provider := range s.runtime().ResolveProviders(s.Config, "site_crawl", "auto", false) {
+	filter := valueOr(options.Provider, "auto")
+	for _, provider := range s.runtime().ResolveProviders(s.Config, "site_crawl", filter, false) {
 		switch provider.ID {
 		case "tavily":
 			return providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 150))}.Crawl(ctx, targetURL, providers.TavilyCrawlOptions{MaxDepth: options.MaxDepth, Limit: options.Limit, TimeoutSeconds: options.Timeout})
@@ -414,15 +428,16 @@ func (s *Service) Crawl(ctx context.Context, targetURL string, options CrawlOpti
 			return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Crawl(ctx, targetURL, options.MaxDepth, options.Limit)
 		}
 	}
-	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": "site_crawl 没有可用 provider；请检查 routes.site_crawl 和 providers.tavily/providers.firecrawl。"}
+	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": capabilityProviderError("site_crawl", filter, "请检查 routes.site_crawl、provider capabilities 和 API key。")}
 }
 
-func (s *Service) RepoWiki(ctx context.Context, repo, question, mode string) map[string]any {
+func (s *Service) RepoWiki(ctx context.Context, repo, question string, options RepoWikiOptions) map[string]any {
 	start := time.Now()
+	mode := options.Mode
 	if _, err := validateRepoWikiMode(mode); err != nil {
 		return map[string]any{"ok": false, "repo": repo, "error_type": "parameter_error", "error": err.Error(), "elapsed_ms": providers.Elapsed(start)}
 	}
-	result, attempts := s.runRepoWikiFallback(ctx, repo, question, mode, "auto", s.defaultString("fallback_mode", config.DefaultFallbackMode))
+	result, attempts := s.runRepoWikiFallback(ctx, repo, question, mode, valueOr(options.Provider, "auto"), s.defaultString("fallback_mode", config.DefaultFallbackMode))
 	result["provider_attempts"] = attemptsToMaps(attempts)
 	result["fallback_used"] = fallbackUsed(attempts)
 	result["elapsed_ms"] = providers.Elapsed(start)
@@ -866,6 +881,13 @@ func (s *Service) runWebFetchFallback(ctx context.Context, targetURL, filter, fa
 			content, err = providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 60))}.Extract(ctx, targetURL)
 		} else if provider.ID == "firecrawl" {
 			content, err = providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Scrape(ctx, targetURL, s.retryMaxAttempts())
+		} else if provider.ID == "exa" {
+			data := providers.Exa{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 30))}.Fetch(ctx, []string{targetURL}, providers.ExaFetchOptions{MaxCharacters: 20000})
+			if truthy(data["ok"]) {
+				content = stringValue(data["content"])
+			} else {
+				err = fmt.Errorf("%s", data["error"])
+			}
 		} else if provider.ID == "anysearch" {
 			data := providers.AnySearch{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 60))}.Extract(ctx, targetURL, 20000)
 			if truthy(data["ok"]) {
@@ -1064,7 +1086,7 @@ func (s *Service) runRepoWikiFallback(ctx context.Context, repo, question, mode,
 		attempts = append(attempts, attempt("repo_wiki", provider.ID, status, start, 0, errType, msg))
 	}
 	if len(attempts) == 0 {
-		return map[string]any{"ok": false, "repo": normalized, "error_type": "config_error", "error": "repo_wiki 没有可用 provider；请检查 routes.repo_wiki 和 providers.deepwiki。"}, attempts
+		return map[string]any{"ok": false, "repo": normalized, "error_type": "config_error", "error": capabilityProviderError("repo_wiki", filter, "请检查 routes.repo_wiki、provider capabilities 和 API key。")}, attempts
 	}
 	return map[string]any{"ok": false, "repo": normalized, "error_type": "network_error", "error": "所有 repo_wiki provider 均未返回内容"}, attempts
 }
@@ -1162,6 +1184,14 @@ func enumLocal(value, label string, allowed []string) (string, error) {
 
 func configError(message string) map[string]any {
 	return map[string]any{"ok": false, "error_type": "config_error", "error": message}
+}
+
+func capabilityProviderError(capability, filter, hint string) string {
+	filter = strings.TrimSpace(filter)
+	if filter == "" || strings.EqualFold(filter, "auto") {
+		return fmt.Sprintf("%s 没有可用 provider；%s", capability, hint)
+	}
+	return fmt.Sprintf("%s 没有可用 provider 匹配 --provider %s；%s", capability, filter, hint)
 }
 
 func emptySearch(start time.Time, sessionID, query, errorType, message string) map[string]any {

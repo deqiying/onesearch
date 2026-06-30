@@ -2,19 +2,28 @@
 
 This reference defines the public CLI contract for `onesearch`.
 
-## Commands
+## Agent Routing Primer
 
-Core commands:
+- If the user describes a task, prefer workflow commands.
+- If the user names an upstream provider, use provider direct commands.
+- If the user wants workflow output while specifying the upstream provider, use workflow `--provider`.
+
+## Public Command Surface
+
+Workflow / capability commands:
 
 - `onesearch search "query"`
-- `onesearch fetch "https://example.com/page"`
-- `onesearch map "https://example.com"`
-- `onesearch crawl "https://example.com"`
-- `onesearch repo-wiki "owner/repo" ["question"]`
-- `onesearch exa-search "query"`
-- `onesearch exa-similar "https://example.com/page"`
+- `onesearch fetch "https://example.com/page" --provider tavily`
+- `onesearch map "https://example.com" --provider firecrawl`
+- `onesearch crawl "https://example.com" --provider tavily`
+- `onesearch repo-wiki "owner/repo" ["question"] --provider deepwiki`
+- `onesearch deep "research question"`
+
+Provider direct commands:
+
 - `onesearch exa web-search "query"`
 - `onesearch exa web-fetch "https://example.com/page"`
+- `onesearch exa similar "https://example.com/page"`
 - `onesearch tavily search "query"`
 - `onesearch tavily extract "https://example.com/page"`
 - `onesearch tavily map "https://example.com"`
@@ -23,23 +32,19 @@ Core commands:
 - `onesearch firecrawl scrape "https://example.com/page"`
 - `onesearch firecrawl map "https://example.com"`
 - `onesearch firecrawl crawl "https://example.com"`
-- `onesearch zhipu-search "query"`
-- `onesearch context7-library "library" "query"`
-- `onesearch context7-docs "/org/project" "query"`
 - `onesearch context7 resolve-library-id "library"`
 - `onesearch context7 query-docs "/org/project" "query"`
 - `onesearch deepwiki ask-question "owner/repo" "question"`
 - `onesearch deepwiki read-wiki-structure "owner/repo"`
 - `onesearch deepwiki read-wiki-contents "owner/repo"`
-- `onesearch anysearch-domains [domain]`
-- `onesearch anysearch-search "query"`
-- `onesearch anysearch-extract "https://example.com/page"`
-- `onesearch anysearch-batch "query 1" "query 2"`
 - `onesearch anysearch domains [domain]`
 - `onesearch anysearch search "query"`
 - `onesearch anysearch extract "https://example.com/page"`
 - `onesearch anysearch batch "query 1" "query 2"`
-- `onesearch deep "research question"`
+- `onesearch zhipu search "query"`
+
+Utility commands:
+
 - `onesearch doctor`
 - `onesearch smoke`
 - `onesearch config path|list`
@@ -50,32 +55,11 @@ Core commands:
 
 Supported output formats are `json`, `markdown`, and `content`. JSON is the default and is the stable format for agents and scripts. Search success output defaults to a compact unified result object; use `--verbose` to include full diagnostics such as routing decisions, provider attempts, and capability status. Error output also defaults to `--quiet`. `--quiet` overrides debug defaults.
 
-Provider group commands use:
+Explicit non-contract:
 
-```text
-onesearch <provider> <command> [args] [flags]
-```
-
-Provider groups also accept original MCP tool names as aliases, for example:
-
-- `onesearch exa web_search_exa "query"`
-- `onesearch exa web_fetch_exa "https://example.com/page"`
-- `onesearch tavily tavily_search "query"`
-- `onesearch tavily tavily_extract "https://example.com/page"`
-- `onesearch tavily tavily_map "https://example.com"`
-- `onesearch tavily tavily_crawl "https://example.com"`
-- `onesearch context7 resolve_library_id "react"`
-- `onesearch context7 query_docs "/facebook/react" "query"`
-- `onesearch deepwiki ask_question "owner/repo" "question"`
-- `onesearch deepwiki read_wiki_structure "owner/repo"`
-- `onesearch deepwiki read_wiki_contents "owner/repo"`
-
-The global MCP compatibility entry is available for mechanical migration scripts:
-
-- `onesearch mcp web_search_exa "query"`
-- `onesearch mcp tavily_search "query"`
-- `onesearch mcp query_docs "/facebook/react" "query"`
-- `onesearch mcp ask_question "owner/repo" "question"`
+- `onesearch mcp <tool>` is not a public entry.
+- Provider group snake_case tool aliases are not public CLI subcommands.
+- Flat provider commands are not public entries.
 
 ## Runtime configuration
 
@@ -175,6 +159,14 @@ A legacy unscoped value such as `--providers openai_responses` is still treated 
 
 `search --fetch-sources N` automatically runs `page_fetch` on the first N URL candidates discovered by `source_search`. This is intended for agent-selected high-confidence source discovery flows, such as official ranking pages or current structured pages. The fetched evidence appears under `used.page_fetch` with role `source_evidence`.
 
+Standalone workflow provider filters:
+
+- `fetch --provider` maps to `page_fetch`.
+- `map --provider` maps to `site_map`.
+- `crawl --provider` maps to `site_crawl`.
+- `repo-wiki --provider` maps to `repo_wiki`.
+- `--provider` accepts provider IDs or aliases, including comma-separated fallback filters.
+
 ## Output contract
 
 Common fields:
@@ -267,8 +259,6 @@ Each item includes `id`, `aliases`, `capabilities`, and `description`.
 onesearch skills show onesearch-cli --format content
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
-onesearch skills show mcp-tools --format json
-onesearch skills show mcp-tools --format content
 ```
 
 `onesearch load_skill NAME` prints the bundled `SKILL.md` for the requested built-in skill to stdout and returns exit code `0`.
@@ -279,14 +269,13 @@ Supported names and aliases:
 - `search`, `web-search`, `source-search`
 - `docs`, `api-docs`, `documentation`
 - `fetch`, `page-fetch`, `evidence`
-- `exa`, `exa-tools`, `web_search_exa`, `web_fetch_exa`
-- `tavily`, `tavily-tools`, `tavily_search`, `tavily_extract`, `tavily_map`, `tavily_crawl`
-- `firecrawl`, `firecrawl-tools`, `firecrawl_search`, `firecrawl_scrape`, `firecrawl_map`, `firecrawl_crawl`
-- `context7`, `context7-tools`, `ctx7`, `resolve_library_id`, `query_docs`
-- `deepwiki`, `deepwiki-tools`, `ask_question`, `read_wiki_structure`, `read_wiki_contents`
+- `exa`, `exa-tools`, `exa-web`, `exa-fetch`, `exa-similar-pages`
+- `tavily`, `tavily-tools`, `tavily-search`, `tavily-extract`, `tavily-map`, `tavily-crawl`
+- `firecrawl`, `firecrawl-tools`, `firecrawl-search`, `firecrawl-scrape`, `firecrawl-map`, `firecrawl-crawl`
+- `context7`, `context7-tools`, `ctx7`, `context7-provider`, `context7-library-docs`
+- `deepwiki`, `deepwiki-tools`, `repo-wiki`, `repository-wiki`
 - `anysearch`, `anysearch-tools`, `as`
-- `zhipu`, `zhipu-tools`, `zhipu-search`, `zp`
-- `mcp-tools`, `mcp`, `mcp-compat`, `mcp-tool-compat`, `provider-tools`
+- `zhipu`, `zhipu-tools`, `zhipu-web-search`, `zp`
 - `deep-research`, `deep`, `research`
 
 `onesearch load_skill list --format json` is a compatibility alias for `onesearch skills list --format json`.
@@ -313,7 +302,7 @@ Expected fields:
 - `allowed_tools`
 - `evidence_dir`
 
-Allowed `steps[].tool` values are `search`, `exa-search`, `exa-similar`, `exa web-search`, `exa web-fetch`, `tavily search`, `tavily extract`, `zhipu-search`, `context7-library`, `context7-docs`, `context7 query-docs`, `fetch`, `map`, `crawl`, `deepwiki ask-question`, and `repo-wiki`.
+Allowed `steps[].tool` values include `search`, `fetch`, `map`, `crawl`, `repo-wiki`, `exa web-search`, `exa web-fetch`, `exa similar`, `tavily search`, `tavily extract`, `context7 resolve-library-id`, `context7 query-docs`, `deepwiki ask-question`, and `zhipu search`.
 
 ## Exit codes
 
@@ -336,14 +325,12 @@ go run .\cmd\onesearch skills list --format json
 go run .\cmd\onesearch skills show onesearch-cli --format content
 go run .\cmd\onesearch skills show exa --format content
 go run .\cmd\onesearch skills show tavily --format content
-go run .\cmd\onesearch skills show mcp-tools --format content
 go run .\cmd\onesearch load_skill onesearch-cli
 go run .\cmd\onesearch load_skill search
 go run .\cmd\onesearch load_skill docs
 go run .\cmd\onesearch load_skill fetch
 go run .\cmd\onesearch load_skill exa
 go run .\cmd\onesearch load_skill tavily
-go run .\cmd\onesearch load_skill mcp-tools
 go run .\cmd\onesearch load_skill deep-research
 ```
 

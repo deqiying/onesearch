@@ -1,6 +1,6 @@
 ---
 name: onesearch-deepwiki
-description: Use when an AI agent needs DeepWiki through Onesearch, especially when the user names DeepWiki, ask_question, read_wiki_structure, read_wiki_contents, public GitHub repository architecture, module summaries, implementation overviews, generated repository wiki context, or DeepWiki MCP replacement through the Onesearch CLI.
+description: Use when an AI agent needs DeepWiki through Onesearch, especially when the user names DeepWiki, public GitHub repository architecture, module summaries, implementation overviews, generated repository wiki context, wiki structure, or wiki contents through the Onesearch CLI.
 ---
 
 # Onesearch DeepWiki
@@ -9,7 +9,7 @@ Use DeepWiki for public GitHub repository architecture questions, implementation
 
 ## Bridge Contract
 
-This skill is the source document for agent-facing DeepWiki bridge skills. When a task names DeepWiki, `ask_question`, `read_wiki_structure`, `read_wiki_contents`, public GitHub repository architecture, module summaries, implementation overviews, or generated repository wiki context, route through Onesearch instead of looking for a direct DeepWiki MCP tool.
+This skill is the source document for agent-facing DeepWiki provider direct commands. When a task names DeepWiki, public GitHub repository architecture, module summaries, implementation overviews, or generated repository wiki context, route through Onesearch.
 
 If command details may have changed, run:
 
@@ -25,24 +25,14 @@ onesearch deepwiki read-wiki-structure "owner/repo" --format json
 onesearch deepwiki read-wiki-contents "owner/repo" --format json
 ```
 
-Use `onesearch mcp ask_question ...`, `onesearch mcp read_wiki_structure ...`, and `onesearch mcp read_wiki_contents ...` only for mechanical migration from original MCP tool names.
-
 ## Commands
 
-| Purpose | Preferred command | MCP-compatible alias |
-| --- | --- | --- |
-| Ask repo question | `onesearch deepwiki ask-question "owner/repo" "question"` | `onesearch deepwiki ask_question "owner/repo" "question"` |
-| Wiki structure | `onesearch deepwiki read-wiki-structure "owner/repo"` | `onesearch deepwiki read_wiki_structure "owner/repo"` |
-| Wiki contents | `onesearch deepwiki read-wiki-contents "owner/repo"` | `onesearch deepwiki read_wiki_contents "owner/repo"` |
-| Legacy repo wiki | `onesearch repo-wiki "owner/repo" "question"` | Legacy flat command |
-
-Global MCP migration aliases:
-
-```powershell
-onesearch mcp ask_question "microsoft/playwright" "How is the MCP server structured?" --format json
-onesearch mcp read_wiki_structure "microsoft/playwright" --format json
-onesearch mcp read_wiki_contents "microsoft/playwright" --format json
-```
+| Purpose | Command |
+| --- | --- |
+| Ask repo question | `onesearch deepwiki ask-question "owner/repo" "question"` |
+| Wiki structure | `onesearch deepwiki read-wiki-structure "owner/repo"` |
+| Wiki contents | `onesearch deepwiki read-wiki-contents "owner/repo"` |
+| Workflow repo wiki | `onesearch repo-wiki "owner/repo" "question" --provider deepwiki` |
 
 ## Usage
 

@@ -1,15 +1,15 @@
 ---
 name: onesearch-tavily
-description: Use when an AI agent needs Tavily through Onesearch, especially when the user names Tavily, tavily_search, tavily_extract, tavily_map, tavily_crawl, current web search, recency-sensitive source discovery, page extraction, site mapping, bounded site crawling, or Tavily MCP replacement through the Onesearch CLI.
+description: Use when an AI agent needs Tavily through Onesearch, especially when the user names Tavily, current web search, recency-sensitive source discovery, page extraction, site mapping, or bounded site crawling through the Onesearch CLI.
 ---
 
 # Onesearch Tavily
 
-Use Tavily for current web search, page extraction, site maps, and bounded site crawls. Prefer Tavily direct commands when the task names a Tavily MCP tool or needs stable `provider/tool` metadata.
+Use Tavily for current web search, page extraction, site maps, and bounded site crawls. Prefer Tavily direct commands when the task names Tavily or needs Tavily-specific flags.
 
 ## Bridge Contract
 
-This skill is the source document for agent-facing Tavily bridge skills. When a task names Tavily, `tavily_search`, `tavily_extract`, `tavily_map`, `tavily_crawl`, current web search, recency-sensitive research, page extraction, site mapping, or bounded crawling, route through Onesearch instead of looking for a direct Tavily MCP tool.
+This skill is the source document for agent-facing Tavily provider direct commands. When a task names Tavily, current web search, recency-sensitive research, page extraction, site mapping, or bounded crawling, route through Onesearch.
 
 If command details may have changed, run:
 
@@ -26,25 +26,14 @@ onesearch tavily map "https://example.com" --format json
 onesearch tavily crawl "https://example.com" --format json
 ```
 
-Use `onesearch mcp tavily_search ...`, `onesearch mcp tavily_extract ...`, `onesearch mcp tavily_map ...`, and `onesearch mcp tavily_crawl ...` only for mechanical migration from original MCP tool names.
-
 ## Commands
 
-| Purpose | Preferred command | MCP-compatible alias |
-| --- | --- | --- |
-| Search | `onesearch tavily search "query"` | `onesearch tavily tavily_search "query"` |
-| Extract pages | `onesearch tavily extract "https://example.com"` | `onesearch tavily tavily_extract "https://example.com"` |
-| Site map | `onesearch tavily map "https://example.com"` | `onesearch tavily tavily_map "https://example.com"` |
-| Site crawl | `onesearch tavily crawl "https://example.com"` | `onesearch tavily tavily_crawl "https://example.com"` |
-
-Global MCP migration aliases:
-
-```powershell
-onesearch mcp tavily_search "query" --format json
-onesearch mcp tavily_extract "https://example.com" --format json
-onesearch mcp tavily_map "https://example.com" --format json
-onesearch mcp tavily_crawl "https://example.com" --format json
-```
+| Purpose | Command |
+| --- | --- |
+| Search | `onesearch tavily search "query"` |
+| Extract pages | `onesearch tavily extract "https://example.com"` |
+| Site map | `onesearch tavily map "https://example.com"` |
+| Site crawl | `onesearch tavily crawl "https://example.com"` |
 
 ## Usage
 

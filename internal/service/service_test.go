@@ -285,7 +285,7 @@ func TestRepoWikiCommandUsesDeepWikiProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := New(cfg).RepoWiki(t.Context(), "https://github.com/microsoft/playwright", "architecture?", "")
+	got := New(cfg).RepoWiki(t.Context(), "https://github.com/microsoft/playwright", "architecture?", RepoWikiOptions{})
 	if got["ok"] != true || got["repo"] != "microsoft/playwright" || got["content"] != "repo answer" {
 		t.Fatalf("repo wiki result = %#v", got)
 	}
@@ -829,6 +829,182 @@ func TestCrawlUsesTavilyProvider(t *testing.T) {
 	got := New(cfg).Crawl(t.Context(), "https://example.com", CrawlOptions{MaxDepth: 3, Limit: 7})
 	if got["ok"] != true || got["provider"] != "tavily" || got["tool"] != "tavily_crawl" {
 		t.Fatalf("crawl result = %#v", got)
+	}
+}
+
+func TestFetchProviderFilterUsesExa(t *testing.T) {
+	var tavilyCalls int
+	tavily := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tavilyCalls++
+		http.Error(w, "should be skipped", http.StatusInternalServerError)
+	}))
+	defer tavily.Close()
+	exa := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/contents" {
+			t.Fatalf("exa path = %s, want /contents", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"results":[{"url":"https://example.com","title":"Example","text":"exa page body"}]}`))
+	}))
+	defer exa.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"page_fetch": []any{"tavily", "exa"},
+		},
+		"providers": map[string]any{
+			"tavily": map[string]any{
+				"enabled":      true,
+				"adapter":      "tavily",
+				"capabilities": []any{"page_fetch"},
+				"base_url":     tavily.URL,
+				"api_key":      "tavily-key",
+			},
+			"exa": map[string]any{
+				"enabled":      true,
+				"adapter":      "exa",
+				"capabilities": []any{"page_fetch"},
+				"base_url":     exa.URL,
+				"api_key":      "exa-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).Fetch(t.Context(), "https://example.com", FetchOptions{Provider: "exa"})
+	if got["ok"] != true || got["provider"] != "exa" || got["content"] != "exa page body" {
+		t.Fatalf("fetch result = %#v", got)
+	}
+	if tavilyCalls != 0 {
+		t.Fatalf("fetch --provider exa should skip tavily, calls = %d", tavilyCalls)
+	}
+}
+
+func TestMapProviderFilterSkipsUnmatchedProviders(t *testing.T) {
+	var tavilyCalls int
+	tavily := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tavilyCalls++
+		http.Error(w, "should be skipped", http.StatusInternalServerError)
+	}))
+	defer tavily.Close()
+	firecrawl := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"links":["https://example.com/docs"]}`))
+	}))
+	defer firecrawl.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"site_map": []any{"tavily", "firecrawl"},
+		},
+		"providers": map[string]any{
+			"tavily": map[string]any{
+				"enabled":      true,
+				"adapter":      "tavily",
+				"capabilities": []any{"site_map"},
+				"base_url":     tavily.URL,
+				"api_key":      "tavily-key",
+			},
+			"firecrawl": map[string]any{
+				"enabled":      true,
+				"adapter":      "firecrawl",
+				"capabilities": []any{"site_map"},
+				"base_url":     firecrawl.URL,
+				"api_key":      "firecrawl-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).Map(t.Context(), "https://example.com", MapOptions{Provider: "firecrawl", Limit: 5, Timeout: 2})
+	if got["ok"] != true || got["provider"] != "firecrawl" {
+		t.Fatalf("map result = %#v", got)
+	}
+	if tavilyCalls != 0 {
+		t.Fatalf("map --provider firecrawl should skip tavily, calls = %d", tavilyCalls)
+	}
+}
+
+func TestCrawlProviderFilterSkipsUnmatchedProviders(t *testing.T) {
+	var firecrawlCalls int
+	firecrawl := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		firecrawlCalls++
+		http.Error(w, "should be skipped", http.StatusInternalServerError)
+	}))
+	defer firecrawl.Close()
+	tavily := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"results":[{"url":"https://example.com/docs","raw_content":"docs"}]}`))
+	}))
+	defer tavily.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"site_crawl": []any{"firecrawl", "tavily"},
+		},
+		"providers": map[string]any{
+			"firecrawl": map[string]any{
+				"enabled":      true,
+				"adapter":      "firecrawl",
+				"capabilities": []any{"site_crawl"},
+				"base_url":     firecrawl.URL,
+				"api_key":      "firecrawl-key",
+			},
+			"tavily": map[string]any{
+				"enabled":      true,
+				"adapter":      "tavily",
+				"capabilities": []any{"site_crawl"},
+				"base_url":     tavily.URL,
+				"api_key":      "tavily-key",
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).Crawl(t.Context(), "https://example.com", CrawlOptions{Provider: "tavily", MaxDepth: 2, Limit: 5})
+	if got["ok"] != true || got["provider"] != "tavily" {
+		t.Fatalf("crawl result = %#v", got)
+	}
+	if firecrawlCalls != 0 {
+		t.Fatalf("crawl --provider tavily should skip firecrawl, calls = %d", firecrawlCalls)
+	}
+}
+
+func TestRepoWikiProviderFilterNoMatchReturnsConfigError(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"repo_wiki": []any{"deepwiki"},
+		},
+		"providers": map[string]any{
+			"deepwiki": map[string]any{
+				"enabled":      true,
+				"adapter":      "deepwiki",
+				"capabilities": []any{"repo_wiki"},
+				"base_url":     "https://example.com",
+				"settings": map[string]any{
+					"anonymous_allowed": true,
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).RepoWiki(t.Context(), "microsoft/playwright", "architecture?", RepoWikiOptions{Provider: "exa"})
+	if got["ok"] != false || got["error_type"] != "config_error" || !strings.Contains(stringValue(got["error"]), "--provider exa") {
+		t.Fatalf("repo-wiki provider filter error = %#v", got)
 	}
 }
 

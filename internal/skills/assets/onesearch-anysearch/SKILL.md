@@ -9,12 +9,12 @@ Use AnySearch only as an explicit vertical or experimental provider. It is not p
 
 ## Commands
 
-| Purpose | Provider-group command | Legacy flat command |
-| --- | --- | --- |
-| Domains | `onesearch anysearch domains [domain]` | `onesearch anysearch-domains [domain]` |
-| Search | `onesearch anysearch search "query"` | `onesearch anysearch-search "query"` |
-| Extract | `onesearch anysearch extract "https://example.com"` | `onesearch anysearch-extract "https://example.com"` |
-| Batch | `onesearch anysearch batch "query1" "query2"` | `onesearch anysearch-batch "query1" "query2"` |
+| Purpose | Command |
+| --- | --- |
+| Domains | `onesearch anysearch domains [domain]` |
+| Search | `onesearch anysearch search "query"` |
+| Extract | `onesearch anysearch extract "https://example.com"` |
+| Batch | `onesearch anysearch batch "query1" "query2"` |
 
 ## Usage
 

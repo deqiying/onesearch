@@ -1,5 +1,6 @@
 .idea/
 .ace-tool/
+.codesearch.db/
 .gocache/
 .gomodcache/
 .npm-cache/

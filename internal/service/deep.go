@@ -10,7 +10,7 @@ import (
 	"github.com/deqiying/onesearch/internal/providers"
 )
 
-var deepAllowedTools = []string{"context7-docs", "context7-library", "crawl", "exa-search", "exa-similar", "fetch", "map", "repo-wiki", "search", "zhipu-search"}
+var deepAllowedTools = []string{"context7 query-docs", "context7 resolve-library-id", "crawl", "exa similar", "exa web-search", "fetch", "map", "repo-wiki", "search", "zhipu search"}
 
 func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 	start := time.Now()
@@ -83,10 +83,10 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		return "onesearch search " + quoteArg(q) + " --validation balanced --extra-sources " + stringValue(extra) + " --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
 	}
 	exaCommand := func(q string, filename string) string {
-		return "onesearch exa-search " + quoteArg(q) + " --num-results 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+		return "onesearch exa web-search " + quoteArg(q) + " --num-results 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
 	}
 	zhipuCommand := func(q string, filename string) string {
-		return "onesearch zhipu-search " + quoteArg(q) + " --count 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+		return "onesearch zhipu search " + quoteArg(q) + " --count 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
 	}
 	fetchCommand := func(target, filename string) string {
 		return "onesearch fetch " + quoteArg(target) + " --format markdown --output " + quoteArg(filepath.Join(evidenceRoot, filename))
@@ -100,11 +100,11 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		)
 		capabilities = append(capabilities,
 			deepCapability("page_evidence", []string{"fetch"}, "Fetch the user-provided URL before making claims."),
-			deepCapability("adjacent_source_discovery", []string{"exa-similar"}, "Find pages adjacent to the known source."),
+			deepCapability("adjacent_source_discovery", []string{"exa similar"}, "Find pages adjacent to the known source."),
 			deepCapability("broad_discovery", []string{"search"}, "Broaden the context if the fetched page leaves gaps."),
 		)
 		addStep("sq1", "fetch", "fetch user supplied URL first", fetchCommand(url, "01-fetch.md"), "01-fetch.md")
-		addStep("sq2", "exa-similar", "find adjacent sources from the provided URL", "onesearch exa-similar "+quoteArg(url)+" --num-results 5 --format json --output "+quoteArg(filepath.Join(evidenceRoot, "02-similar.json")), "02-similar.json")
+		addStep("sq2", "exa similar", "find adjacent sources from the provided URL", "onesearch exa similar "+quoteArg(url)+" --num-results 5 --format json --output "+quoteArg(filepath.Join(evidenceRoot, "02-similar.json")), "02-similar.json")
 		addStep("sq2", "search", "broad discovery for missing context", searchCommand(question, 1, "03-search.json"), "03-search.json")
 	} else {
 		decomposition = append(decomposition, deepSubquestion("sq1", question+" 的整体问题轮廓和候选来源是什么？", "先做 broad discovery，避免一开始把问题拆错。", []string{"broad_discovery"}))
@@ -116,27 +116,27 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		addStep("sq1", "search", "broad discovery and routing metadata", searchCommand(question, extra, "01-search.json"), "01-search.json")
 		if docsIntent {
 			decomposition = append(decomposition, deepSubquestion("sq2", question+" 的官方文档、API 或 SDK 证据在哪里？", "docs/API intent requires low-noise documentation discovery.", []string{"docs_source_discovery", "page_evidence"}))
-			capabilities = append(capabilities, deepCapability("docs_source_discovery", []string{"exa-search", "context7-library", "context7-docs"}, "Find official/API/library documentation before summarizing implementation guidance."))
+			capabilities = append(capabilities, deepCapability("docs_source_discovery", []string{"exa web-search", "context7 resolve-library-id", "context7 query-docs"}, "Find official/API/library documentation before summarizing implementation guidance."))
 			file := nextFile("exa.json")
-			addStep("sq2", "exa-search", "official docs and API source discovery", exaCommand(question, file), file)
+			addStep("sq2", "exa web-search", "official docs and API source discovery", exaCommand(question, file), file)
 			libFile := nextFile("context7-library.json")
-			addStep("sq2", "context7-library", "resolve library id for docs/API intent", "onesearch context7-library "+quoteArg(libraryHint(question))+" "+quoteArg(question)+" --format json --output "+quoteArg(filepath.Join(evidenceRoot, libFile)), libFile)
+			addStep("sq2", "context7 resolve-library-id", "resolve library id for docs/API intent", "onesearch context7 resolve-library-id "+quoteArg(libraryHint(question))+" "+quoteArg(question)+" --format json --output "+quoteArg(filepath.Join(evidenceRoot, libFile)), libFile)
 			docsFile := nextFile("context7-docs.json")
-			addStep("sq2", "context7-docs", "retrieve docs after selecting the best library_id", "onesearch context7-docs "+quoteArg("<library_id>")+" "+quoteArg(question)+" --format json --output "+quoteArg(filepath.Join(evidenceRoot, docsFile)), docsFile)
+			addStep("sq2", "context7 query-docs", "retrieve docs after selecting the best library_id", "onesearch context7 query-docs "+quoteArg("<library_id>")+" "+quoteArg(question)+" --format json --output "+quoteArg(filepath.Join(evidenceRoot, docsFile)), docsFile)
 		}
 		if recency != "none" || scope == "china" {
 			subID := "sq" + stringValue(len(decomposition)+1)
 			decomposition = append(decomposition, deepSubquestion(subID, question+" 的最新或中文/国内来源如何交叉验证？", "Current or China-scoped prompts benefit from Zhipu web-search reinforcement.", []string{"current_or_locale_source_discovery"}))
-			capabilities = append(capabilities, deepCapability("current_or_locale_source_discovery", []string{"zhipu-search"}, "Reinforce Chinese, domestic, or current web evidence."))
+			capabilities = append(capabilities, deepCapability("current_or_locale_source_discovery", []string{"zhipu search"}, "Reinforce Chinese, domestic, or current web evidence."))
 			file := nextFile("zhipu.json")
-			addStep(subID, "zhipu-search", "current or locale-specific source discovery", zhipuCommand(question, file), file)
+			addStep(subID, "zhipu search", "current or locale-specific source discovery", zhipuCommand(question, file), file)
 		}
 		if complex {
 			for len(decomposition) < map[bool]int{true: 4, false: 2}[budget == "deep"] {
 				subID := "sq" + stringValue(len(decomposition)+1)
 				decomposition = append(decomposition, deepSubquestion(subID, question+" 的成本、风险、限制和适用边界是什么？", "High-difficulty research needs downside and boundary checks.", []string{"cross_validation", "page_evidence"}))
 			}
-			capabilities = append(capabilities, deepCapability("cross_validation", []string{"search", "exa-search", "fetch"}, "Compare claims across independent sources."))
+			capabilities = append(capabilities, deepCapability("cross_validation", []string{"search", "exa web-search", "fetch"}, "Compare claims across independent sources."))
 		}
 		if claimRisk == "high" || crossValidation == "high" || len(steps) > 0 {
 			file := nextFile("fetch.md")
