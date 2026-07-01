@@ -46,12 +46,12 @@ Provider direct commands:
 Utility commands:
 
 - `onesearch doctor`
+- `onesearch status`
 - `onesearch smoke`
 - `onesearch config path|list`
 - `onesearch model current`
 - `onesearch skills list`
 - `onesearch skills show NAME`
-- `onesearch load_skill NAME`
 
 Supported output formats are `json`, `markdown`, and `content`. JSON is the default and is the stable format for agents and scripts. Search success output defaults to a compact unified result object; use `--verbose` to include full diagnostics such as routing decisions, provider attempts, and capability status. Error output also defaults to `--quiet`. `--quiet` overrides debug defaults.
 
@@ -242,6 +242,20 @@ Doctor output fields:
 
 `doctor` is a compact diagnostic command and defaults to compact JSON for agent-first usage. It should not print the full runtime schema or config file content by default. Use `doctor --format content` for a short human-readable summary, and `config list --format json` for complete `defaults`, `pipelines`, `routes`, `profiles`, and `providers`.
 
+Status output fields:
+
+- `ok`: report generation status.
+- `ready`: whether the configured minimum profile is currently satisfied.
+- `status`: `ready`, `degraded`, or `initialization_error`.
+- `config`: config path and initialization metadata.
+- `schema`: runtime schema version and source.
+- `minimum_profile`: compact profile readiness summary.
+- `capabilities`: capability-command availability for `answer_search`, `source_search`, `docs_search`, `page_fetch`, `site_map`, `site_crawl`, `repo_wiki`, and `vertical_search`.
+- `providers`: provider-level availability, enabled state, masked key metadata, aliases, base URL, settings, and supported capabilities.
+- `direct_endpoints`: provider-direct command families such as `exa`, `tavily`, `firecrawl`, `context7`, `deepwiki`, `anysearch`, and `zhipu`, with commands and availability copied from `providers`.
+
+`status` is the agent preflight for choosing concrete tools. Use it after or alongside `doctor` when deciding whether to call a specific capability or provider-direct endpoint. A bundled skill such as `zhipu` only describes command usage; it does not imply `providers.zhipu` is enabled.
+
 ## Load skill
 
 `onesearch skills list` prints a JSON inventory of bundled skills:
@@ -261,8 +275,6 @@ onesearch skills show exa --format content
 onesearch skills show tavily --format content
 ```
 
-`onesearch load_skill NAME` prints the bundled `SKILL.md` for the requested built-in skill to stdout and returns exit code `0`.
-
 Supported names and aliases:
 
 - `onesearch-cli`, `base`, `onesearch`, `cli`, `router`
@@ -278,9 +290,7 @@ Supported names and aliases:
 - `zhipu`, `zhipu-tools`, `zhipu-web-search`, `zp`
 - `deep-research`, `deep`, `research`
 
-`onesearch load_skill list --format json` is a compatibility alias for `onesearch skills list --format json`.
-
-`load_skill` does not read user provider config, call network providers, write config, install files, or wrap skill content in JSON/Markdown reports unless the `list` compatibility query is used. Unknown names return exit code `2`, write the error and available skill names to stderr, and leave stdout empty.
+`skills show` does not read user provider config, call network providers, write config, or install files. It only returns the bundled skill metadata and content.
 
 ## Deep Research
 
@@ -320,18 +330,12 @@ Minimum local checks:
 go test ./...
 go run .\cmd\onesearch smoke --mock --format json
 go run .\cmd\onesearch doctor --format json
+go run .\cmd\onesearch status --format json
 go run .\cmd\onesearch config list --format json
 go run .\cmd\onesearch skills list --format json
 go run .\cmd\onesearch skills show onesearch-cli --format content
 go run .\cmd\onesearch skills show exa --format content
 go run .\cmd\onesearch skills show tavily --format content
-go run .\cmd\onesearch load_skill onesearch-cli
-go run .\cmd\onesearch load_skill search
-go run .\cmd\onesearch load_skill docs
-go run .\cmd\onesearch load_skill fetch
-go run .\cmd\onesearch load_skill exa
-go run .\cmd\onesearch load_skill tavily
-go run .\cmd\onesearch load_skill deep-research
 ```
 
 Deep Research examples:

@@ -97,6 +97,37 @@ func TestDoctorUsesRuntimeSchemaCapabilityNames(t *testing.T) {
 	}
 }
 
+func TestStatusReportsCapabilityAndProviderAvailability(t *testing.T) {
+	clearProviderEnv(t)
+	svc := New(testConfig(t))
+
+	data := svc.Status()
+	if data["ok"] != true {
+		t.Fatalf("status ok = %#v", data["ok"])
+	}
+	if data["ready"] != false || data["status"] != "degraded" {
+		t.Fatalf("status readiness = ready:%#v status:%#v", data["ready"], data["status"])
+	}
+	capabilities := data["capabilities"].(map[string]any)
+	answer := capabilities["answer_search"].(map[string]any)
+	if answer["ok"] != false || answer["command"] != "onesearch search" {
+		t.Fatalf("answer_search status = %#v", answer)
+	}
+	providers := answer["provider_status"].([]map[string]any)
+	if len(providers) == 0 || providers[0]["provider"] != "xai" || providers[0]["reason"] != "disabled" {
+		t.Fatalf("answer_search provider status = %#v", providers)
+	}
+	repoWiki := capabilities["repo_wiki"].(map[string]any)
+	if repoWiki["ok"] != true || !containsString(testStrings(repoWiki["available"]), "deepwiki") {
+		t.Fatalf("repo_wiki status = %#v", repoWiki)
+	}
+	allProviders := data["providers"].(map[string]any)
+	zhipu := allProviders["zhipu"].(map[string]any)
+	if zhipu["available"] != false || zhipu["enabled"] != false {
+		t.Fatalf("zhipu provider output = %#v", zhipu)
+	}
+}
+
 func TestAnswerSearchUsesConfiguredCapabilityProviderViaAdapterRegistry(t *testing.T) {
 	clearProviderEnv(t)
 	cfg := testConfig(t)

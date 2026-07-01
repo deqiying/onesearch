@@ -29,9 +29,10 @@ Use workflow commands when the user describes the task. Use provider direct comm
 
 1. Run `onesearch skills list --format json` when you need the available skill inventory.
 2. Run `onesearch skills list --capability <capability> --format json` when you know the capability but not the best skill.
-3. Load the most specific skill with `onesearch skills show <skill> --format content` or `onesearch load_skill <skill>` before using detailed provider or workflow commands.
-4. Run `onesearch doctor --format json` when provider availability, API keys, or runtime routes are uncertain.
-5. Execute the commands from the loaded workflow or provider skill.
+3. Load the most specific skill with `onesearch skills show <skill> --format content` before using detailed provider or workflow commands.
+4. Run `onesearch doctor --format json` when overall provider readiness, API keys, or runtime routes are uncertain.
+5. Run `onesearch status --format json` before choosing a specific capability or provider-direct endpoint; only use providers and capabilities whose status is available.
+6. Execute the commands from the loaded workflow or provider skill.
 
 ## What Onesearch Provides
 
@@ -89,12 +90,8 @@ onesearch skills show docs --format content
 onesearch skills show fetch --format content
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
-onesearch load_skill search
-onesearch load_skill docs
-onesearch load_skill fetch
-onesearch load_skill exa
-onesearch load_skill tavily
 onesearch doctor --format json
+onesearch status --format json
 onesearch config list --format json
 ```
 
@@ -106,7 +103,8 @@ onesearch config list --format json
 - Prefer `search` for broad online questions, `docs` for documentation/API questions, and `fetch` when a URL or claim-level evidence is needed.
 - For current, latest, today, rankings, prices, schedules, hot lists, or social-media trends, use Onesearch instead of answering from memory.
 - Treat search results as discovery candidates. Fetch or extract key URLs before claim-level conclusions.
-- Keep API keys out of final answers. `doctor` and `config list` mask secrets.
+- Do not assume a provider skill means that provider is enabled. Check `onesearch status --format json` before calling direct providers such as `exa`, `tavily`, `firecrawl`, `zhipu`, or answer providers such as `xai`.
+- Keep API keys out of final answers. `doctor`, `status`, and `config list` mask secrets.
 
 ## Supporting Reference
 

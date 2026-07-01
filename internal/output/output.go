@@ -549,6 +549,9 @@ func content(command string, data map[string]any) string {
 	if command == "smoke" {
 		return fmt.Sprintf("Smoke %s %s: %d cases, %d failed, %d degraded\n", stringValue(data["mode"]), status(data["ok"]), len(asAnySlice(data["cases"])), len(asAnySlice(data["failed_cases"])), len(asAnySlice(data["degraded_cases"])))
 	}
+	if command == "status" {
+		return statusContent(data)
+	}
 	if command == "config" {
 		parts := []string{strings.Title(command) + " " + status(data["ok"])}
 		if file := stringValue(data["config_file"]); file != "" {
@@ -587,6 +590,8 @@ func markdown(command string, data map[string]any) string {
 	switch command {
 	case "doctor":
 		return doctorMarkdown(data)
+	case "status":
+		return statusMarkdown(data)
 	case "smoke":
 		return smokeMarkdown(data)
 	case "deep":
@@ -657,6 +662,71 @@ func doctorMarkdown(data map[string]any) string {
 	}
 	if err := errorSummary(data); err != "" {
 		lines = append(lines, "", "## Errors", "- "+err)
+	}
+	return strings.TrimSpace(strings.Join(lines, "\n")) + "\n"
+}
+
+func statusContent(data map[string]any) string {
+	lines := []string{"Status: " + stringValue(data["status"]) + " (ready: " + status(data["ready"]) + ")"}
+	minimum := asMap(data["minimum_profile"])
+	if profile := stringValue(minimum["profile"]); profile != "" {
+		lines = append(lines, "Profile: "+profile+" "+status(minimum["ok"]))
+	}
+	if missing := asStrings(minimum["missing"]); len(missing) > 0 {
+		lines = append(lines, "Missing: "+strings.Join(missing, ", "))
+	}
+	capabilities := asMap(data["capabilities"])
+	var availableCaps []string
+	var unavailableCaps []string
+	for _, key := range sortedAnyKeys(capabilities) {
+		item := asMap(capabilities[key])
+		if truthy(item["ok"]) {
+			availableCaps = append(availableCaps, key+"="+strings.Join(asStrings(item["available"]), ","))
+		} else {
+			unavailableCaps = append(unavailableCaps, key)
+		}
+	}
+	if len(availableCaps) > 0 {
+		lines = append(lines, "Available capabilities: "+strings.Join(availableCaps, "; "))
+	}
+	if len(unavailableCaps) > 0 {
+		lines = append(lines, "Unavailable capabilities: "+strings.Join(unavailableCaps, ", "))
+	}
+	direct := asMap(data["direct_endpoints"])
+	if len(direct) > 0 {
+		var endpoints []string
+		for _, key := range sortedAnyKeys(direct) {
+			item := asMap(direct[key])
+			endpoints = append(endpoints, key+"="+status(item["available"]))
+		}
+		lines = append(lines, "Direct endpoints: "+strings.Join(endpoints, "; "))
+	}
+	lines = append(lines, "Details: run `onesearch status --format json`")
+	return strings.TrimSpace(strings.Join(lines, "\n")) + "\n"
+}
+
+func statusMarkdown(data map[string]any) string {
+	lines := []string{"# Onesearch Status", "", "Overall: " + stringValue(data["status"]), "Ready: " + status(data["ready"])}
+	minimum := asMap(data["minimum_profile"])
+	if profile := stringValue(minimum["profile"]); profile != "" {
+		lines = append(lines, "Minimum profile: `"+mdCell(profile)+"` "+status(minimum["ok"]))
+	}
+	if missing := asStrings(minimum["missing"]); len(missing) > 0 {
+		lines = append(lines, "Missing: `"+mdCell(strings.Join(missing, ", "))+"`")
+	}
+	if capabilities := asMap(data["capabilities"]); len(capabilities) > 0 {
+		lines = append(lines, "", "## Capabilities", "| Capability | Status | Available providers | Command |", "| --- | --- | --- | --- |")
+		for _, key := range sortedAnyKeys(capabilities) {
+			item := asMap(capabilities[key])
+			lines = append(lines, fmt.Sprintf("| `%s` | %s | %s | `%s` |", mdCell(key), status(item["ok"]), mdCell(strings.Join(asStrings(item["available"]), ", ")), mdCell(stringValue(item["command"]))))
+		}
+	}
+	if direct := asMap(data["direct_endpoints"]); len(direct) > 0 {
+		lines = append(lines, "", "## Direct Endpoints", "| Provider | Status | Commands |", "| --- | --- | --- |")
+		for _, key := range sortedAnyKeys(direct) {
+			item := asMap(direct[key])
+			lines = append(lines, fmt.Sprintf("| `%s` | %s | %s |", mdCell(key), status(item["available"]), mdCell(strings.Join(asStrings(item["commands"]), ", "))))
+		}
 	}
 	return strings.TrimSpace(strings.Join(lines, "\n")) + "\n"
 }

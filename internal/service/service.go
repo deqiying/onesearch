@@ -594,6 +594,44 @@ func (s *Service) ConfigList(_ bool) map[string]any {
 	}
 }
 
+func (s *Service) Status() map[string]any {
+	start := time.Now()
+	runtime := s.runtime()
+	minimum := s.ValidateMinimumProfile()
+	ready := truthy(minimum["ok"]) && s.Config.InitializationError == ""
+	status := "ready"
+	if !ready {
+		status = "degraded"
+	}
+	info := map[string]any{
+		"ok":     true,
+		"ready":  ready,
+		"status": status,
+		"config": map[string]any{
+			"file":                 s.Config.ConfigFile,
+			"created":              s.Config.CreatedConfigFile,
+			"missing_before_start": s.Config.MissingConfigFile,
+		},
+		"schema": map[string]any{
+			"version": runtime.SchemaVersion,
+			"source":  runtime.Source,
+		},
+		"minimum_profile": compactMinimumProfile(minimum),
+		"capabilities":    runtimeCapabilityStatus(runtime, s.Config),
+		"providers":       runtime.ProvidersForOutput(s.Config),
+		"elapsed_ms":      providers.Elapsed(start),
+	}
+	if s.Config.InitializationError != "" {
+		info["status"] = "initialization_error"
+		info["error_type"] = "config_error"
+		info["error"] = s.Config.InitializationError
+		configInfo := asMap(info["config"])
+		configInfo["initialization_error"] = s.Config.InitializationError
+		info["config"] = configInfo
+	}
+	return info
+}
+
 func (s *Service) configListMetadata() map[string]any {
 	info := s.Config.PathInfo()
 	return map[string]any{
@@ -677,6 +715,67 @@ func compactMinimumProfile(minimum map[string]any) map[string]any {
 		out["error"] = minimum["error"]
 	}
 	return out
+}
+
+func runtimeCapabilityStatus(runtime config.RuntimeConfig, cfg *config.Config) map[string]any {
+	out := map[string]any{}
+	for _, capability := range sortedStringListMapKeys(runtime.Routes) {
+		resolved := runtime.ResolveProviders(cfg, capability, "auto", true)
+		available := []string{}
+		providerItems := make([]map[string]any, 0, len(resolved))
+		for _, provider := range resolved {
+			if provider.Available {
+				available = append(available, provider.ID)
+			}
+			providerItems = append(providerItems, runtimeProviderStatus(provider))
+		}
+		item := map[string]any{
+			"ok":              len(available) > 0,
+			"command":         capabilityCommand(capability),
+			"available":       available,
+			"fallback_chain":  append([]string{}, runtime.Routes[capability]...),
+			"provider_status": providerItems,
+		}
+		if capability == "vertical_search" {
+			item["experimental"] = true
+		}
+		out[capability] = item
+	}
+	return out
+}
+
+func runtimeProviderStatus(provider config.ResolvedProvider) map[string]any {
+	return map[string]any{
+		"provider":     provider.ID,
+		"adapter":      provider.Adapter,
+		"available":    provider.Available,
+		"reason":       provider.UnavailableReason,
+		"config_error": provider.ConfigError,
+		"enabled":      provider.Enabled,
+		"base_url":     provider.BaseURL,
+		"api_key_env":  provider.APIKeyEnv,
+		"has_api_key":  provider.APIKey != "",
+		"aliases":      append([]string{}, provider.Aliases...),
+	}
+}
+
+func capabilityCommand(capability string) string {
+	switch capability {
+	case "answer_search", "source_search", "docs_search":
+		return "onesearch search"
+	case "page_fetch":
+		return "onesearch fetch"
+	case "site_map":
+		return "onesearch map"
+	case "site_crawl":
+		return "onesearch crawl"
+	case "repo_wiki":
+		return "onesearch repo-wiki"
+	case "vertical_search":
+		return "onesearch anysearch"
+	default:
+		return ""
+	}
 }
 
 func doctorIssues(minimum, capabilities map[string]any) []map[string]any {
@@ -1683,6 +1782,15 @@ func asStrings(value any) []string {
 }
 
 func sortedMapKeys(items map[string]any) []string {
+	keys := make([]string, 0, len(items))
+	for key := range items {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func sortedStringListMapKeys(items map[string][]string) []string {
 	keys := make([]string, 0, len(items))
 	for key := range items {
 		keys = append(keys, key)

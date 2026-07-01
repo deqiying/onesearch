@@ -13,14 +13,12 @@ import (
 	"github.com/deqiying/onesearch/internal/config"
 	"github.com/deqiying/onesearch/internal/output"
 	"github.com/deqiying/onesearch/internal/service"
-	"github.com/deqiying/onesearch/internal/skills"
 )
 
 var aliases = map[string]string{
 	"s": "search", "f": "fetch", "m": "map",
-	"cr": "crawl",
-	"rw": "repo-wiki",
-	"dr": "deep", "sm": "smoke", "d": "doctor", "mdl": "model", "cfg": "config", "skill": "skills", "load-skill": "load_skill", "reg": "regression",
+	"cr": "crawl", "rw": "repo-wiki", "dr": "deep",
+	"sm": "smoke", "d": "doctor", "st": "status", "mdl": "model", "cfg": "config", "skill": "skills", "reg": "regression",
 }
 
 func Execute(args []string) int {
@@ -58,6 +56,8 @@ func Execute(args []string) int {
 		return runDeep(svc, args[1:])
 	case "doctor":
 		return printCommand("doctor", svc.Doctor(ctx), parseFormatOutput(args[1:], svc))
+	case "status":
+		return runStatus(svc, args[1:])
 	case "smoke":
 		return runSmoke(ctx, svc, args[1:])
 	case "model":
@@ -66,8 +66,6 @@ func Execute(args []string) int {
 		return runConfig(svc, args[1:])
 	case "skills":
 		return runSkills(svc, args[1:])
-	case "load_skill":
-		return runLoadSkill(svc, args[1:])
 	case "regression":
 		return printCommand("smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", verbosity: "quiet"})
 	default:
@@ -352,23 +350,16 @@ func runConfig(svc *service.Service, args []string) int {
 	return printCommand("config", data, makeFormatOutput(outputFlags, svc))
 }
 
-func runLoadSkill(svc *service.Service, args []string) int {
-	if len(args) < 1 {
-		return parameterError("load_skill requires skill name")
+func runStatus(svc *service.Service, args []string) int {
+	fs := flagSet("status")
+	outputFlags := addOutputFlags(fs)
+	if err := parse(fs, args); err != nil {
+		return printParameterError("status", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
-	if canonicalSkillsSubcommand(args[0]) == "list" {
-		return runSkills(svc, args)
+	if fs.NArg() > 0 {
+		return printParameterError("status", "status does not accept positional arguments", makeFormatOutput(outputFlags, svc))
 	}
-	text, err := skills.ReadMarkdown(args[0])
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		return 2
-	}
-	fmt.Print(text)
-	if !strings.HasSuffix(text, "\n") {
-		fmt.Println()
-	}
-	return 0
+	return printCommand("status", annotateStatusCommands(svc.Status()), makeFormatOutput(outputFlags, svc))
 }
 
 func parseSearchProviderFilters(raw string) (string, map[string]string, error) {
@@ -679,8 +670,8 @@ func printHelp() {
 	fmt.Println("  zhipu search")
 	fmt.Println()
 	fmt.Println("Utility:")
-	fmt.Println("  config, model, skills, load_skill, regression")
-	fmt.Println("  doctor, smoke")
+	fmt.Println("  config, model, skills, regression")
+	fmt.Println("  doctor, status, smoke")
 }
 
 func printWorkflowHelp(command string) {

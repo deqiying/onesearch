@@ -404,6 +404,51 @@ func annotateProviderTool(data map[string]any, provider, tool string) map[string
 	return data
 }
 
+func annotateStatusCommands(data map[string]any) map[string]any {
+	if data == nil {
+		data = map[string]any{}
+	}
+	providers, _ := data["providers"].(map[string]any)
+	direct := map[string]any{}
+	names := make([]string, 0, len(providerToolAliases))
+	for provider := range providerToolAliases {
+		names = append(names, provider)
+	}
+	sort.Strings(names)
+	for _, provider := range names {
+		commands := providerCommands(provider)
+		item := map[string]any{"commands": commands}
+		if raw, ok := providers[provider]; ok {
+			providerData, _ := raw.(map[string]any)
+			if providerData != nil {
+				providerData["direct"] = true
+				providerData["commands"] = commands
+				for _, key := range []string{"available", "enabled", "capabilities", "status", "base_url", "api_key_env", "has_api_key"} {
+					if value, ok := providerData[key]; ok {
+						item[key] = value
+					}
+				}
+			}
+		} else {
+			item["available"] = false
+			item["reason"] = "unknown_provider"
+		}
+		direct[provider] = item
+	}
+	data["direct_endpoints"] = direct
+	return data
+}
+
+func providerCommands(provider string) []string {
+	aliases := providerToolAliases[provider]
+	commands := make([]string, 0, len(aliases))
+	for alias := range aliases {
+		commands = append(commands, "onesearch "+provider+" "+alias)
+	}
+	sort.Strings(commands)
+	return commands
+}
+
 func printProviderError(provider, message string, args []string, svc *service.Service) int {
 	return printCommand(provider, map[string]any{"ok": false, "provider": provider, "error_type": "parameter_error", "error": message}, parseFormatOutput(args, svc))
 }

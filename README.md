@@ -2,7 +2,7 @@
 
 `onesearch` 是一个 CLI-first 的研究与证据工具，面向 AI 助手、脚本和终端用户。它把综合搜索、来源发现、文档检索、网页抓取、站点结构读取、Deep Research 离线规划、配置诊断和内置 skill 分发放在同一个可复现命令层里。
 
-`onesearch` 本身不是 MCP Server。AI 工具可以通过 `load_skill` 读取内置工作流，再按 CLI 命令执行搜索、抓取和验证。
+`onesearch` 本身不是 MCP Server。AI 工具可以通过 `skills show` 读取内置工作流，再按 CLI 命令执行搜索、抓取和验证。
 
 ## 核心能力
 
@@ -17,8 +17,8 @@
 | 仓库 Wiki | `repo-wiki`、`search --repo-wiki` | `repo_wiki`: DeepWiki |
 | 垂直搜索 | `anysearch domains/search/extract/batch` | `vertical_search`: AnySearch |
 | 深度研究规划 | `deep` / `dr` | 本地离线 planner |
-| 内置技能路由 | `skills`、`load_skill` | `onesearch-cli` 主路由，`exa`、`tavily` 等 provider 技能，`search`、`docs`、`fetch` 等工作流技能 |
-| 配置诊断 | `doctor`、`config list`、`smoke` | 本地配置与 provider 状态 |
+| 内置技能路由 | `skills list`、`skills show` | `onesearch-cli` 主路由，`exa`、`tavily` 等 provider 技能，`search`、`docs`、`fetch` 等工作流技能 |
+| 配置诊断 | `doctor`、`status`、`config list`、`smoke` | 整体健康、能力/provider 实际可用状态、本地配置 |
 
 ## 构建
 
@@ -91,13 +91,14 @@ go build -trimpath -ldflags "-s -w -X github.com/deqiying/onesearch/internal/app
 onesearch config path --format json
 onesearch config list --format json
 onesearch doctor --format json
+onesearch status --format json
 ```
 
 provider 开关、base URL、模型、settings 和 capabilities 直接编辑 `config.json` 的 `providers.<id>`；密钥可以直接写入 `api_key`，也可以通过 `api_key_env` 指向环境变量读取。两者都配置时，`api_key` 优先。`config list` 输出会脱敏直配密钥。
 
 OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远请求 `/v1/responses`，`openai_chat_completions` 永远请求 `/v1/chat/completions`，不会互相降级。两者都支持 JSON 与 SSE 响应解析；`providers.<id>.settings.stream` 控制是否主动发起流式请求，`search --stream/--no-stream` 可临时覆盖。`openai_responses` 默认启用 `tools: ["web_search"]` 和 `tool_choice: "required"`；`openai_compatible` 默认不附加工具，但可通过 `settings.tools` / `settings.tool_choice` 透传给支持 Chat Completions tools 的服务。`settings` 中的空字符串、空数组和空对象会保留内置默认值。
 
-`doctor` 默认输出适合 agent 解析的紧凑诊断 JSON，只列 `ok/status/error`、配置文件初始化状态、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。完整 schema、routes、providers 和 defaults 用 `config list --format json` 查看。
+`doctor` 默认输出适合 agent 解析的紧凑诊断 JSON，只列 `ok/status/error`、配置文件初始化状态、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。`status` 输出当前能力命令和 provider-direct 端点的实际可用状态，例如 `answer_search`、`docs_search`、`page_fetch` 以及 `exa`、`tavily`、`zhipu` 是否可用。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。完整 schema、routes、providers 和 defaults 用 `config list --format json` 查看。
 
 ## 常用命令
 
@@ -199,23 +200,7 @@ onesearch skills show exa --format content
 onesearch skills show tavily --format content
 ```
 
-`load_skill` 直接输出内置 skill 的 `SKILL.md`，不读取 provider 配置、不联网、不写文件：
-
-```powershell
-onesearch load_skill list --format json
-onesearch load_skill onesearch-cli
-onesearch load_skill search
-onesearch load_skill docs
-onesearch load_skill fetch
-onesearch load_skill exa
-onesearch load_skill tavily
-onesearch load_skill firecrawl
-onesearch load_skill context7
-onesearch load_skill deepwiki
-onesearch load_skill anysearch
-onesearch load_skill zhipu
-onesearch load_skill deep-research
-```
+`skills show` 直接输出内置 skill 的 `SKILL.md` 内容，不联网、不写文件；需要确认 provider 或能力是否实际可用时，先运行 `onesearch status --format json`。
 
 可用别名：
 

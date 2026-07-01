@@ -161,7 +161,7 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		"decomposition":       decomposition,
 		"capability_plan":     dedupeCapabilities(capabilities),
 		"evidence_policy":     "fetch_before_claim",
-		"preflight":           map[string]any{"tool": "doctor", "command": "onesearch doctor --format json", "when": "configuration or provider availability is uncertain", "executed_by_deep_command": false},
+		"preflight":           []map[string]any{{"tool": "doctor", "command": "onesearch doctor --format json", "when": "overall configuration readiness is uncertain", "executed_by_deep_command": false}, {"tool": "status", "command": "onesearch status --format json", "when": "choosing a specific capability or provider-direct endpoint", "executed_by_deep_command": false}},
 		"steps":               steps,
 		"gap_check":           map[string]any{"required": true, "rule": "fetch missing evidence for key claims or downgrade unsupported claims to unverified candidates", "unsupported_claim_action": "downgrade_to_unverified_candidate"},
 		"final_answer_policy": "cite fetched evidence, list unverified candidates, and include key commands",

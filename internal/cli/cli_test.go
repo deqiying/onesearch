@@ -236,10 +236,10 @@ func TestSkillsListCapabilityFilterIncludesProviderSkills(t *testing.T) {
 	}
 }
 
-func TestLoadSkillListCompatibilityCommand(t *testing.T) {
+func TestStatusCommandReportsDirectEndpointAvailability(t *testing.T) {
 	t.Setenv("ONESEARCH_CONFIG_DIR", t.TempDir())
 	output := captureStdout(t, func() {
-		if code := Execute([]string{"load_skill", "list", "--format", "json"}); code != 0 {
+		if code := Execute([]string{"status", "--format", "json"}); code != 0 {
 			t.Fatalf("exit code = %d, want 0", code)
 		}
 	})
@@ -247,9 +247,45 @@ func TestLoadSkillListCompatibilityCommand(t *testing.T) {
 	if err := json.Unmarshal([]byte(output), &got); err != nil {
 		t.Fatal(err)
 	}
-	if got["ok"] != true || got["total"].(float64) < 1 {
-		t.Fatalf("load_skill list = %#v", got)
+	if got["ok"] != true || got["ready"] != false {
+		t.Fatalf("status = %#v", got)
 	}
+	capabilities := got["capabilities"].(map[string]any)
+	answer := capabilities["answer_search"].(map[string]any)
+	if answer["ok"] != false || answer["command"] != "onesearch search" {
+		t.Fatalf("answer_search status = %#v", answer)
+	}
+	direct := got["direct_endpoints"].(map[string]any)
+	zhipu := direct["zhipu"].(map[string]any)
+	if zhipu["available"] != false {
+		t.Fatalf("zhipu direct endpoint should be unavailable by default: %#v", zhipu)
+	}
+	if !containsTestString(testStrings(zhipu["commands"]), "onesearch zhipu search") {
+		t.Fatalf("zhipu commands = %#v", zhipu["commands"])
+	}
+}
+
+func containsTestString(items []string, target string) bool {
+	for _, item := range items {
+		if item == target {
+			return true
+		}
+	}
+	return false
+}
+
+func testStrings(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		if text, ok := item.(string); ok {
+			out = append(out, text)
+		}
+	}
+	return out
 }
 
 func captureStdout(t *testing.T, fn func()) string {
