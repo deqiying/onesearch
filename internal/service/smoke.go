@@ -23,7 +23,7 @@ func mockSmoke() map[string]any {
 	add("page_fetch fallback tavily_to_firecrawl", true, map[string]any{"provider_attempts": []map[string]any{{"capability": "page_fetch", "provider": "tavily", "status": "empty"}, {"capability": "page_fetch", "provider": "firecrawl", "status": "ok"}}})
 	add("docs_search fallback exa_to_context7", true, map[string]any{})
 	add("search docs intent uses docs route", isDocsIntent("React useEffect API docs"), map[string]any{})
-	add("search zh current intent uses zhipu reinforcement", isZHCurrentIntent("今天国内 AI 新闻"), map[string]any{})
+	add("search zh current intent detects current Chinese source intent", isZHCurrentIntent("今天国内 AI 新闻"), map[string]any{})
 	add("deep_research explicit planner simple current prompt uses capability plan", true, map[string]any{})
 	add("deep_research docs api prompt uses docs capabilities", true, map[string]any{})
 	add("deep_research claim verification requires fetch_before_claim", true, map[string]any{})

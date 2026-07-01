@@ -39,7 +39,7 @@ Use workflow commands when the user describes the task. Use provider direct comm
 | Capability | User wording that should trigger this | Load this skill | Typical command family |
 | --- | --- | --- | --- |
 | Broad web search and source discovery | search the web, look up, find sources, current info, latest, today | `search` | `onesearch search ...` |
-| Fresh facts, rankings, prices, hot lists, trends | news, rankings, top-N, hot search, 热搜, 热榜, 榜单, 前十 | `search`, sometimes `zhipu` | `onesearch search ...`, `onesearch zhipu search ...` |
+| Fresh facts, rankings, prices, hot lists, trends | news, rankings, top-N, hot search, 热搜, 热榜, 榜单, 前十 | `search`; `zhipu` only when status says available | `onesearch search ...`, or an available provider-direct command |
 | Source-backed fact checking | verify this claim, fact check, cite sources, compare evidence | `search`, then `fetch` | `onesearch search ... --extra-sources 2`, `onesearch fetch ...` |
 | Official docs and API references | API docs, SDK docs, library docs, package options, migration, setup | `docs`, `context7`, `exa` | `onesearch context7 ...`, `onesearch exa web-search ...` |
 | URL/page evidence | fetch this URL, read this page, extract page content, inspect evidence | `fetch` | `onesearch fetch ...`, `onesearch tavily extract ...`, `onesearch firecrawl scrape ...`, `onesearch exa web-fetch ...` |

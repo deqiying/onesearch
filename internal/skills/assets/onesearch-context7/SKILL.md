@@ -20,9 +20,12 @@ onesearch skills show context7 --format content
 Use the provider command family by default:
 
 ```powershell
+onesearch status --format json
 onesearch context7 resolve-library-id "library" --format json
 onesearch context7 query-docs "/org/project" "focused docs question" --format json
 ```
+
+Before using Context7 direct commands, confirm `status.direct_endpoints.context7.available == true`. If Context7 is unavailable, use another available `docs_search` provider from `status.capabilities.docs_search.available`, such as Exa when available.
 
 ## Commands
 
@@ -49,5 +52,6 @@ Docs output includes `code_snippets`, `info_snippets`, `results`, `content`, `pr
 ## Guardrails
 
 - Use Context7 only for documentation intent.
+- Do not assume the Context7 skill means Context7 is enabled; `status` is the provider-direct availability source of truth.
 - Keep exact API claims tied to returned docs snippets or fetched official docs.
 - Use Exa for official docs pages when Context7 coverage is missing or stale.

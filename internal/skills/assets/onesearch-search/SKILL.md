@@ -5,17 +5,19 @@ description: Use when an AI agent needs Onesearch for answer search, source disc
 
 # Onesearch Search Skill
 
-Use this skill for broad answer search and source discovery. Run `onesearch doctor --format json` first when provider availability is uncertain, and treat `ok: false` as a hard configuration issue unless the user explicitly asks for offline planning.
+Use this skill for broad answer search and source discovery. Run `onesearch doctor --format json` when overall readiness is uncertain. Run `onesearch status --format json` before choosing `--source-providers`, `--fetch-providers`, scoped `--providers`, or provider-direct commands; use only providers listed as available for the target capability or direct endpoint.
 
 Prefer these commands:
 
 ```powershell
+onesearch status --format json
 onesearch search "query" --validation balanced --extra-sources 3 --format json
 onesearch search "query" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
-onesearch search "微博热搜前十 当前榜单" --validation strict --source-providers zhipu --extra-sources 3 --format json
+onesearch search "微博热搜前十 当前榜单" --validation strict --extra-sources 3 --format json
 onesearch search "query" --repo-wiki owner/repo --validation strict --format json
 onesearch tavily search "query" --max-results 5 --format json
 onesearch exa web-search "query" --include-highlights --format json
+# Only after status.direct_endpoints.zhipu.available is true:
 onesearch zhipu search "query" --count 10 --format json
 ```
 
@@ -23,6 +25,7 @@ Routing guidance:
 
 - `search` is the normal first pass for broad answers. For real-time or fast-changing information, prefer `search --extra-sources 2` or `search --extra-sources 3` as the first pass so the agent can compare source candidates instead of relying on one synthesized answer.
 - Treat user wording such as "today", "latest", "current", "实时", "今天", "最新", "热搜", "热榜", "榜单", "排名", "top", or "前十" as a strong signal to use Onesearch instead of answering from memory.
+- For current, hot-list, ranking, or provider-filtered tasks, inspect `status.capabilities.source_search.available` before selecting a source provider. If `zhipu` is disabled or absent, do not force `--source-providers zhipu`; choose another available `source_search` provider such as `exa`, `tavily`, or `firecrawl`.
 - Default `search --format json` returns `ok`, `query`, `used`, and `meta`; inspect `used.answer_search.providers.<provider>.result.content_preview` for the compact answer preview and `used.<capability>.providers.<provider>.result.sources` for provider-owned source candidates. Use `--format content` or `--verbose` when complete answer text is required.
 - Add `--extra-sources 2` or `--extra-sources 3` when the task needs source coverage instead of only one synthesized answer. Good cases include volatile current information, rankings or lists, market/public-opinion snapshots, comparison research, and any question where different sources may disagree or update at different speeds.
 - For rankings, lists, schedules, prices, leaderboards, and other structured current results, treat `answer_search` as synthesis only. Prefer list/table content from `source_search` results or fetched pages as the final basis.
@@ -34,8 +37,8 @@ Routing guidance:
 - Add `--repo-wiki owner/repo` when the agent knows repository architecture context is needed; results appear under `used.repo_wiki`.
 - `tavily search` is the preferred direct Tavily command when the user explicitly names Tavily.
 - `exa web-search` is the preferred direct Exa command for low-noise source discovery, official docs pages, papers, product pages, and known-domain searches.
-- `zhipu search` is best for Chinese, China-specific, current, or domain-filtered source discovery.
+- `zhipu search` is useful for Chinese, China-specific, current, or domain-filtered source discovery only when `status.direct_endpoints.zhipu.available` is true.
 - Search results are discovery candidates. Fetch key URLs before making high-risk or claim-level statements.
 - Do not use AnySearch as the default `source_search` route; keep it to explicit experimental commands unless the runtime route is explicitly configured.
 
-Provider keys and routes are owned by local config and `doctor`; this skill does not imply any provider is available.
+Provider keys and routes are owned by local config. `doctor` reports overall health; `status` is the source of truth for actual capability and provider-direct availability. This skill does not imply any provider is available.

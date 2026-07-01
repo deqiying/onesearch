@@ -20,11 +20,14 @@ onesearch skills show tavily --format content
 Use the provider command family by default:
 
 ```powershell
+onesearch status --format json
 onesearch tavily search "query" --format json
 onesearch tavily extract "https://example.com" --format json
 onesearch tavily map "https://example.com" --format json
 onesearch tavily crawl "https://example.com" --format json
 ```
+
+Before using Tavily direct commands, confirm `status.direct_endpoints.tavily.available == true`. If Tavily is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable capability.
 
 ## Commands
 
@@ -80,6 +83,7 @@ Use `--format content` for extracted page body only. Use JSON for route-safe met
 
 ## Guardrails
 
+- Do not assume the Tavily skill means Tavily is enabled; `status` is the provider-direct availability source of truth.
 - Default map/crawl behavior keeps same-domain results unless `--allow-external` is set.
 - Keep crawl `--limit` bounded to avoid huge outputs.
 - Fetch or extract primary URLs before making high-risk claims.

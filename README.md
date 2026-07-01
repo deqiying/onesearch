@@ -9,7 +9,7 @@
 | 能力 | 命令 | 默认路由 |
 | --- | --- | --- |
 | 综合搜索 | `search` | `answer_search`: xAI、OpenAI-compatible、OpenAI Responses |
-| 来源发现 | `search --extra-sources`、`exa web-search`、`zhipu search` | `source_search`: Exa、Zhipu、Tavily、Firecrawl |
+| 来源发现 | `search --extra-sources`、`exa web-search`、`zhipu search` | `source_search`: Exa、Zhipu、Tavily、Firecrawl；实际可用性以 `status` 为准 |
 | 文档检索 | `context7 resolve-library-id`、`context7 query-docs`、`exa web-search` | `docs_search`: Exa、Context7 |
 | 网页抓取 | `fetch --provider`、`exa web-fetch`、`tavily extract`、`firecrawl scrape` | `page_fetch`: Tavily、Firecrawl、Exa |
 | 站点结构 | `map --provider`、`tavily map`、`firecrawl map` | `site_map`: Tavily、Firecrawl |
@@ -103,6 +103,7 @@ OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远�
 ## 常用命令
 
 ```powershell
+onesearch status --format json
 onesearch search "今天有什么值得关注的 AI 新闻" --validation balanced --extra-sources 2 --format json
 onesearch search "微博热搜前十 当前官方榜单" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
 onesearch fetch "https://example.com/article" --provider tavily --format markdown --output evidence.md
@@ -114,6 +115,7 @@ onesearch tavily search "今天国内 AI 新闻" --max-results 5 --format json
 onesearch tavily extract "https://example.com/article" --format content
 onesearch context7 resolve-library-id "react" "useEffect cleanup" --format json
 onesearch context7 query-docs "/facebook/react" "useEffect cleanup" --format json
+# 仅当 status.direct_endpoints.zhipu.available 为 true 时使用：
 onesearch zhipu search "今天国内 AI 新闻" --count 5 --format json
 onesearch map "https://docs.example.com" --provider firecrawl --instructions "Find API reference pages" --format json
 onesearch crawl "https://docs.example.com" --provider tavily --max-depth 2 --limit 20 --format json
@@ -130,6 +132,8 @@ onesearch smoke --mock --format json
 ```powershell
 onesearch <provider> <command> [args] [--format json|markdown|content]
 ```
+
+调用 provider-direct 命令前先运行 `onesearch status --format json`，确认 `direct_endpoints.<provider>.available` 为 `true`；如果只是要限制 workflow provider，也先确认对应 `capabilities.<capability>.available` 列表里有该 provider。
 
 已支持的常用分组命令：
 

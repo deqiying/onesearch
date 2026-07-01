@@ -20,11 +20,14 @@ onesearch skills show firecrawl --format content
 Use the provider command family by default:
 
 ```powershell
+onesearch status --format json
 onesearch firecrawl search "query" --format json
 onesearch firecrawl scrape "https://example.com" --format json
 onesearch firecrawl map "https://example.com" --format json
 onesearch firecrawl crawl "https://example.com" --format json
 ```
+
+Before using Firecrawl direct commands, confirm `status.direct_endpoints.firecrawl.available == true`. If Firecrawl is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable capability.
 
 ## Commands
 
@@ -64,6 +67,7 @@ Use `--format content` for scraped markdown body only.
 
 ## Guardrails
 
+- Do not assume the Firecrawl skill means Firecrawl is enabled; `status` is the provider-direct availability source of truth.
 - Use `fetch` or `firecrawl scrape` for claim-level page evidence.
 - Keep crawl limits small unless the user explicitly asks for broad crawling.
-- Run `onesearch doctor --format json` when Firecrawl returns `config_error`.
+- Run `onesearch doctor --format json` for overall configuration health when Firecrawl returns `config_error`.

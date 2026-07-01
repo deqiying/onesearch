@@ -128,6 +128,27 @@ func TestStatusReportsCapabilityAndProviderAvailability(t *testing.T) {
 	}
 }
 
+func TestDeepPlanCurrentChineseUsesStatusGatedSearchRoute(t *testing.T) {
+	clearProviderEnv(t)
+	svc := New(testConfig(t))
+
+	data := svc.DeepPlan("总结今天微博前十的热搜", "standard", t.TempDir())
+	rawSteps, err := json.Marshal(data["steps"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	steps := string(rawSteps)
+	if strings.Contains(steps, "onesearch zhipu search") {
+		t.Fatalf("deep plan should not hardcode zhipu direct command: %s", steps)
+	}
+	if !strings.Contains(steps, "onesearch search") {
+		t.Fatalf("deep plan should use runtime search routing: %s", steps)
+	}
+	if containsString(testStrings(data["allowed_tools"]), "zhipu search") {
+		t.Fatalf("deep plan allowed_tools should not advertise ungated zhipu direct command: %#v", data["allowed_tools"])
+	}
+}
+
 func TestAnswerSearchUsesConfiguredCapabilityProviderViaAdapterRegistry(t *testing.T) {
 	clearProviderEnv(t)
 	cfg := testConfig(t)

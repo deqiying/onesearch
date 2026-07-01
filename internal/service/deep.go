@@ -10,7 +10,7 @@ import (
 	"github.com/deqiying/onesearch/internal/providers"
 )
 
-var deepAllowedTools = []string{"context7 query-docs", "context7 resolve-library-id", "crawl", "exa similar", "exa web-search", "fetch", "map", "repo-wiki", "search", "zhipu search"}
+var deepAllowedTools = []string{"context7 query-docs", "context7 resolve-library-id", "crawl", "exa similar", "exa web-search", "fetch", "map", "repo-wiki", "search"}
 
 func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 	start := time.Now()
@@ -85,8 +85,8 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 	exaCommand := func(q string, filename string) string {
 		return "onesearch exa web-search " + quoteArg(q) + " --num-results 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
 	}
-	zhipuCommand := func(q string, filename string) string {
-		return "onesearch zhipu search " + quoteArg(q) + " --count 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+	currentSourceCommand := func(q string, filename string) string {
+		return "onesearch search " + quoteArg(q) + " --validation strict --extra-sources 3 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
 	}
 	fetchCommand := func(target, filename string) string {
 		return "onesearch fetch " + quoteArg(target) + " --format markdown --output " + quoteArg(filepath.Join(evidenceRoot, filename))
@@ -126,10 +126,10 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		}
 		if recency != "none" || scope == "china" {
 			subID := "sq" + stringValue(len(decomposition)+1)
-			decomposition = append(decomposition, deepSubquestion(subID, question+" 的最新或中文/国内来源如何交叉验证？", "Current or China-scoped prompts benefit from Zhipu web-search reinforcement.", []string{"current_or_locale_source_discovery"}))
-			capabilities = append(capabilities, deepCapability("current_or_locale_source_discovery", []string{"zhipu search"}, "Reinforce Chinese, domestic, or current web evidence."))
-			file := nextFile("zhipu.json")
-			addStep(subID, "zhipu search", "current or locale-specific source discovery", zhipuCommand(question, file), file)
+			decomposition = append(decomposition, deepSubquestion(subID, question+" 的最新或中文/国内来源如何交叉验证？", "Current or China-scoped prompts need live source discovery without assuming a disabled provider is usable.", []string{"current_or_locale_source_discovery"}))
+			capabilities = append(capabilities, deepCapability("current_or_locale_source_discovery", []string{"search"}, "Reinforce Chinese, domestic, or current web evidence through the runtime source_search route."))
+			file := nextFile("current-sources.json")
+			addStep(subID, "search", "current or locale-specific source discovery through available source_search providers", currentSourceCommand(question, file), file)
 		}
 		if complex {
 			for len(decomposition) < map[bool]int{true: 4, false: 2}[budget == "deep"] {
@@ -161,7 +161,7 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		"decomposition":       decomposition,
 		"capability_plan":     dedupeCapabilities(capabilities),
 		"evidence_policy":     "fetch_before_claim",
-		"preflight":           []map[string]any{{"tool": "doctor", "command": "onesearch doctor --format json", "when": "overall configuration readiness is uncertain", "executed_by_deep_command": false}, {"tool": "status", "command": "onesearch status --format json", "when": "choosing a specific capability or provider-direct endpoint", "executed_by_deep_command": false}},
+		"preflight":           []map[string]any{{"tool": "doctor", "command": "onesearch doctor --format json", "when": "overall configuration readiness is uncertain", "executed_by_deep_command": false}, {"tool": "status", "command": "onesearch status --format json", "when": "choosing a specific capability, provider filter, or provider-direct endpoint", "executed_by_deep_command": false}},
 		"steps":               steps,
 		"gap_check":           map[string]any{"required": true, "rule": "fetch missing evidence for key claims or downgrade unsupported claims to unverified candidates", "unsupported_claim_action": "downgrade_to_unverified_candidate"},
 		"final_answer_policy": "cite fetched evidence, list unverified candidates, and include key commands",

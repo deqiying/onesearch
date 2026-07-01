@@ -7,6 +7,8 @@ description: Use when an AI agent needs AnySearch through Onesearch for explicit
 
 Use AnySearch only as an explicit vertical or experimental provider. It is not part of the default `source_search` route unless runtime configuration opts into it.
 
+Before using AnySearch direct commands, run `onesearch status --format json` and confirm `status.direct_endpoints.anysearch.available == true`. If AnySearch is unavailable, do not try its direct commands; use a capability with an available provider or report the unavailable vertical search capability.
+
 ## Commands
 
 | Purpose | Command |
@@ -19,6 +21,7 @@ Use AnySearch only as an explicit vertical or experimental provider. It is not p
 ## Usage
 
 ```powershell
+onesearch status --format json
 onesearch anysearch domains --format json
 onesearch anysearch domains "example.com" --format json
 onesearch anysearch search "query" --domain example.com --max-results 5 --format json
@@ -38,4 +41,4 @@ onesearch anysearch batch "query one" "query two" --max-results 3 --format json
 
 - Do not use AnySearch as default broad web search.
 - Use `onesearch search` or provider-specific Exa/Tavily/Firecrawl commands for normal web research.
-- Run `onesearch doctor --format json` when AnySearch availability is uncertain.
+- Run `onesearch doctor --format json` for overall configuration health and `onesearch status --format json` for actual AnySearch availability.

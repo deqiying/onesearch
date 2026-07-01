@@ -312,7 +312,7 @@ Expected fields:
 - `allowed_tools`
 - `evidence_dir`
 
-Allowed `steps[].tool` values include `search`, `fetch`, `map`, `crawl`, `repo-wiki`, `exa web-search`, `exa web-fetch`, `exa similar`, `tavily search`, `tavily extract`, `context7 resolve-library-id`, `context7 query-docs`, `deepwiki ask-question`, and `zhipu search`.
+Allowed `steps[].tool` values include `search`, `fetch`, `map`, `crawl`, `repo-wiki`, `exa web-search`, `exa web-fetch`, `exa similar`, `tavily search`, `tavily extract`, `context7 resolve-library-id`, `context7 query-docs`, and `deepwiki ask-question`. Execute provider-direct steps only after `onesearch status --format json` confirms the matching `direct_endpoints.<provider>.available` value is true.
 
 ## Exit codes
 

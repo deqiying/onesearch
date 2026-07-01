@@ -20,10 +20,13 @@ onesearch skills show deepwiki --format content
 Use the provider command family by default:
 
 ```powershell
+onesearch status --format json
 onesearch deepwiki ask-question "owner/repo" "question" --format json
 onesearch deepwiki read-wiki-structure "owner/repo" --format json
 onesearch deepwiki read-wiki-contents "owner/repo" --format json
 ```
+
+Before using DeepWiki direct commands, confirm `status.direct_endpoints.deepwiki.available == true`. If DeepWiki is unavailable, report that `repo_wiki` is unavailable instead of trying the direct endpoint.
 
 ## Commands
 
@@ -54,5 +57,6 @@ DeepWiki output includes `provider: "deepwiki"`, `tool`, `repo`, `content`, and 
 ## Guardrails
 
 - Use DeepWiki for repository context, not current web facts.
+- Do not assume the DeepWiki skill means DeepWiki is enabled; `status` is the provider-direct availability source of truth.
 - Treat DeepWiki content as generated repository documentation; verify exact code behavior locally when the repository is available.
 - Public repositories work anonymously; private docs may require `DEEPWIKI_API_KEY`.

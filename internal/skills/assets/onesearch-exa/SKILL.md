@@ -20,10 +20,13 @@ onesearch skills show exa --format content
 Use the provider command family by default:
 
 ```powershell
+onesearch status --format json
 onesearch exa web-search "query" --format json
 onesearch exa web-fetch "https://example.com" --format json
 onesearch exa similar "https://example.com" --format json
 ```
+
+Before using Exa direct commands, confirm `status.direct_endpoints.exa.available == true`. If Exa is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable capability.
 
 ## Commands
 
@@ -69,5 +72,6 @@ Use `--verbose` for full provider fields. Use `--format content` for fetched pag
 ## Guardrails
 
 - Use `onesearch search` instead of Exa direct commands when answer synthesis or multi-provider routing is needed.
+- Do not assume the Exa skill means Exa is enabled; `status` is the provider-direct availability source of truth.
 - Fetch key URLs before claim-level conclusions; search results are discovery candidates.
-- Run `onesearch doctor --format json` when Exa returns `config_error`.
+- Run `onesearch doctor --format json` for overall configuration health when Exa returns `config_error`.
