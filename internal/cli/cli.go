@@ -668,6 +668,8 @@ func printHelp() {
 	fmt.Println("  deepwiki ask-question|read-wiki-structure|read-wiki-contents")
 	fmt.Println("  anysearch domains|search|extract|batch")
 	fmt.Println("  zhipu search")
+	fmt.Println("  ddg search|fetch-content")
+	fmt.Println("  freecrawl search|scrape|crawl|deep-research")
 	fmt.Println()
 	fmt.Println("Utility:")
 	fmt.Println("  config, model, skills, regression")

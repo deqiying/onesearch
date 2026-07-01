@@ -91,6 +91,85 @@ func TestDefaultCompatibilityCapabilitiesIncludeExaFetchAndTavilyCrawl(t *testin
 	}
 }
 
+func TestDefaultMCPStdioProvidersAreDirectOnly(t *testing.T) {
+	clearProviderEnv(t)
+	runtime := LoadRuntime(testConfig(t, nil))
+
+	if containsString(runtime.Routes["source_search"], "ddg") || containsString(runtime.Routes["page_fetch"], "ddg") {
+		t.Fatalf("ddg should not be auto-registered into routes: %#v", runtime.Routes)
+	}
+	if containsString(runtime.Routes["source_search"], "freecrawl") || containsString(runtime.Routes["page_fetch"], "freecrawl") || containsString(runtime.Routes["site_crawl"], "freecrawl") {
+		t.Fatalf("freecrawl should not be auto-registered into routes: %#v", runtime.Routes)
+	}
+	if runtime.Providers["ddg"].Adapter != AdapterMCPStdio || runtime.Providers["freecrawl"].Adapter != AdapterMCPStdio {
+		t.Fatalf("mcp_stdio provider templates missing: %#v %#v", runtime.Providers["ddg"], runtime.Providers["freecrawl"])
+	}
+	freecrawlSettings := runtime.Providers["freecrawl"].Settings
+	if got := stringListFromAny(freecrawlSettings["args"]); !reflect.DeepEqual(got, []string{"freecrawl-mcp"}) {
+		t.Fatalf("freecrawl args = %#v, want freecrawl-mcp without positional transport", got)
+	}
+	env := stringMapFromAny(freecrawlSettings["env"])
+	if env["FREECRAWL_TRANSPORT"] != "stdio" {
+		t.Fatalf("freecrawl env = %#v, want FREECRAWL_TRANSPORT=stdio", env)
+	}
+}
+
+func TestExplicitRouteAllowsDirectOnlyMCPStdioProvider(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t, map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"source_search": []any{"ddg"},
+		},
+		"providers": map[string]any{
+			"ddg": map[string]any{
+				"enabled":      true,
+				"adapter":      "mcp_stdio",
+				"capabilities": []any{"source_search"},
+				"settings": map[string]any{
+					"direct_only":       true,
+					"anonymous_allowed": true,
+					"command":           os.Args[0],
+					"tools":             map[string]any{"search": "search"},
+				},
+			},
+		},
+	})
+
+	providers := LoadRuntime(cfg).ResolveProviders(cfg, "source_search", "auto", true)
+	if len(providers) == 0 || providers[0].ID != "ddg" || !providers[0].Available {
+		t.Fatalf("providers = %#v, want available ddg", providers)
+	}
+}
+
+func TestMCPStdioMissingToolMappingReportsConfigErrorWhenEnabled(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t, map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"source_search": []any{"local_ddg"},
+		},
+		"providers": map[string]any{
+			"local_ddg": map[string]any{
+				"enabled":      true,
+				"adapter":      "mcp_stdio",
+				"capabilities": []any{"source_search"},
+				"settings": map[string]any{
+					"direct_only":       true,
+					"anonymous_allowed": true,
+					"command":           os.Args[0],
+					"tools":             map[string]any{},
+				},
+			},
+		},
+	})
+
+	provider := LoadRuntime(cfg).ResolveProviders(cfg, "source_search", "auto", true)[0]
+	if provider.Available || provider.UnavailableReason != "missing_tool_mapping" || !provider.ConfigError {
+		t.Fatalf("provider = %#v", provider)
+	}
+}
+
 func TestOpenAIResponsesAdapterIsSupported(t *testing.T) {
 	clearProviderEnv(t)
 	t.Setenv("OPENAI_API_KEY", "openai-secret")
@@ -363,7 +442,7 @@ func TestEnsureInitializedCreatesRuntimeSchema(t *testing.T) {
 		t.Fatalf("generated config missing xai provider: %#v", data["providers"])
 	}
 	providers := data["providers"].(map[string]any)
-	for _, id := range []string{"xai", "openai_compatible", "exa", "context7", "zhipu", "tavily", "firecrawl"} {
+	for _, id := range []string{"xai", "openai_compatible", "exa", "context7", "zhipu", "tavily", "firecrawl", "ddg", "freecrawl"} {
 		provider := providers[id].(map[string]any)
 		if provider["enabled"] != false {
 			t.Fatalf("%s enabled = %#v, want false", id, provider["enabled"])

@@ -16,7 +16,7 @@ This skill should explain what Onesearch can do, choose the most specific built-
 - Official API, SDK, package, library, framework, product, changelog, migration, setup, or version-specific documentation lookup.
 - URL/page fetching, page-content extraction, evidence inspection, site mapping, bounded crawling, or converting search results into citable evidence.
 - Public GitHub repository architecture, generated wiki context, module summaries, implementation overviews, wiki structure, or wiki contents.
-- Explicit provider commands for Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, or Zhipu.
+- Explicit provider commands for Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, Zhipu, DDG, or Freecrawl.
 - Offline decomposition for complex research before running live searches.
 
 Do not use Onesearch for purely local repository inspection, local file editing, spreadsheet/document manipulation, or tasks that do not need public web/search/docs/fetch/research capabilities.
@@ -42,10 +42,10 @@ Use workflow commands when the user describes the task. Use provider direct comm
 | Fresh facts, rankings, prices, hot lists, trends | news, rankings, top-N, hot search, 热搜, 热榜, 榜单, 前十 | `search`; `zhipu` only when status says available | `onesearch search ...`, or an available provider-direct command |
 | Source-backed fact checking | verify this claim, fact check, cite sources, compare evidence | `search`, then `fetch` | `onesearch search ... --extra-sources 2`, `onesearch fetch ...` |
 | Official docs and API references | API docs, SDK docs, library docs, package options, migration, setup | `docs`, `context7`, `exa` | `onesearch context7 ...`, `onesearch exa web-search ...` |
-| URL/page evidence | fetch this URL, read this page, extract page content, inspect evidence | `fetch` | `onesearch fetch ...`, `onesearch tavily extract ...`, `onesearch firecrawl scrape ...`, `onesearch exa web-fetch ...` |
-| Site discovery | map this site, crawl docs, find pages under a domain | `fetch`, `tavily`, `firecrawl` | `onesearch map ...`, `onesearch crawl ...`, provider map/crawl commands |
+| URL/page evidence | fetch this URL, read this page, extract page content, inspect evidence | `fetch` | `onesearch fetch ...`, `onesearch tavily extract ...`, `onesearch firecrawl scrape ...`, `onesearch exa web-fetch ...`, direct-only `ddg` or `freecrawl` when enabled |
+| Site discovery | map this site, crawl docs, find pages under a domain | `fetch`, `tavily`, `firecrawl`, `freecrawl` | `onesearch map ...`, `onesearch crawl ...`, provider map/crawl commands |
 | Public repository context | GitHub repo architecture, public project docs, repo wiki, module overview | `deepwiki` | `onesearch repo-wiki ...`, `onesearch deepwiki ...` |
-| Provider-direct commands | user names Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, or Zhipu | matching provider skill | `onesearch <provider> <command> ...` |
+| Provider-direct commands | user names Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, Zhipu, DDG, or Freecrawl | matching provider skill | `onesearch <provider> <command> ...` |
 | Research planning | complex research, plan the search, decompose before browsing | `deep-research` | `onesearch deep ...` |
 
 ## Built-In Skill Inventory
@@ -63,17 +63,19 @@ Use workflow commands when the user describes the task. Use provider direct comm
 | `deepwiki` | DeepWiki public GitHub repository architecture, wiki structure, and wiki contents. |
 | `anysearch` | Explicit AnySearch vertical or experimental search, domain discovery, extraction, or batch queries. |
 | `zhipu` | Chinese, China-specific, current/latest/today search, hot searches, social-media hot lists, and domain-filtered Chinese source discovery. |
+| `ddg` | Direct-only local DuckDuckGo MCP stdio search and page content fetching. |
+| `freecrawl` | Direct-only local Freecrawl MCP stdio search, scraping, crawling, and provider deep research. |
 
 ## Runtime Capability Names
 
 | Capability | Route to |
 | --- | --- |
 | `answer_search` | `search` |
-| `source_search` | `search`, or provider skills such as `exa`, `tavily`, `firecrawl`, `zhipu` |
+| `source_search` | `search`, or provider skills such as `exa`, `tavily`, `firecrawl`, `zhipu`, `ddg`, `freecrawl` |
 | `docs_search` | `docs`, `context7`, or `exa` |
-| `page_fetch` | `fetch`, `exa`, `tavily`, or `firecrawl` |
+| `page_fetch` | `fetch`, `exa`, `tavily`, `firecrawl`, `ddg`, or `freecrawl` |
 | `site_map` | `fetch`, `tavily`, or `firecrawl` |
-| `site_crawl` | `fetch`, `tavily`, or `firecrawl` |
+| `site_crawl` | `fetch`, `tavily`, `firecrawl`, or `freecrawl` |
 | `repo_wiki` | `deepwiki` |
 | `vertical_search` | `anysearch` |
 | `routing` | `onesearch-cli` |
@@ -90,6 +92,8 @@ onesearch skills show docs --format content
 onesearch skills show fetch --format content
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
+onesearch skills show ddg --format content
+onesearch skills show freecrawl --format content
 onesearch doctor --format json
 onesearch status --format json
 onesearch config list --format json
@@ -103,7 +107,8 @@ onesearch config list --format json
 - Prefer `search` for broad online questions, `docs` for documentation/API questions, and `fetch` when a URL or claim-level evidence is needed.
 - For current, latest, today, rankings, prices, schedules, hot lists, or social-media trends, use Onesearch instead of answering from memory.
 - Treat search results as discovery candidates. Fetch or extract key URLs before claim-level conclusions.
-- Do not assume a provider skill means that provider is enabled. Check `onesearch status --format json` before calling direct providers such as `exa`, `tavily`, `firecrawl`, `zhipu`, or answer providers such as `xai`.
+- Do not assume a provider skill means that provider is enabled. Check `onesearch status --format json` before calling direct providers such as `exa`, `tavily`, `firecrawl`, `zhipu`, `ddg`, `freecrawl`, or answer providers such as `xai`.
+- Treat `ddg` and `freecrawl` as direct-only local MCP stdio provider templates unless runtime routes explicitly include them.
 - Keep API keys out of final answers. `doctor`, `status`, and `config list` mask secrets.
 
 ## Supporting Reference

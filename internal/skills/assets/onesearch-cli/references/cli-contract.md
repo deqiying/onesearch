@@ -42,6 +42,12 @@ Provider direct commands:
 - `onesearch anysearch extract "https://example.com/page"`
 - `onesearch anysearch batch "query 1" "query 2"`
 - `onesearch zhipu search "query"`
+- `onesearch ddg search "query"`
+- `onesearch ddg fetch-content "https://example.com/page"`
+- `onesearch freecrawl search "query"`
+- `onesearch freecrawl scrape "https://example.com/page"`
+- `onesearch freecrawl crawl "https://example.com"`
+- `onesearch freecrawl deep-research "topic"`
 
 Utility commands:
 
@@ -80,7 +86,7 @@ Responsibilities:
 
 - `defaults`: pipeline, fallback mode, validation level, minimum profile, timeout, retry, log, SSL, and cleanup defaults.
 - `pipelines`: ordered capability sets for tasks such as `default`, `research`, `docs`, and `crawl`.
-- `routes`: ordered provider fallback chains for each capability; providers that declare a capability in `providers.<id>.capabilities` are automatically appended to that capability route if they are not already listed.
+- `routes`: ordered provider fallback chains for each capability; providers that declare a capability in `providers.<id>.capabilities` are automatically appended to that capability route if they are not already listed. Providers with `settings.direct_only=true` are not auto-registered, but they can still participate when the user explicitly lists them in a route.
 - `profiles`: required and optional capabilities for readiness checks.
 - `providers`: adapter, capability list, base URL, direct API key, API-key environment key, enabled state, aliases, and settings.
 
@@ -134,6 +140,7 @@ The standard profile requires `answer_search`, `docs_search`, and `page_fetch`.
 - `site_crawl`: Tavily first, Firecrawl fallback.
 - `repo_wiki`: DeepWiki public repository docs are available anonymously; optional `DEEPWIKI_API_KEY` enables private documentation access.
 - `vertical_search`: AnySearch explicit commands only by default.
+- `ddg` and `freecrawl`: local `mcp_stdio` provider-direct endpoints. They are bundled as disabled direct-only templates and do not affect workflow routes until explicitly enabled and listed in `routes`.
 
 `repo-wiki` accepts GitHub repository names in `owner/repo` form or GitHub repository URLs such as `https://github.com/microsoft/playwright`. Bare repository names are rejected because they cannot be resolved to a unique owner. `repo-wiki --mode ask|structure|contents` selects DeepWiki's question answering, wiki structure, or full wiki contents. If no mode is supplied, a question selects `ask`; otherwise the command defaults to `structure`.
 
@@ -252,7 +259,7 @@ Status output fields:
 - `minimum_profile`: compact profile readiness summary.
 - `capabilities`: capability-command availability for `answer_search`, `source_search`, `docs_search`, `page_fetch`, `site_map`, `site_crawl`, `repo_wiki`, and `vertical_search`.
 - `providers`: provider-level availability, enabled state, masked key metadata, aliases, base URL, settings, and supported capabilities.
-- `direct_endpoints`: provider-direct command families such as `exa`, `tavily`, `firecrawl`, `context7`, `deepwiki`, `anysearch`, and `zhipu`, with commands and availability copied from `providers`.
+- `direct_endpoints`: provider-direct command families such as `exa`, `tavily`, `firecrawl`, `context7`, `deepwiki`, `anysearch`, `zhipu`, `ddg`, and `freecrawl`, with commands and direct availability.
 
 `status` is the agent preflight for choosing concrete tools. Use it after or alongside `doctor` when deciding whether to call a specific capability or provider-direct endpoint. A bundled skill such as `zhipu` only describes command usage; it does not imply `providers.zhipu` is enabled.
 
@@ -288,6 +295,8 @@ Supported names and aliases:
 - `deepwiki`, `deepwiki-tools`, `repo-wiki`, `repository-wiki`
 - `anysearch`, `anysearch-tools`, `as`
 - `zhipu`, `zhipu-tools`, `zhipu-web-search`, `zp`
+- `ddg`, `ddg-search`, `duckduckgo`, `duckduckgo-mcp`
+- `freecrawl`, `freecrawl-mcp`
 - `deep-research`, `deep`, `research`
 
 `skills show` does not read user provider config, call network providers, write config, or install files. It only returns the bundled skill metadata and content.
@@ -336,6 +345,8 @@ go run .\cmd\onesearch skills list --format json
 go run .\cmd\onesearch skills show onesearch-cli --format content
 go run .\cmd\onesearch skills show exa --format content
 go run .\cmd\onesearch skills show tavily --format content
+go run .\cmd\onesearch skills show ddg --format content
+go run .\cmd\onesearch skills show freecrawl --format content
 ```
 
 Deep Research examples:

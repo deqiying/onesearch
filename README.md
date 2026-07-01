@@ -9,11 +9,11 @@
 | 能力 | 命令 | 默认路由 |
 | --- | --- | --- |
 | 综合搜索 | `search` | `answer_search`: xAI、OpenAI-compatible、OpenAI Responses |
-| 来源发现 | `search --extra-sources`、`exa web-search`、`zhipu search` | `source_search`: Exa、Zhipu、Tavily、Firecrawl；实际可用性以 `status` 为准 |
+| 来源发现 | `search --extra-sources`、`exa web-search`、`zhipu search`、`ddg search`、`freecrawl search` | `source_search`: Exa、Zhipu、Tavily、Firecrawl；DDG、Freecrawl 默认 direct-only；实际可用性以 `status` 为准 |
 | 文档检索 | `context7 resolve-library-id`、`context7 query-docs`、`exa web-search` | `docs_search`: Exa、Context7 |
-| 网页抓取 | `fetch --provider`、`exa web-fetch`、`tavily extract`、`firecrawl scrape` | `page_fetch`: Tavily、Firecrawl、Exa |
+| 网页抓取 | `fetch --provider`、`exa web-fetch`、`tavily extract`、`firecrawl scrape`、`ddg fetch-content`、`freecrawl scrape` | `page_fetch`: Tavily、Firecrawl、Exa；DDG、Freecrawl 默认 direct-only |
 | 站点结构 | `map --provider`、`tavily map`、`firecrawl map` | `site_map`: Tavily、Firecrawl |
-| 站点爬取 | `crawl --provider`、`tavily crawl`、`firecrawl crawl` | `site_crawl`: Tavily、Firecrawl |
+| 站点爬取 | `crawl --provider`、`tavily crawl`、`firecrawl crawl`、`freecrawl crawl` | `site_crawl`: Tavily、Firecrawl；Freecrawl 默认 direct-only |
 | 仓库 Wiki | `repo-wiki`、`search --repo-wiki` | `repo_wiki`: DeepWiki |
 | 垂直搜索 | `anysearch domains/search/extract/batch` | `vertical_search`: AnySearch |
 | 深度研究规划 | `deep` / `dr` | 本地离线 planner |
@@ -73,7 +73,7 @@ go build -trimpath -ldflags "-s -w -X github.com/deqiying/onesearch/internal/app
 
 - `defaults`：默认 pipeline、fallback、validation、minimum profile、超时、日志、重试和输出清理策略。
 - `pipelines`：把任务类型组织为能力链，例如 `default`、`research`、`docs`、`crawl`。
-- `routes`：每个能力的 provider 优先顺序；未列入 routes 但在 `providers.<id>.capabilities` 声明了该能力的 provider 会自动追加到对应能力组。
+- `routes`：每个能力的 provider 优先顺序；未列入 routes 但在 `providers.<id>.capabilities` 声明了该能力的 provider 会自动追加到对应能力组。`settings.direct_only=true` 的 provider 不自动追加，但用户显式写进 routes 时仍可参与 workflow。
 - `profiles`：最低可用能力集合，例如 `standard` 要求 `answer_search`、`docs_search`、`page_fetch`。
 - `providers`：provider 的 adapter、capabilities、base_url、api_key、api_key_env、enabled 和 settings。
 
@@ -156,9 +156,17 @@ onesearch deepwiki read-wiki-structure "microsoft/playwright"
 onesearch deepwiki read-wiki-contents "microsoft/playwright"
 onesearch anysearch search "query"
 onesearch zhipu search "query"
+onesearch ddg search "query"
+onesearch ddg fetch-content "https://example.com"
+onesearch freecrawl search "query"
+onesearch freecrawl scrape "https://example.com"
+onesearch freecrawl crawl "https://example.com"
+onesearch freecrawl deep-research "topic"
 ```
 
 旧的平铺 provider 命令、provider 内 snake_case CLI alias 和全局 `mcp` router 不再属于 public contract。JSON 输出中的 `tool` 字段仍可保留上游语义名，用于审计实际调用的 provider 工具。
+
+`ddg` 和 `freecrawl` 通过本地 `mcp_stdio` bridge 启动配置中的 MCP server 子进程，例如 `uvx duckduckgo-mcp-server --transport stdio` 或 `uvx freecrawl-mcp`。它们内置为 `enabled: false` 且 `settings.direct_only: true`，所以默认只出现在 provider-direct 命令中，不会改变普通 `search`、`fetch`、`crawl` 路由。要让 workflow 使用它们，需要在配置中显式启用 provider，并把 provider ID 写入对应 `routes.source_search`、`routes.page_fetch` 或 `routes.site_crawl`。
 
 输出格式：
 
@@ -192,7 +200,7 @@ onesearch search "query" --providers "answer_search=openai_responses;source_sear
 
 ## 内置 Skill
 
-`onesearch-cli` 是主路由技能，只负责根据用户意图选择后续工作流技能或 provider 技能。每个 provider 独立维护自己的技能，例如 `exa`、`tavily`、`firecrawl`、`context7`、`deepwiki`、`anysearch`、`zhipu`；这些技能中描述对应工具有哪些命令、作用和使用方法。
+`onesearch-cli` 是主路由技能，只负责根据用户意图选择后续工作流技能或 provider 技能。每个 provider 独立维护自己的技能，例如 `exa`、`tavily`、`firecrawl`、`context7`、`deepwiki`、`anysearch`、`zhipu`、`ddg`、`freecrawl`；这些技能中描述对应工具有哪些命令、作用和使用方法。
 
 查询内置 skill 清单和详情：
 
@@ -219,6 +227,8 @@ onesearch skills show tavily --format content
 - `deepwiki`、`deepwiki-tools`、`repo-wiki`、`repository-wiki`
 - `anysearch`、`anysearch-tools`、`as`
 - `zhipu`、`zhipu-tools`、`zhipu-web-search`、`zp`
+- `ddg`、`ddg-search`、`duckduckgo`、`duckduckgo-mcp`
+- `freecrawl`、`freecrawl-mcp`
 - `deep-research`、`deep`、`research`
 
 ## 证据策略

@@ -426,6 +426,8 @@ func (s *Service) Crawl(ctx context.Context, targetURL string, options CrawlOpti
 			return providers.Tavily{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 150))}.Crawl(ctx, targetURL, providers.TavilyCrawlOptions{MaxDepth: options.MaxDepth, Limit: options.Limit, TimeoutSeconds: options.Timeout})
 		case "firecrawl":
 			return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Crawl(ctx, targetURL, options.MaxDepth, options.Limit)
+		case "freecrawl":
+			return providers.Freecrawl{MCP: providers.NewMCPStdio("freecrawl", provider.Settings)}.Crawl(ctx, targetURL, providers.FreecrawlCrawlOptions{MaxDepth: options.MaxDepth, MaxPages: options.Limit, SameDomainOnly: true})
 		}
 	}
 	return map[string]any{"ok": false, "url": targetURL, "error_type": "config_error", "error": capabilityProviderError("site_crawl", filter, "请检查 routes.site_crawl、provider capabilities 和 API key。")}
@@ -994,6 +996,20 @@ func (s *Service) runWebFetchFallback(ctx context.Context, targetURL, filter, fa
 			} else {
 				err = fmt.Errorf("%s", data["error"])
 			}
+		} else if provider.ID == "ddg" {
+			data := providers.DDG{MCP: providers.NewMCPStdio("ddg", provider.Settings)}.FetchContent(ctx, targetURL, providers.DDGFetchOptions{MaxLength: 20000})
+			if truthy(data["ok"]) {
+				content = stringValue(data["content"])
+			} else {
+				err = fmt.Errorf("%s", data["error"])
+			}
+		} else if provider.ID == "freecrawl" {
+			data := providers.Freecrawl{MCP: providers.NewMCPStdio("freecrawl", provider.Settings)}.Scrape(ctx, targetURL, providers.FreecrawlScrapeOptions{Formats: []string{"markdown"}, Timeout: 60000})
+			if truthy(data["ok"]) {
+				content = stringValue(data["content"])
+			} else {
+				err = fmt.Errorf("%s", data["error"])
+			}
 		} else {
 			err = fmt.Errorf("unsupported page_fetch provider: %s", provider.ID)
 		}
@@ -1094,6 +1110,18 @@ func (s *Service) searchWithSourceProvider(ctx context.Context, provider config.
 	case "firecrawl":
 		raw, err := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Search(ctx, query, count)
 		return providers.NormalizeSourceResults(raw, "firecrawl"), err
+	case "ddg":
+		data := providers.DDG{MCP: providers.NewMCPStdio("ddg", provider.Settings)}.Search(ctx, query, providers.DDGSearchOptions{MaxResults: count})
+		if truthy(data["ok"]) {
+			return providers.NormalizeSourceResults(asMapSlice(data["results"]), "ddg"), nil
+		}
+		return nil, fmt.Errorf("%s", data["error"])
+	case "freecrawl":
+		data := providers.Freecrawl{MCP: providers.NewMCPStdio("freecrawl", provider.Settings)}.Search(ctx, query, providers.FreecrawlSearchOptions{NumResults: count})
+		if truthy(data["ok"]) {
+			return providers.NormalizeSourceResults(asMapSlice(data["results"]), "freecrawl"), nil
+		}
+		return nil, fmt.Errorf("%s", data["error"])
 	default:
 		return nil, fmt.Errorf("unsupported source_search provider: %s", provider.ID)
 	}

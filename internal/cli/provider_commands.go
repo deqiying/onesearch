@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"sort"
 	"strings"
 
@@ -46,6 +47,16 @@ var providerToolAliases = map[string]map[string]string{
 	"zhipu": {
 		"search": "zhipu_search",
 	},
+	"ddg": {
+		"search":        "search",
+		"fetch-content": "fetch_content",
+	},
+	"freecrawl": {
+		"search":        "search",
+		"scrape":        "scrape",
+		"crawl":         "crawl",
+		"deep-research": "deep_research",
+	},
 }
 
 func shouldDispatchProviderCommand(command string, args []string) bool {
@@ -80,6 +91,10 @@ func runProviderCommand(ctx context.Context, svc *service.Service, provider stri
 		return runAnySearchGroup(ctx, svc, tool, args[1:])
 	case "zhipu":
 		return runZhipuGroup(ctx, svc, tool, args[1:])
+	case "ddg":
+		return runDDGGroup(ctx, svc, tool, args[1:])
+	case "freecrawl":
+		return runFreecrawlGroup(ctx, svc, tool, args[1:])
 	default:
 		return printProviderError(provider, "unsupported provider command: "+provider, args[1:], svc)
 	}
@@ -386,6 +401,112 @@ func runZhipuGroup(ctx context.Context, svc *service.Service, tool string, args 
 	}
 }
 
+func runDDGGroup(ctx context.Context, svc *service.Service, tool string, args []string) int {
+	switch tool {
+	case "search":
+		fs := flagSet("ddg search")
+		maxResults := fs.Int("max-results", 10, "")
+		region := fs.String("region", "", "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("ddg", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("ddg", tool, "ddg search requires query", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.DDGSearch(ctx, fs.Arg(0), providers.DDGSearchOptions{MaxResults: *maxResults, Region: *region}), "ddg", tool)
+		return printCommand("ddg", data, makeFormatOutput(outputFlags, svc))
+	case "fetch_content":
+		fs := flagSet("ddg fetch-content")
+		startIndex := fs.Int("start-index", 0, "")
+		maxLength := fs.Int("max-length", 8000, "")
+		backend := fs.String("backend", "auto", "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("ddg", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("ddg", tool, "ddg fetch-content requires url", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.DDGFetchContent(ctx, fs.Arg(0), providers.DDGFetchOptions{StartIndex: *startIndex, MaxLength: *maxLength, Backend: *backend}), "ddg", tool)
+		return printCommand("ddg", data, makeFormatOutput(outputFlags, svc))
+	default:
+		return printProviderError("ddg", "unsupported ddg tool: "+tool, args, svc)
+	}
+}
+
+func runFreecrawlGroup(ctx context.Context, svc *service.Service, tool string, args []string) int {
+	switch tool {
+	case "search":
+		fs := flagSet("freecrawl search")
+		numResults := fs.Int("num-results", 5, "")
+		searchEngine := fs.String("search-engine", "", "")
+		scrapeResults := fs.Bool("scrape-results", false, "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("freecrawl", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("freecrawl", tool, "freecrawl search requires query", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.FreecrawlSearch(ctx, fs.Arg(0), providers.FreecrawlSearchOptions{NumResults: *numResults, SearchEngine: *searchEngine, ScrapeResults: *scrapeResults}), "freecrawl", tool)
+		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+	case "scrape":
+		fs := flagSet("freecrawl scrape")
+		formats := fs.String("formats", "markdown", "")
+		javascript := fs.Bool("javascript", false, "")
+		antiBot := fs.Bool("anti-bot", false, "")
+		cache := fs.Bool("cache", false, "")
+		timeoutMS := fs.Int("timeout", 60000, "")
+		waitFor := fs.Int("wait-for", 0, "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("freecrawl", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("freecrawl", tool, "freecrawl scrape requires url", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.FreecrawlScrape(ctx, fs.Arg(0), providers.FreecrawlScrapeOptions{Formats: splitCSV(*formats), Javascript: *javascript, AntiBot: *antiBot, Cache: *cache, Timeout: *timeoutMS, WaitFor: *waitFor}), "freecrawl", tool)
+		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+	case "crawl":
+		fs := flagSet("freecrawl crawl")
+		maxDepth := fs.Int("max-depth", 2, "")
+		maxPages := fs.Int("max-pages", 20, "")
+		sameDomainOnly := fs.Bool("same-domain-only", false, "")
+		includePatterns := stringListFlag{}
+		excludePatterns := stringListFlag{}
+		fs.Var(&includePatterns, "include-patterns", "")
+		fs.Var(&excludePatterns, "exclude-patterns", "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("freecrawl", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("freecrawl", tool, "freecrawl crawl requires url", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.FreecrawlCrawl(ctx, fs.Arg(0), providers.FreecrawlCrawlOptions{MaxDepth: *maxDepth, MaxPages: *maxPages, SameDomainOnly: *sameDomainOnly, IncludePatterns: includePatterns.values, ExcludePatterns: excludePatterns.values}), "freecrawl", tool)
+		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+	case "deep_research":
+		fs := flagSet("freecrawl deep-research")
+		numSources := fs.Int("num-sources", 8, "")
+		maxDepth := fs.Int("max-depth", 3, "")
+		includeAcademic := fs.Bool("include-academic", false, "")
+		searchQueries := stringListFlag{}
+		fs.Var(&searchQueries, "search-queries", "")
+		outputFlags := addOutputFlags(fs)
+		if err := parse(fs, args); err != nil {
+			return printProviderToolParameterError("freecrawl", tool, err.Error(), outputFlags, svc)
+		}
+		if fs.NArg() < 1 {
+			return printProviderToolParameterError("freecrawl", tool, "freecrawl deep-research requires topic", outputFlags, svc)
+		}
+		data := annotateProviderTool(svc.FreecrawlDeepResearch(ctx, fs.Arg(0), providers.FreecrawlDeepResearchOptions{NumSources: *numSources, MaxDepth: *maxDepth, IncludeAcademic: *includeAcademic, SearchQueries: searchQueries.values}), "freecrawl", tool)
+		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+	default:
+		return printProviderError("freecrawl", "unsupported freecrawl tool: "+tool, args, svc)
+	}
+}
+
 func canonicalProviderTool(provider, subcommand string) (string, bool) {
 	aliases := providerToolAliases[provider]
 	if aliases == nil {
@@ -428,6 +549,15 @@ func annotateStatusCommands(data map[string]any) map[string]any {
 						item[key] = value
 					}
 				}
+				if cliString(providerData["adapter"]) == "mcp_stdio" {
+					available, reason := mcpStdioDirectAvailability(provider, providerData)
+					item["available"] = available
+					providerData["available"] = available
+					providerData["direct_reason"] = reason
+					if reason != "" {
+						item["reason"] = reason
+					}
+				}
 			}
 		} else {
 			item["available"] = false
@@ -447,6 +577,27 @@ func providerCommands(provider string) []string {
 	}
 	sort.Strings(commands)
 	return commands
+}
+
+func mcpStdioDirectAvailability(provider string, providerData map[string]any) (bool, string) {
+	if directEnabledFalse(providerData["enabled"]) {
+		return false, "disabled"
+	}
+	settings := cliMap(providerData["settings"])
+	command := strings.TrimSpace(cliString(settings["command"]))
+	if command == "" {
+		return false, "missing_command"
+	}
+	if _, err := exec.LookPath(command); err != nil {
+		return false, "missing_command"
+	}
+	tools := cliStringMap(settings["tools"])
+	for _, publicTool := range providerToolAliases[provider] {
+		if strings.TrimSpace(tools[publicTool]) == "" {
+			return false, "missing_tool_mapping"
+		}
+	}
+	return true, ""
 }
 
 func printProviderError(provider, message string, args []string, svc *service.Service) int {
@@ -485,4 +636,55 @@ func nonEmptyArgs(items []string) []string {
 		}
 	}
 	return out
+}
+
+func splitCSV(value string) []string {
+	var out []string
+	for _, item := range strings.Split(value, ",") {
+		if text := strings.TrimSpace(item); text != "" {
+			out = append(out, text)
+		}
+	}
+	return out
+}
+
+func directEnabledFalse(value any) bool {
+	if b, ok := value.(bool); ok {
+		return !b
+	}
+	switch strings.ToLower(strings.TrimSpace(cliString(value))) {
+	case "false", "0", "off", "no":
+		return true
+	default:
+		return false
+	}
+}
+
+func cliMap(value any) map[string]any {
+	if item, ok := value.(map[string]any); ok {
+		return item
+	}
+	return nil
+}
+
+func cliStringMap(value any) map[string]string {
+	switch items := value.(type) {
+	case map[string]string:
+		return items
+	case map[string]any:
+		out := map[string]string{}
+		for key, value := range items {
+			out[key] = cliString(value)
+		}
+		return out
+	default:
+		return nil
+	}
+}
+
+func cliString(value any) string {
+	if value == nil {
+		return ""
+	}
+	return fmt.Sprint(value)
 }

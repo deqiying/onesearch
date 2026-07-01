@@ -83,6 +83,16 @@ func TestProviderCommandsExposeOnlyHumanReadableSubcommands(t *testing.T) {
 		"zhipu": {
 			"search": "zhipu_search",
 		},
+		"ddg": {
+			"search":        "search",
+			"fetch-content": "fetch_content",
+		},
+		"freecrawl": {
+			"search":        "search",
+			"scrape":        "scrape",
+			"crawl":         "crawl",
+			"deep-research": "deep_research",
+		},
 	} {
 		for alias, want := range cases {
 			got, ok := canonicalProviderTool(provider, alias)
@@ -97,6 +107,8 @@ func TestProviderCommandsExposeOnlyHumanReadableSubcommands(t *testing.T) {
 		"firecrawl": {"firecrawl_search", "firecrawl_scrape", "firecrawl_map", "firecrawl_crawl"},
 		"context7":  {"resolve_library_id", "query_docs", "library", "docs"},
 		"deepwiki":  {"ask_question", "read_wiki_structure", "read_wiki_contents"},
+		"ddg":       {"fetch_content"},
+		"freecrawl": {"deep_research"},
 	} {
 		for _, alias := range aliases {
 			if got, ok := canonicalProviderTool(provider, alias); ok {
@@ -165,7 +177,7 @@ func TestSkillsListCommandIncludesProviderSkills(t *testing.T) {
 		item := raw.(map[string]any)
 		found[item["id"].(string)] = true
 	}
-	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu"} {
+	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"} {
 		if !found[id] {
 			t.Fatalf("skills list missing %s: %#v", id, got["skills"])
 		}
@@ -195,6 +207,8 @@ func TestSkillsShowProviderSkillPrintsToolCommands(t *testing.T) {
 	}{
 		{name: "exa", want: []string{"Onesearch Exa", "onesearch exa web-search", "onesearch exa web-fetch", "onesearch exa similar"}},
 		{name: "tavily", want: []string{"Onesearch Tavily", "onesearch tavily search", "onesearch tavily extract"}},
+		{name: "ddg", want: []string{"Onesearch DDG", "onesearch ddg search", "onesearch ddg fetch-content"}},
+		{name: "freecrawl", want: []string{"Onesearch Freecrawl", "onesearch freecrawl scrape", "onesearch freecrawl deep-research"}},
 	} {
 		output := captureStdout(t, func() {
 			if code := Execute([]string{"skills", "show", tc.name, "--format", "content"}); code != 0 {
@@ -262,6 +276,13 @@ func TestStatusCommandReportsDirectEndpointAvailability(t *testing.T) {
 	}
 	if !containsTestString(testStrings(zhipu["commands"]), "onesearch zhipu search") {
 		t.Fatalf("zhipu commands = %#v", zhipu["commands"])
+	}
+	ddg := direct["ddg"].(map[string]any)
+	if ddg["available"] != false || ddg["reason"] != "disabled" {
+		t.Fatalf("ddg direct endpoint should be disabled by default: %#v", ddg)
+	}
+	if !containsTestString(testStrings(ddg["commands"]), "onesearch ddg fetch-content") {
+		t.Fatalf("ddg commands = %#v", ddg["commands"])
 	}
 }
 

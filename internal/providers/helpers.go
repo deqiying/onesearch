@@ -3,6 +3,7 @@ package providers
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 )
 
 func asMaps(value any) []map[string]any {
@@ -36,6 +37,13 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func truthy(value any) bool {
+	if b, ok := value.(bool); ok {
+		return b
+	}
+	return strings.EqualFold(strings.TrimSpace(stringValue(value)), "true")
 }
 
 func asAnySlice(value any) []any {

@@ -6,7 +6,7 @@ import (
 )
 
 func TestReadMarkdownSupportsCapabilityAliases(t *testing.T) {
-	for _, name := range []string{"base", "router", "search", "docs", "fetch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "deep-research"} {
+	for _, name := range []string{"base", "router", "search", "docs", "fetch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl", "deep-research"} {
 		text, err := ReadMarkdown(name)
 		if err != nil {
 			t.Fatalf("ReadMarkdown(%q) error: %v", name, err)
@@ -31,6 +31,8 @@ func TestReadMarkdownIncludesFullSkillGuidance(t *testing.T) {
 		"deepwiki":      {"ask-question", "onesearch deepwiki read-wiki-contents"},
 		"anysearch":     {"AnySearch", "onesearch anysearch search"},
 		"zhipu":         {"Zhipu", "onesearch zhipu search"},
+		"ddg":           {"Onesearch DDG", "onesearch ddg fetch-content"},
+		"freecrawl":     {"Onesearch Freecrawl", "onesearch freecrawl deep-research"},
 		"deep-research": {"Workflow:", "Deep planning does not change the default route order"},
 	}
 	for name, wants := range cases {
@@ -47,7 +49,7 @@ func TestReadMarkdownIncludesFullSkillGuidance(t *testing.T) {
 }
 
 func TestLoadFilesIncludesAgentAndReferenceAssets(t *testing.T) {
-	for _, name := range []string{"base", "search", "docs", "fetch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "deep-research"} {
+	for _, name := range []string{"base", "search", "docs", "fetch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl", "deep-research"} {
 		files, err := LoadFiles(name)
 		if err != nil {
 			t.Fatalf("LoadFiles(%q) error: %v", name, err)
@@ -85,7 +87,7 @@ func TestDefinitionsAndDescribeExposeSkillMetadata(t *testing.T) {
 			}
 		}
 	}
-	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu"} {
+	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"} {
 		if !found[id] {
 			t.Fatalf("Definitions missing %s", id)
 		}

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os/exec"
 	"sort"
 	"strings"
 )
@@ -11,6 +12,7 @@ const (
 	AdapterContext7             = "context7"
 	AdapterExa                  = "exa"
 	AdapterFirecrawl            = "firecrawl"
+	AdapterMCPStdio             = "mcp_stdio"
 	AdapterOpenAIChatCompletion = "openai_chat_completions"
 	AdapterOpenAIResponses      = "openai_responses"
 	AdapterTavily               = "tavily"
@@ -23,6 +25,7 @@ var supportedAdapters = map[string]struct{}{
 	AdapterContext7:             {},
 	AdapterExa:                  {},
 	AdapterFirecrawl:            {},
+	AdapterMCPStdio:             {},
 	AdapterOpenAIChatCompletion: {},
 	AdapterOpenAIResponses:      {},
 	AdapterTavily:               {},
@@ -173,7 +176,7 @@ func (r RuntimeConfig) ProvidersForOutput(c *Config) map[string]any {
 			"api_key_src":  providerAPIKeySource(c, provider),
 			"has_api_key":  providerAPIKey(c, provider) != "",
 			"available":    available,
-			"settings":     copyAnyMap(provider.Settings),
+			"settings":     settingsForOutput(provider.Settings),
 			"status":       capabilityStatus,
 			"aliases":      append([]string{}, provider.Aliases...),
 		}
@@ -257,6 +260,12 @@ func (r RuntimeConfig) providerAvailability(provider ProviderDefinition, capabil
 	}
 	if boolSetting(provider.Settings, "requires_base_url", false) && strings.TrimSpace(provider.BaseURL) == "" {
 		return false, "missing_base_url", enabled == true
+	}
+	if provider.Adapter == AdapterMCPStdio {
+		if reason := mcpStdioAvailabilityReason(provider, capability); reason != "" {
+			return false, reason, enabled == true
+		}
+		return true, "", false
 	}
 	if strings.TrimSpace(apiKey) == "" && !boolSetting(provider.Settings, "anonymous_allowed", false) {
 		return false, "missing_api_key", enabled == true
@@ -481,6 +490,54 @@ func defaultProviders() map[string]ProviderDefinition {
 			Enabled:      false,
 			Settings:     map[string]any{"timeout_seconds": 30},
 		},
+		"ddg": {
+			ID:           "ddg",
+			Adapter:      AdapterMCPStdio,
+			Capabilities: []string{"source_search", "page_fetch"},
+			Enabled:      false,
+			Settings: map[string]any{
+				"direct_only":       true,
+				"anonymous_allowed": true,
+				"timeout_seconds":   60,
+				"command":           "uvx",
+				"args":              []string{"duckduckgo-mcp-server", "--transport", "stdio"},
+				"env": map[string]string{
+					"DDG_SAFE_SEARCH": "MODERATE",
+					"DDG_REGION":      "cn-zh",
+				},
+				"tools": map[string]string{
+					"search":        "search",
+					"fetch_content": "fetch_content",
+				},
+			},
+			Aliases: []string{"ddg-search", "duckduckgo", "duckduckgo-mcp"},
+		},
+		"freecrawl": {
+			ID:           "freecrawl",
+			Adapter:      AdapterMCPStdio,
+			Capabilities: []string{"source_search", "page_fetch", "site_crawl"},
+			Enabled:      false,
+			Settings: map[string]any{
+				"direct_only":       true,
+				"anonymous_allowed": true,
+				"timeout_seconds":   160,
+				"command":           "uvx",
+				"args":              []string{"freecrawl-mcp"},
+				"env": map[string]string{
+					"FREECRAWL_TRANSPORT": "stdio",
+					"FREECRAWL_HEADLESS":  "true",
+					"FREECRAWL_TIMEOUT":   "160",
+					"PYTHONIOENCODING":    "utf-8",
+				},
+				"tools": map[string]string{
+					"search":        "mcp__freecrawl__search",
+					"scrape":        "mcp__freecrawl__scrape",
+					"crawl":         "mcp__freecrawl__crawl",
+					"deep_research": "mcp__freecrawl__deep_research",
+				},
+			},
+			Aliases: []string{"freecrawl-mcp"},
+		},
 		"deepwiki": {
 			ID:           "deepwiki",
 			Adapter:      "deepwiki",
@@ -514,6 +571,7 @@ func providerSchema(providers map[string]ProviderDefinition) map[string]any {
 			"api_key":      provider.APIKey,
 			"api_key_env":  provider.APIKeyEnv,
 			"settings":     copyAnyMap(provider.Settings),
+			"aliases":      append([]string{}, provider.Aliases...),
 		}
 	}
 	return out
@@ -528,9 +586,13 @@ func routesWithProviderCapabilities(routes map[string][]string, providers map[st
 	sort.Strings(providerIDs)
 	for _, id := range providerIDs {
 		provider := providers[id]
+		directOnly := boolSetting(provider.Settings, "direct_only", false)
 		for _, capability := range provider.Capabilities {
 			capability = V2CapabilityName(strings.TrimSpace(capability))
 			if capability == "" || containsString(out[capability], id) {
+				continue
+			}
+			if directOnly {
 				continue
 			}
 			out[capability] = append(out[capability], id)
@@ -672,6 +734,18 @@ func copyAnyMap(input map[string]any) map[string]any {
 	out := map[string]any{}
 	for key, value := range input {
 		out[key] = value
+	}
+	return out
+}
+
+func settingsForOutput(input map[string]any) map[string]any {
+	out := copyAnyMap(input)
+	if env := stringMapFromAny(out["env"]); len(env) > 0 {
+		masked := map[string]any{}
+		for key := range env {
+			masked[key] = "********"
+		}
+		out["env"] = masked
 	}
 	return out
 }
@@ -858,4 +932,65 @@ func boolSetting(settings map[string]any, key string, fallback bool) bool {
 		return boolFromAny(value, fallback)
 	}
 	return fallback
+}
+
+func mcpStdioAvailabilityReason(provider ProviderDefinition, capability string) string {
+	command := strings.TrimSpace(stringFromAny(provider.Settings["command"]))
+	if command == "" {
+		return "missing_command"
+	}
+	if _, err := exec.LookPath(command); err != nil {
+		return "missing_command"
+	}
+	tools := stringMapFromAny(provider.Settings["tools"])
+	if len(tools) == 0 {
+		return "missing_tool_mapping"
+	}
+	for _, key := range mcpStdioCapabilityToolKeys(capability) {
+		if strings.TrimSpace(tools[key]) != "" {
+			return ""
+		}
+	}
+	if len(mcpStdioCapabilityToolKeys(capability)) == 0 {
+		return ""
+	}
+	return "missing_tool_mapping"
+}
+
+func mcpStdioCapabilityToolKeys(capability string) []string {
+	switch V2CapabilityName(capability) {
+	case "source_search":
+		return []string{"search"}
+	case "page_fetch":
+		return []string{"fetch_content", "scrape", "extract"}
+	case "site_crawl":
+		return []string{"crawl"}
+	case "site_map":
+		return []string{"map"}
+	default:
+		return nil
+	}
+}
+
+func stringMapFromAny(value any) map[string]string {
+	switch items := value.(type) {
+	case map[string]string:
+		out := map[string]string{}
+		for key, value := range items {
+			if strings.TrimSpace(key) != "" && strings.TrimSpace(value) != "" {
+				out[key] = value
+			}
+		}
+		return out
+	case map[string]any:
+		out := map[string]string{}
+		for key, value := range items {
+			if strings.TrimSpace(key) != "" && strings.TrimSpace(stringFromAny(value)) != "" {
+				out[key] = stringFromAny(value)
+			}
+		}
+		return out
+	default:
+		return nil
+	}
 }

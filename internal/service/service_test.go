@@ -1,9 +1,11 @@
 package service
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
@@ -11,6 +13,7 @@ import (
 
 	"github.com/deqiying/onesearch/internal/config"
 	"github.com/deqiying/onesearch/internal/output"
+	"github.com/deqiying/onesearch/internal/providers"
 )
 
 func TestDoctorUsesRuntimeSchemaCapabilityNames(t *testing.T) {
@@ -125,6 +128,57 @@ func TestStatusReportsCapabilityAndProviderAvailability(t *testing.T) {
 	zhipu := allProviders["zhipu"].(map[string]any)
 	if zhipu["available"] != false || zhipu["enabled"] != false {
 		t.Fatalf("zhipu provider output = %#v", zhipu)
+	}
+}
+
+func TestDDGDirectUsesMCPStdioProvider(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes":         map[string]any{},
+		"providers": map[string]any{
+			"ddg": mcpStdioTestProvider("ddg", []any{"source_search", "page_fetch"}, map[string]any{
+				"search":        "search",
+				"fetch_content": "fetch_content",
+			}),
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	got := New(cfg).DDGSearch(t.Context(), "golang", providers.DDGSearchOptions{MaxResults: 2})
+	if got["ok"] != true || got["provider"] != "ddg" || got["query"] != "golang" {
+		t.Fatalf("ddg search = %#v", got)
+	}
+	results := got["results"].([]map[string]any)
+	if len(results) != 1 || results[0]["url"] != "https://example.com/golang" {
+		t.Fatalf("ddg results = %#v", results)
+	}
+}
+
+func TestExplicitRouteUsesDDGMCPStdioSourceProvider(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"source_search": []any{"ddg"},
+		},
+		"providers": map[string]any{
+			"ddg": mcpStdioTestProvider("ddg", []any{"source_search"}, map[string]any{"search": "search"}),
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	provider := config.LoadRuntime(cfg).ResolveProviders(cfg, "source_search", "auto", false)[0]
+	results, err := New(cfg).searchWithSourceProvider(t.Context(), provider, "golang", 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(results) != 1 || results[0]["provider"] != "ddg" || results[0]["url"] != "https://example.com/golang" {
+		t.Fatalf("results = %#v", results)
 	}
 }
 
@@ -1309,6 +1363,81 @@ func TestVerboseSearchOutputKeepsDiagnostics(t *testing.T) {
 			t.Fatalf("verbose search output should keep %s: %s", key, rendered)
 		}
 	}
+}
+
+func mcpStdioTestProvider(provider string, capabilities []any, tools map[string]any) map[string]any {
+	return map[string]any{
+		"enabled":      true,
+		"adapter":      "mcp_stdio",
+		"capabilities": capabilities,
+		"settings": map[string]any{
+			"direct_only":       true,
+			"anonymous_allowed": true,
+			"command":           os.Args[0],
+			"args":              []any{"-test.run=TestServiceMCPStdioHelperProcess"},
+			"timeout_seconds":   2,
+			"env": map[string]any{
+				"GO_WANT_SERVICE_MCPSTDIO_HELPER": "1",
+				"SERVICE_MCPSTDIO_PROVIDER":       provider,
+			},
+			"tools": tools,
+		},
+	}
+}
+
+func TestServiceMCPStdioHelperProcess(t *testing.T) {
+	if os.Getenv("GO_WANT_SERVICE_MCPSTDIO_HELPER") != "1" {
+		return
+	}
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		var request map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &request); err != nil {
+			os.Exit(2)
+		}
+		id, hasID := request["id"]
+		if !hasID {
+			continue
+		}
+		switch request["method"] {
+		case "initialize":
+			serviceMCPRespond(id, map[string]any{"protocolVersion": "2025-03-26", "capabilities": map[string]any{}})
+		case "tools/list":
+			serviceMCPRespond(id, map[string]any{"tools": []map[string]any{
+				{"name": "search"},
+				{"name": "fetch_content"},
+				{"name": "scrape"},
+				{"name": "crawl"},
+			}})
+		case "tools/call":
+			params := request["params"].(map[string]any)
+			args := params["arguments"].(map[string]any)
+			switch params["name"] {
+			case "search":
+				query := args["query"].(string)
+				serviceMCPRespond(id, map[string]any{"content": []map[string]any{{"type": "text", "text": `{"results":[{"title":"Result","url":"https://example.com/` + query + `","snippet":"summary"}]}`}}})
+			case "fetch_content", "scrape":
+				serviceMCPRespond(id, map[string]any{"content": []map[string]any{{"type": "text", "text": "page body"}}})
+			case "crawl":
+				serviceMCPRespond(id, map[string]any{"content": []map[string]any{{"type": "text", "text": `{"pages":[{"url":"https://example.com/docs","markdown":"docs"}]}`}}})
+			default:
+				serviceMCPRespondError(id, -32601, "unknown tool")
+			}
+		default:
+			serviceMCPRespondError(id, -32601, "unknown method")
+		}
+	}
+	os.Exit(0)
+}
+
+func serviceMCPRespond(id any, result any) {
+	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": id, "result": result})
+	os.Stdout.Write(append(body, '\n'))
+}
+
+func serviceMCPRespondError(id any, code int, message string) {
+	body, _ := json.Marshal(map[string]any{"jsonrpc": "2.0", "id": id, "error": map[string]any{"code": code, "message": message}})
+	os.Stdout.Write(append(body, '\n'))
 }
 
 func testStrings(value any) []string {

@@ -18,6 +18,8 @@ onesearch crawl "https://example.com" --provider tavily --max-depth 2 --limit 20
 onesearch tavily extract "https://example.com/page" --format json
 onesearch firecrawl scrape "https://example.com/page" --format json
 onesearch exa web-fetch "https://example.com/page" --max-characters 12000 --format json
+onesearch ddg fetch-content "https://example.com/page" --max-length 8000 --format json
+onesearch freecrawl scrape "https://example.com/page" --formats markdown --format json
 ```
 
 Workflow:
@@ -25,11 +27,11 @@ Workflow:
 - Use `fetch` for claim-level evidence. Its output is evidence; search output is only discovery.
 - Run `onesearch status --format json` before choosing `--provider` or provider-direct fetch/map/crawl commands. Use only providers listed in `status.capabilities.page_fetch.available`, `status.capabilities.site_map.available`, `status.capabilities.site_crawl.available`, or the matching available `direct_endpoints` entry.
 - Use workflow `--provider` when the task should keep workflow output but force an upstream provider.
-- Use `tavily extract`, `firecrawl scrape`, or `exa web-fetch` when the task explicitly needs a provider-direct command.
+- Use `tavily extract`, `firecrawl scrape`, `exa web-fetch`, `ddg fetch-content`, or `freecrawl scrape` when the task explicitly needs a provider-direct command and the matching direct endpoint is available.
 - Use `map` to discover site structure before selecting pages to fetch.
-- Use `tavily map`, `tavily crawl`, `firecrawl map`, or `firecrawl crawl` when you need direct provider behavior.
+- Use `tavily map`, `tavily crawl`, `firecrawl map`, `firecrawl crawl`, or `freecrawl crawl` when you need direct provider behavior.
 - For multi-source work, fetch the few key sources that support the answer rather than dumping every discovered URL.
 - Distinguish fetched evidence from candidates in your final answer.
 - If `fetch` returns a config error, run `doctor` and `status`, then report the missing `page_fetch` provider instead of silently switching tools.
 
-`page_fetch` currently routes through configured Tavily, Firecrawl, and Exa providers. Provider availability is visible in `status`.
+`page_fetch` currently routes through configured Tavily, Firecrawl, and Exa providers. DDG and Freecrawl are direct-only by default unless runtime routes explicitly include them. Provider availability is visible in `status`.

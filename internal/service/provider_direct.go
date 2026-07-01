@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deqiying/onesearch/internal/config"
 	"github.com/deqiying/onesearch/internal/providers"
 )
 
@@ -108,6 +109,94 @@ func (s *Service) FirecrawlCrawl(ctx context.Context, targetURL string, options 
 	}
 	data := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Crawl(ctx, targetURL, options.MaxDepth, options.Limit)
 	data["tool"] = "firecrawl_crawl"
+	return data
+}
+
+func (s *Service) DDGSearch(ctx context.Context, query string, options providers.DDGSearchOptions) map[string]any {
+	mcp, errData, ok := s.mcpStdioProvider("ddg", "search")
+	if !ok {
+		return errData
+	}
+	return providers.DDG{MCP: mcp}.Search(ctx, query, options)
+}
+
+func (s *Service) DDGFetchContent(ctx context.Context, targetURL string, options providers.DDGFetchOptions) map[string]any {
+	mcp, errData, ok := s.mcpStdioProvider("ddg", "fetch_content")
+	if !ok {
+		return errData
+	}
+	return providers.DDG{MCP: mcp}.FetchContent(ctx, targetURL, options)
+}
+
+func (s *Service) FreecrawlSearch(ctx context.Context, query string, options providers.FreecrawlSearchOptions) map[string]any {
+	mcp, errData, ok := s.mcpStdioProvider("freecrawl", "search")
+	if !ok {
+		return errData
+	}
+	return providers.Freecrawl{MCP: mcp}.Search(ctx, query, options)
+}
+
+func (s *Service) FreecrawlScrape(ctx context.Context, targetURL string, options providers.FreecrawlScrapeOptions) map[string]any {
+	mcp, errData, ok := s.mcpStdioProvider("freecrawl", "scrape")
+	if !ok {
+		return errData
+	}
+	return providers.Freecrawl{MCP: mcp}.Scrape(ctx, targetURL, options)
+}
+
+func (s *Service) FreecrawlCrawl(ctx context.Context, targetURL string, options providers.FreecrawlCrawlOptions) map[string]any {
+	mcp, errData, ok := s.mcpStdioProvider("freecrawl", "crawl")
+	if !ok {
+		return errData
+	}
+	return providers.Freecrawl{MCP: mcp}.Crawl(ctx, targetURL, options)
+}
+
+func (s *Service) FreecrawlDeepResearch(ctx context.Context, topic string, options providers.FreecrawlDeepResearchOptions) map[string]any {
+	mcp, errData, ok := s.mcpStdioProvider("freecrawl", "deep_research")
+	if !ok {
+		return errData
+	}
+	return providers.Freecrawl{MCP: mcp}.DeepResearch(ctx, topic, options)
+}
+
+func (s *Service) mcpStdioProvider(providerID, publicTool string) (providers.MCPStdio, map[string]any, bool) {
+	provider, ok := s.providerByID(providerID)
+	if !ok {
+		return providers.MCPStdio{}, mcpStdioConfigError(providerID, publicTool, "provider "+providerID+" 不存在；请检查 config.json 的 providers。"), false
+	}
+	if enabledIsFalse(provider.Enabled) {
+		return providers.MCPStdio{}, mcpStdioConfigError(providerID, publicTool, "provider "+providerID+" 已禁用；请在 config.json 中设置 providers."+providerID+".enabled=true。"), false
+	}
+	if provider.Adapter != config.AdapterMCPStdio {
+		return providers.MCPStdio{}, mcpStdioConfigError(providerID, publicTool, "provider "+providerID+" adapter 不是 mcp_stdio。"), false
+	}
+	mcp := providers.NewMCPStdio(providerID, provider.Settings)
+	if strings.TrimSpace(mcp.Command) == "" {
+		return providers.MCPStdio{}, mcpStdioConfigError(providerID, publicTool, "provider "+providerID+" 缺少 settings.command。"), false
+	}
+	if strings.TrimSpace(mcp.ToolName(publicTool)) == "" {
+		return providers.MCPStdio{}, mcpStdioConfigError(providerID, publicTool, "provider "+providerID+" 缺少 settings.tools."+publicTool+"。"), false
+	}
+	return mcp, nil, true
+}
+
+func enabledIsFalse(value any) bool {
+	if b, ok := value.(bool); ok {
+		return !b
+	}
+	switch strings.ToLower(strings.TrimSpace(stringValue(value))) {
+	case "false", "0", "off", "no":
+		return true
+	default:
+		return false
+	}
+}
+
+func mcpStdioConfigError(providerID, tool, message string) map[string]any {
+	data := configError(message)
+	data["provider"] = providerID
+	data["tool"] = tool
 	return data
 }
 
