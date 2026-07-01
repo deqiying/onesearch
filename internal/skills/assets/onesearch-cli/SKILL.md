@@ -1,11 +1,25 @@
 ---
 name: onesearch-cli
-description: Use when an AI agent needs Onesearch CLI capabilities for current/latest/today web facts, news, prices, rankings, hot searches, trending topics, social-media hot lists such as Weibo 热搜/微博热搜前十, source-backed fact checking, URL/page fetching, site mapping or crawling, API/SDK/library documentation lookup, GitHub repository wiki context, offline deep research planning, or provider-direct Exa/Tavily/Firecrawl/Context7/DeepWiki/AnySearch/Zhipu commands through a reproducible local CLI.
+description: Use when you need to search the web, look up current or latest public information such as news, prices, rankings, hot searches, or trending topics, verify claims with online sources, read a URL, map or crawl a website, find official API/SDK/package/framework docs, or inspect public GitHub repo docs and architecture.
 ---
 
 # Onesearch CLI Router
 
-Use this skill as the entry router for Onesearch. It should decide which built-in skill to load next, then use that skill's command guidance. Do not duplicate provider option lists here; provider skills own provider-specific commands and flags.
+Use this top-level skill as the broad search and research entry point for Onesearch. Load it when the task is about searching the web, checking current facts, reading public docs, fetching URL evidence, exploring a website, or understanding a public repository, even if the user has never mentioned Onesearch by name.
+
+This skill should explain what Onesearch can do, choose the most specific built-in skill to load next, and then use that skill's command guidance. Do not duplicate provider option lists here; workflow and provider skills own provider-specific commands and flags.
+
+## Use When The Task Needs
+
+- Web or internet search, source discovery, query answering, source-backed research, or claim verification.
+- Real-time, current, latest, today, news, prices, schedules, rankings, leaderboards, hot searches, hot lists, trending topics, Weibo 热搜, 微博热搜前十, or other fast-changing public information.
+- Official API, SDK, package, library, framework, product, changelog, migration, setup, or version-specific documentation lookup.
+- URL/page fetching, page-content extraction, evidence inspection, site mapping, bounded crawling, or converting search results into citable evidence.
+- Public GitHub repository architecture, generated wiki context, module summaries, implementation overviews, wiki structure, or wiki contents.
+- Explicit provider commands for Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, or Zhipu.
+- Offline decomposition for complex research before running live searches.
+
+Do not use Onesearch for purely local repository inspection, local file editing, spreadsheet/document manipulation, or tasks that do not need public web/search/docs/fetch/research capabilities.
 
 ## Agent Routing Primer
 
@@ -14,26 +28,40 @@ Use workflow commands when the user describes the task. Use provider direct comm
 ## First Step
 
 1. Run `onesearch skills list --format json` when you need the available skill inventory.
-2. Load the most specific skill with `onesearch skills show <skill> --format content` or `onesearch load_skill <skill>`.
-3. Run `onesearch doctor --format json` when provider availability, API keys, or runtime routes are uncertain.
-4. Execute the commands from the loaded workflow or provider skill.
+2. Run `onesearch skills list --capability <capability> --format json` when you know the capability but not the best skill.
+3. Load the most specific skill with `onesearch skills show <skill> --format content` or `onesearch load_skill <skill>` before using detailed provider or workflow commands.
+4. Run `onesearch doctor --format json` when provider availability, API keys, or runtime routes are uncertain.
+5. Execute the commands from the loaded workflow or provider skill.
 
-## Route By User Intent
+## What Onesearch Provides
 
-| User intent | Load this skill | Typical command family |
-| --- | --- | --- |
-| Exa source search, official docs discovery, papers, product pages, or Exa page fetch | `exa` | `onesearch exa ...` |
-| Tavily search, extract, map, or crawl | `tavily` | `onesearch tavily ...` |
-| Firecrawl search, scrape, map, or crawl | `firecrawl` | `onesearch firecrawl ...` |
-| Context7 library resolution or docs snippets | `context7` | `onesearch context7 ...` |
-| DeepWiki repository architecture or wiki context | `deepwiki` | `onesearch deepwiki ...` |
-| Explicit AnySearch vertical or experimental search | `anysearch` | `onesearch anysearch ...` |
-| Chinese, China-specific, or Zhipu direct source discovery | `zhipu` | `onesearch zhipu search ...` |
-| Broad answer search, current source discovery, or source triage | `search` | `onesearch search ...` |
-| Today's/latest rankings, hot searches, trending topics, social-media hot lists, or top-N summaries | `search` | `onesearch search "微博热搜前十 当前榜单" ...` |
-| API, SDK, package, framework, or official documentation lookup | `docs` | `onesearch context7 ...`, `onesearch exa ...` |
-| URL evidence, page fetch, site map, or bounded crawl | `fetch` | `onesearch fetch ...`, `onesearch map ...`, provider fetch/map/crawl |
-| Offline multi-step research planning | `deep-research` | `onesearch deep ...` |
+| Capability | User wording that should trigger this | Load this skill | Typical command family |
+| --- | --- | --- | --- |
+| Broad web search and source discovery | search the web, look up, find sources, current info, latest, today | `search` | `onesearch search ...` |
+| Fresh facts, rankings, prices, hot lists, trends | news, rankings, top-N, hot search, 热搜, 热榜, 榜单, 前十 | `search`, sometimes `zhipu` | `onesearch search ...`, `onesearch zhipu search ...` |
+| Source-backed fact checking | verify this claim, fact check, cite sources, compare evidence | `search`, then `fetch` | `onesearch search ... --extra-sources 2`, `onesearch fetch ...` |
+| Official docs and API references | API docs, SDK docs, library docs, package options, migration, setup | `docs`, `context7`, `exa` | `onesearch context7 ...`, `onesearch exa web-search ...` |
+| URL/page evidence | fetch this URL, read this page, extract page content, inspect evidence | `fetch` | `onesearch fetch ...`, `onesearch tavily extract ...`, `onesearch firecrawl scrape ...`, `onesearch exa web-fetch ...` |
+| Site discovery | map this site, crawl docs, find pages under a domain | `fetch`, `tavily`, `firecrawl` | `onesearch map ...`, `onesearch crawl ...`, provider map/crawl commands |
+| Public repository context | GitHub repo architecture, public project docs, repo wiki, module overview | `deepwiki` | `onesearch repo-wiki ...`, `onesearch deepwiki ...` |
+| Provider-direct commands | user names Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, or Zhipu | matching provider skill | `onesearch <provider> <command> ...` |
+| Research planning | complex research, plan the search, decompose before browsing | `deep-research` | `onesearch deep ...` |
+
+## Built-In Skill Inventory
+
+| Skill | Use for |
+| --- | --- |
+| `search` | Broad answer search, current source discovery, source triage, hot/trending/top-N queries, and search result comparison. |
+| `docs` | API, SDK, package, library, framework, official docs, version-specific usage, setup, and migration lookup. |
+| `fetch` | URL/page content, evidence extraction, site maps, bounded crawls, and claim-level source verification. |
+| `deep-research` | Offline multi-step research planning before executing provider calls. |
+| `exa` | Exa source search, official docs discovery, papers, product pages, similar pages, and Exa page fetch. |
+| `tavily` | Tavily current search, page extraction, site mapping, and bounded crawling. |
+| `firecrawl` | Firecrawl robust search, page scraping, markdown extraction, site mapping, and crawl jobs. |
+| `context7` | Context7 library resolution and focused current docs snippets. |
+| `deepwiki` | DeepWiki public GitHub repository architecture, wiki structure, and wiki contents. |
+| `anysearch` | Explicit AnySearch vertical or experimental search, domain discovery, extraction, or batch queries. |
+| `zhipu` | Chinese, China-specific, current/latest/today search, hot searches, social-media hot lists, and domain-filtered Chinese source discovery. |
 
 ## Runtime Capability Names
 
@@ -53,9 +81,17 @@ Use workflow commands when the user describes the task. Use provider direct comm
 
 ```powershell
 onesearch skills list --format json
+onesearch skills list --capability source_search --format json
+onesearch skills list --capability docs_search --format json
 onesearch skills list --capability page_fetch --format json
+onesearch skills show search --format content
+onesearch skills show docs --format content
+onesearch skills show fetch --format content
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
+onesearch load_skill search
+onesearch load_skill docs
+onesearch load_skill fetch
 onesearch load_skill exa
 onesearch load_skill tavily
 onesearch doctor --format json
@@ -67,6 +103,8 @@ onesearch config list --format json
 - Prefer the most specific provider skill when the user names a provider.
 - Use workflow `--provider` when the user names a provider but still wants workflow-shaped output.
 - Use workflow skills (`search`, `docs`, `fetch`, `deep-research`) when the user asks by task intent rather than provider name.
+- Prefer `search` for broad online questions, `docs` for documentation/API questions, and `fetch` when a URL or claim-level evidence is needed.
+- For current, latest, today, rankings, prices, schedules, hot lists, or social-media trends, use Onesearch instead of answering from memory.
 - Treat search results as discovery candidates. Fetch or extract key URLs before claim-level conclusions.
 - Keep API keys out of final answers. `doctor` and `config list` mask secrets.
 
