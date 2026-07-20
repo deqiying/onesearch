@@ -31,16 +31,8 @@ go build -o .\bin\onesearch.exe .\cmd\onesearch
 开发时如果系统 Go cache 无写权限，可以把缓存放到项目目录：
 
 ```powershell
-$env:GOCACHE='D:\Projects\Goland\onesearch\.gocache'
+$env:GOCACHE = Join-Path (Get-Location) '.gocache'
 go test ./...
-```
-
-发布构建会把 `.deploy/version` 注入到二进制内部，不依赖同目录 `version` 文件：
-
-```powershell
-$version = (Get-Content .\.deploy\version -Raw).Trim()
-go build -trimpath -ldflags "-s -w -X github.com/deqiying/onesearch/internal/app.BuildVersion=$version" -o .\bin\onesearch.exe .\cmd\onesearch
-.\bin\onesearch.exe --version
 ```
 
 推送 `v*.*.*` tag 后，GitHub Actions 会先执行共享测试，然后并行构建 GitHub Release 多平台二进制和 npm 平台包。GitHub Release 产物包含各平台压缩包与 `checksums.txt`，npm 发布沿用 `onesearch` 与 `@deqiying/onesearch-*` 包。
@@ -78,7 +70,7 @@ go build -trimpath -ldflags "-s -w -X github.com/deqiying/onesearch/internal/app
 
 首次运行普通命令时，如果配置文件不存在，`onesearch` 会自动创建配置目录和初始 `config.json`，然后继续使用初始配置执行。只有 `doctor` 会在诊断输出中提示本次是否创建了配置文件。初始配置中，强制依赖 API key 的 provider 默认 `"enabled": false`；不强制 API key 的匿名端点默认启用。DeepWiki 默认使用公开 MCP 端点查询公开仓库文档；如果配置 `DEEPWIKI_API_KEY`，则可用于需要凭据的私有文档查询。
 
-示例文件见 [config.example.json](D:/Projects/Goland/onesearch/config.example.json)。默认 `source_search` 路由为：
+示例文件见 [config.example.json](config.example.json)。默认 `source_search` 路由为：
 
 ```json
 ["exa", "zhipu", "tavily", "firecrawl"]
