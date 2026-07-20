@@ -1,2 +1,7 @@
 [tools]
 go = "1.26.5"
+
+# 使用项目级缓存，避免依赖用户级全局缓存
+[env]
+GOMODCACHE = "{{ config_root }}/.cache/go-mod"
+GOCACHE    = "{{ config_root }}/.cache/go-build"
