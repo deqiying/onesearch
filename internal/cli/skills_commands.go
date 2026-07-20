@@ -18,19 +18,19 @@ func runSkills(svc *service.Service, args []string) int {
 	capability := fs.String("capability", "", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, rest); err != nil {
-		return printParameterError("skills", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "skills", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	switch subcommand {
 	case "list":
-		return printCommand("skills", skillsListData(*capability), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "skills", skillsListData(*capability), makeFormatOutput(outputFlags, svc))
 	case "show":
 		if fs.NArg() < 1 {
-			return printParameterError("skills", "skills show requires skill name", makeFormatOutput(outputFlags, svc))
+			return printParameterError(svc, "skills", "skills show requires skill name", makeFormatOutput(outputFlags, svc))
 		}
 		data := skillShowData(fs.Arg(0))
-		return printCommand("skills", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "skills", data, makeFormatOutput(outputFlags, svc))
 	default:
-		return printParameterError("skills", "unknown skills subcommand: "+subcommand, makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "skills", "unknown skills subcommand: "+subcommand, makeFormatOutput(outputFlags, svc))
 	}
 }
 

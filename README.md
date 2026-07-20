@@ -81,15 +81,37 @@ go test ./...
 ```powershell
 onesearch config path --format json
 onesearch config list --format json
+onesearch config setup exa
 onesearch doctor --format json
 onesearch status --format json
 ```
 
-provider 开关、base URL、模型、settings 和 capabilities 直接编辑 `config.json` 的 `providers.<id>`；密钥可以直接写入 `api_key`，也可以通过 `api_key_env` 指向环境变量读取。两者都配置时，`api_key` 优先。`config list` 输出会脱敏直配密钥。
+`config setup` 可以通过 provider ID 或 alias 快速写入 API key，并把目标 provider 调整为 `enabled: "auto"`。交互模式下 key 使用隐藏输入；`base_url` 直接回车会保留当前值或内置默认值：
+
+```powershell
+onesearch config setup exa
+```
+
+脚本或管道必须显式使用 `--api-key-stdin`，CLI 不提供会把密钥写入 shell history 的 `--api-key` 参数：
+
+```powershell
+$env:EXA_API_KEY |
+  onesearch config setup exa --api-key-stdin --format json
+
+$env:OPENAI_COMPATIBLE_API_KEY |
+  onesearch config setup openai-compatible `
+    --api-key-stdin `
+    --base-url "https://gateway.example.com/v1" `
+    --format json
+```
+
+强制鉴权的 HTTP provider 在没有现有有效 key 时不允许空输入；DeepWiki、AnySearch 的 key 可选。`mcp_stdio` provider 不使用这条通用配置命令。provider 的 model、settings、capabilities、routes 以及禁用操作仍直接编辑 `config.json`。密钥也可以继续通过 `api_key_env` 指向环境变量读取；直接 `api_key` 与环境变量同时存在时，前者优先。
 
 OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远请求 `/v1/responses`，`openai_chat_completions` 永远请求 `/v1/chat/completions`，不会互相降级。两者都支持 JSON 与 SSE 响应解析；`providers.<id>.settings.stream` 控制是否主动发起流式请求，`search --stream/--no-stream` 可临时覆盖。`openai_responses` 默认启用 `tools: ["web_search"]` 和 `tool_choice: "required"`；`openai_compatible` 默认不附加工具，但可通过 `settings.tools` / `settings.tool_choice` 透传给支持 Chat Completions tools 的服务。`settings` 中的空字符串、空数组和空对象会保留内置默认值。
 
-`doctor` 默认输出适合 agent 解析的紧凑诊断 JSON，只列 `ok/status/error`、配置文件初始化状态、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。`status` 输出当前能力命令和 provider-direct 端点的实际可用状态，例如 `answer_search`、`docs_search`、`page_fetch` 以及 `exa`、`tavily`、`zhipu` 是否可用。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。完整 schema、routes、providers 和 defaults 用 `config list --format json` 查看。
+`doctor` 默认输出适合 agent 解析的紧凑诊断 JSON，只列 `ok/status/error`、当前配置文件路径及来源、有效环境变量名、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。`status` 输出同一份配置来源摘要，以及当前能力命令和 provider-direct 端点的实际可用状态，例如 `answer_search`、`docs_search`、`page_fetch` 以及 `exa`、`tavily`、`zhipu` 是否可用。环境变量诊断只包含变量名、用途和 provider，不包含 value。
+
+所有 CLI 动态输出统一执行凭据脱敏，包括 JSON、content、markdown、`--quiet`、`--verbose`、动态 stderr 和 `--output` 文件。直接配置 key、`api_key_env` 的实际值以及敏感 `settings.env` 值至少会替换为 `********`；没有关闭脱敏的 debug 选项。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。完整 schema、routes、providers 和 defaults 用 `config list --format json` 查看。
 
 ## 常用命令
 

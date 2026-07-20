@@ -518,18 +518,15 @@ func (s *Service) Doctor(ctx context.Context) map[string]any {
 	info := map[string]any{
 		"ok":     ok,
 		"status": map[bool]string{true: "ok", false: "config_error"}[ok],
-		"config": map[string]any{
-			"file":                 s.Config.ConfigFile,
-			"created":              s.Config.CreatedConfigFile,
-			"missing_before_start": s.Config.MissingConfigFile,
-		},
+		"config": s.configDiagnostic(),
 		"schema": map[string]any{
 			"version": runtime.SchemaVersion,
 			"source":  runtime.Source,
 		},
-		"minimum_profile": compactMinimumProfile(minimum),
-		"issues":          doctorIssues(minimum, capability),
-		"elapsed_ms":      providers.Elapsed(start),
+		"minimum_profile":       compactMinimumProfile(minimum),
+		"issues":                doctorIssues(minimum, capability),
+		"effective_environment": s.effectiveEnvironment(runtime),
+		"elapsed_ms":            providers.Elapsed(start),
 	}
 	if ok {
 		info["error_type"] = ""
@@ -609,19 +606,16 @@ func (s *Service) Status() map[string]any {
 		"ok":     true,
 		"ready":  ready,
 		"status": status,
-		"config": map[string]any{
-			"file":                 s.Config.ConfigFile,
-			"created":              s.Config.CreatedConfigFile,
-			"missing_before_start": s.Config.MissingConfigFile,
-		},
+		"config": s.configDiagnostic(),
 		"schema": map[string]any{
 			"version": runtime.SchemaVersion,
 			"source":  runtime.Source,
 		},
-		"minimum_profile": compactMinimumProfile(minimum),
-		"capabilities":    runtimeCapabilityStatus(runtime, s.Config),
-		"providers":       runtime.ProvidersForOutput(s.Config),
-		"elapsed_ms":      providers.Elapsed(start),
+		"minimum_profile":       compactMinimumProfile(minimum),
+		"capabilities":          runtimeCapabilityStatus(runtime, s.Config),
+		"providers":             runtime.ProvidersForOutput(s.Config),
+		"effective_environment": s.effectiveEnvironment(runtime),
+		"elapsed_ms":            providers.Elapsed(start),
 	}
 	if s.Config.InitializationError != "" {
 		info["status"] = "initialization_error"
@@ -1240,18 +1234,13 @@ func (s *Service) providerByID(providerID string) (config.ResolvedProvider, bool
 	if !ok {
 		return config.ResolvedProvider{}, false
 	}
-	apiKey := ""
-	if strings.TrimSpace(provider.APIKey) != "" {
-		apiKey = provider.APIKey
-	} else if provider.APIKeyEnv != "" {
-		apiKey = s.Config.Get(provider.APIKeyEnv, "")
-	}
+	credential := config.ResolveProviderCredential(s.Config, provider)
 	return config.ResolvedProvider{
 		ID:        provider.ID,
 		Adapter:   provider.Adapter,
 		BaseURL:   provider.BaseURL,
 		APIKeyEnv: provider.APIKeyEnv,
-		APIKey:    apiKey,
+		APIKey:    credential.Value,
 		Settings:  provider.Settings,
 		Enabled:   provider.Enabled,
 		Aliases:   provider.Aliases,

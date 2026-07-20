@@ -8,11 +8,14 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/deqiying/onesearch/internal/redact"
 )
 
 type Options struct {
-	Format    string
-	Verbosity string
+	Format       string
+	Verbosity    string
+	SecretValues []string
 }
 
 func Render(command string, data map[string]any, format string) string {
@@ -20,6 +23,9 @@ func Render(command string, data map[string]any, format string) string {
 }
 
 func RenderWithOptions(command string, data map[string]any, options Options) string {
+	if safe, ok := redact.Data(data, options.SecretValues).(map[string]any); ok {
+		data = safe
+	}
 	format := options.Format
 	verbosity := strings.ToLower(strings.TrimSpace(options.Verbosity))
 	if verbosity != "verbose" {
@@ -33,19 +39,21 @@ func RenderWithOptions(command string, data map[string]any, options Options) str
 			data = compactContentResult(data)
 		}
 	}
+	var rendered string
 	switch format {
 	case "content":
-		return content(command, data)
+		rendered = content(command, data)
 	case "markdown":
-		return markdown(command, data)
+		rendered = markdown(command, data)
 	default:
 		var buf bytes.Buffer
 		encoder := json.NewEncoder(&buf)
 		encoder.SetEscapeHTML(false)
 		encoder.SetIndent("", "  ")
 		_ = encoder.Encode(data)
-		return buf.String()
+		rendered = buf.String()
 	}
+	return redact.Text(rendered, options.SecretValues)
 }
 
 func compactError(command string, data map[string]any) map[string]any {
@@ -61,7 +69,7 @@ func compactError(command string, data map[string]any) map[string]any {
 		}
 	}
 	if command == "doctor" {
-		for _, key := range []string{"status", "config", "schema", "minimum_profile", "issues"} {
+		for _, key := range []string{"status", "config", "schema", "minimum_profile", "issues", "effective_environment"} {
 			if value, ok := data[key]; ok {
 				out[key] = value
 			}
@@ -513,8 +521,13 @@ func content(command string, data map[string]any) string {
 		lines := []string{
 			"Doctor: " + status(data["ok"]),
 			"Config: " + stringValue(config["file"]),
+			"Config source: " + stringValue(config["dir_source"]),
 			"Profile: " + stringValue(minimum["profile"]) + " " + status(minimum["ok"]),
 		}
+		if dirEnv := stringValue(config["dir_env"]); dirEnv != "" {
+			lines = append(lines, "Config environment: "+dirEnv)
+		}
+		lines = appendEffectiveEnvironmentContent(lines, data["effective_environment"])
 		if created, _ := config["created"].(bool); created {
 			lines = append(lines, "Initialized: config file was missing and has been created")
 		} else if missing, _ := config["missing_before_start"].(bool); missing {
@@ -554,6 +567,11 @@ func content(command string, data map[string]any) string {
 	}
 	if command == "config" {
 		parts := []string{strings.Title(command) + " " + status(data["ok"])}
+		for _, key := range []string{"provider", "enabled", "api_key_set", "api_key_env", "api_key_env_set", "api_key_src", "has_api_key", "base_url"} {
+			if value, ok := data[key]; ok && stringValue(value) != "" {
+				parts = append(parts, key+"="+stringValue(value))
+			}
+		}
 		if file := stringValue(data["config_file"]); file != "" {
 			parts = append(parts, "file="+file)
 		}
@@ -562,6 +580,9 @@ func content(command string, data map[string]any) string {
 		}
 		if value := stringValue(data["value"]); value != "" {
 			parts = append(parts, "value="+value)
+		}
+		if changed := asStrings(data["changed_fields"]); len(changed) > 0 {
+			parts = append(parts, "changed_fields="+strings.Join(changed, ","))
 		}
 		if err := errorSummary(data); err != "" {
 			parts = append(parts, "error="+err)
@@ -640,7 +661,11 @@ func doctorMarkdown(data map[string]any) string {
 		"Status: " + stringValue(data["status"]),
 		"Schema: v" + stringValue(schema["version"]) + " (`" + stringValue(schema["source"]) + "`)",
 		"Config file: `" + stringValue(config["file"]) + "`",
+		"Config source: `" + stringValue(config["dir_source"]) + "`",
 		"Minimum profile: `" + stringValue(minimum["profile"]) + "` " + status(minimum["ok"]),
+	}
+	if dirEnv := stringValue(config["dir_env"]); dirEnv != "" {
+		lines = append(lines, "Config environment: `"+mdCell(dirEnv)+"`")
 	}
 	if created, _ := config["created"].(bool); created {
 		lines = append(lines, "Config initialized: `"+stringValue(config["file"])+"`")
@@ -660,6 +685,7 @@ func doctorMarkdown(data map[string]any) string {
 			lines = append(lines, fmt.Sprintf("| %s | %s | %s | %s |", mdCell(stringValue(item["type"])), mdCell(stringValue(item["capability"])), mdCell(stringValue(item["provider"])), mdCell(stringValue(item["reason"]))))
 		}
 	}
+	lines = appendEffectiveEnvironmentMarkdown(lines, data["effective_environment"])
 	if err := errorSummary(data); err != "" {
 		lines = append(lines, "", "## Errors", "- "+err)
 	}
@@ -668,6 +694,17 @@ func doctorMarkdown(data map[string]any) string {
 
 func statusContent(data map[string]any) string {
 	lines := []string{"Status: " + stringValue(data["status"]) + " (ready: " + status(data["ready"]) + ")"}
+	config := asMap(data["config"])
+	if file := stringValue(config["file"]); file != "" {
+		lines = append(lines, "Config: "+file)
+	}
+	if source := stringValue(config["dir_source"]); source != "" {
+		lines = append(lines, "Config source: "+source)
+	}
+	if dirEnv := stringValue(config["dir_env"]); dirEnv != "" {
+		lines = append(lines, "Config environment: "+dirEnv)
+	}
+	lines = appendEffectiveEnvironmentContent(lines, data["effective_environment"])
 	minimum := asMap(data["minimum_profile"])
 	if profile := stringValue(minimum["profile"]); profile != "" {
 		lines = append(lines, "Profile: "+profile+" "+status(minimum["ok"]))
@@ -707,6 +744,16 @@ func statusContent(data map[string]any) string {
 
 func statusMarkdown(data map[string]any) string {
 	lines := []string{"# Onesearch Status", "", "Overall: " + stringValue(data["status"]), "Ready: " + status(data["ready"])}
+	config := asMap(data["config"])
+	if file := stringValue(config["file"]); file != "" {
+		lines = append(lines, "Config file: `"+mdCell(file)+"`")
+	}
+	if source := stringValue(config["dir_source"]); source != "" {
+		lines = append(lines, "Config source: `"+mdCell(source)+"`")
+	}
+	if dirEnv := stringValue(config["dir_env"]); dirEnv != "" {
+		lines = append(lines, "Config environment: `"+mdCell(dirEnv)+"`")
+	}
 	minimum := asMap(data["minimum_profile"])
 	if profile := stringValue(minimum["profile"]); profile != "" {
 		lines = append(lines, "Minimum profile: `"+mdCell(profile)+"` "+status(minimum["ok"]))
@@ -728,6 +775,7 @@ func statusMarkdown(data map[string]any) string {
 			lines = append(lines, fmt.Sprintf("| `%s` | %s | %s |", mdCell(key), status(item["available"]), mdCell(strings.Join(asStrings(item["commands"]), ", "))))
 		}
 	}
+	lines = appendEffectiveEnvironmentMarkdown(lines, data["effective_environment"])
 	return strings.TrimSpace(strings.Join(lines, "\n")) + "\n"
 }
 
@@ -765,6 +813,23 @@ func configMarkdown(data map[string]any) string {
 	if file := firstNonEmpty(stringValue(data["config_file"]), stringValue(metadata["config_file"])); file != "" {
 		lines = append(lines, "Config file: `"+file+"`")
 	}
+	if provider := stringValue(data["provider"]); provider != "" {
+		lines = append(lines,
+			"Provider: `"+mdCell(provider)+"`",
+			"Enabled: `"+mdCell(stringValue(data["enabled"]))+"`",
+			"API key set directly: "+status(data["api_key_set"]),
+			"API key environment: `"+mdCell(stringValue(data["api_key_env"]))+"`",
+			"API key environment set: "+status(data["api_key_env_set"]),
+			"API key source: `"+mdCell(stringValue(data["api_key_src"]))+"`",
+			"Has API key: "+status(data["has_api_key"]),
+		)
+		if baseURL := stringValue(data["base_url"]); baseURL != "" {
+			lines = append(lines, "Base URL: `"+mdCell(baseURL)+"`")
+		}
+		if changed := asStrings(data["changed_fields"]); len(changed) > 0 {
+			lines = append(lines, "Changed fields: `"+mdCell(strings.Join(changed, ", "))+"`")
+		}
+	}
 	if len(schema) > 0 {
 		lines = append(lines, "Schema: v"+stringValue(schema["version"])+" (`"+stringValue(schema["source"])+"`)")
 	}
@@ -789,6 +854,36 @@ func configMarkdown(data map[string]any) string {
 
 func modelMarkdown(data map[string]any) string {
 	return resultMarkdown("model", data, "Onesearch Models")
+}
+
+func appendEffectiveEnvironmentContent(lines []string, value any) []string {
+	items := asAnySlice(value)
+	if len(items) == 0 {
+		return lines
+	}
+	parts := make([]string, 0, len(items))
+	for _, raw := range items {
+		item := asMap(raw)
+		part := stringValue(item["name"]) + " (" + stringValue(item["purpose"])
+		if provider := stringValue(item["provider"]); provider != "" {
+			part += ", " + provider
+		}
+		parts = append(parts, part+")")
+	}
+	return append(lines, "Effective environment: "+strings.Join(parts, "; "))
+}
+
+func appendEffectiveEnvironmentMarkdown(lines []string, value any) []string {
+	items := asAnySlice(value)
+	if len(items) == 0 {
+		return lines
+	}
+	lines = append(lines, "", "## Effective Environment", "| Variable | Purpose | Provider |", "| --- | --- | --- |")
+	for _, raw := range items {
+		item := asMap(raw)
+		lines = append(lines, fmt.Sprintf("| `%s` | `%s` | `%s` |", mdCell(stringValue(item["name"])), mdCell(stringValue(item["purpose"])), mdCell(stringValue(item["provider"]))))
+	}
+	return lines
 }
 
 func plainResultLines(data map[string]any) []string {

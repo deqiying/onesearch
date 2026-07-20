@@ -32,7 +32,8 @@ Use workflow commands when the user describes the task. Use provider direct comm
 3. Load the most specific skill with `onesearch skills show <skill> --format content` before using detailed provider or workflow commands.
 4. Run `onesearch doctor --format json` when overall provider readiness, API keys, or runtime routes are uncertain.
 5. Run `onesearch status --format json` before choosing a specific capability or provider-direct endpoint; only use providers and capabilities whose status is available.
-6. Execute the commands from the loaded workflow or provider skill.
+6. If a required provider key is missing and the user wants to configure it, use `onesearch config setup <provider>`; never put the key in command arguments or chat output.
+7. Execute the commands from the loaded workflow or provider skill.
 
 ## What Onesearch Provides
 
@@ -96,8 +97,28 @@ onesearch skills show ddg --format content
 onesearch skills show freecrawl --format content
 onesearch doctor --format json
 onesearch status --format json
+onesearch config path --format json
 onesearch config list --format json
 ```
+
+## Provider Credential Setup
+
+Use the interactive command for a human-operated terminal. API key input is hidden, and an empty Base URL keeps the current or built-in default:
+
+```powershell
+onesearch config setup exa
+```
+
+For an explicit pipe or script, pass the key only through stdin:
+
+```powershell
+$env:EXA_API_KEY |
+  onesearch config setup exa --api-key-stdin --format json
+```
+
+`config setup` accepts canonical provider IDs and aliases, writes only the target provider's `api_key`, an explicitly supplied non-empty `base_url`, and `enabled: "auto"`. It has no `--api-key` argument. Required-key HTTP providers reject an empty first-time key; anonymous DeepWiki and AnySearch keys are optional; `mcp_stdio` providers are unsupported by this command.
+
+Never ask a user to paste a real key into normal CLI arguments, source files, logs, or agent responses. `doctor` and `status` may expose the effective config path and environment variable names for diagnostics, but never their values. All CLI output formats, verbosity modes, dynamic stderr, and `--output` files apply credential redaction.
 
 ## Routing Rules
 
@@ -109,7 +130,7 @@ onesearch config list --format json
 - Treat search results as discovery candidates. Fetch or extract key URLs before claim-level conclusions.
 - Do not assume a provider skill means that provider is enabled. Check `onesearch status --format json` before calling direct providers such as `exa`, `tavily`, `firecrawl`, `zhipu`, `ddg`, `freecrawl`, or answer providers such as `xai`.
 - Treat `ddg` and `freecrawl` as direct-only local MCP stdio provider templates unless runtime routes explicitly include them.
-- Keep API keys out of final answers. `doctor`, `status`, and `config list` mask secrets.
+- Keep API keys out of final answers. CLI JSON/content/markdown, dynamic stderr, and `--output` files mask configured, environment, and transient setup secrets.
 
 ## Supporting Reference
 

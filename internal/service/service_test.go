@@ -3,6 +3,7 @@ package service
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -21,7 +22,7 @@ func TestDoctorUsesRuntimeSchemaCapabilityNames(t *testing.T) {
 	svc := New(testConfig(t))
 
 	data := svc.Doctor(t.Context())
-	wantKeys := []string{"config", "elapsed_ms", "error", "error_type", "issues", "minimum_profile", "ok", "schema", "status"}
+	wantKeys := []string{"config", "effective_environment", "elapsed_ms", "error", "error_type", "issues", "minimum_profile", "ok", "schema", "status"}
 	if got := sortedMapKeys(data); !reflect.DeepEqual(got, wantKeys) {
 		t.Fatalf("doctor top-level keys = %#v, want %#v", got, wantKeys)
 	}
@@ -129,6 +130,275 @@ func TestStatusReportsCapabilityAndProviderAvailability(t *testing.T) {
 	if zhipu["available"] != false || zhipu["enabled"] != false {
 		t.Fatalf("zhipu provider output = %#v", zhipu)
 	}
+}
+
+func TestSetupProviderWritesCanonicalTargetAndSafeResult(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(config.InitialRuntimeSchema()); err != nil {
+		t.Fatal(err)
+	}
+	key := "setup-secret"
+	baseURL := "https://gateway.example.com/v1/"
+	data := New(cfg).SetupProvider(ProviderSetupRequest{
+		Provider: "openai-compatible",
+		APIKey:   &key,
+		BaseURL:  &baseURL,
+	})
+	if data["ok"] != true || data["provider"] != "openai_compatible" || data["base_url"] != "https://gateway.example.com/v1" {
+		t.Fatalf("setup result = %#v", data)
+	}
+	if data["api_key_src"] != "config" || data["has_api_key"] != true || data["api_key_env_set"] != false {
+		t.Fatalf("setup credential status = %#v", data)
+	}
+	if strings.Contains(fmt.Sprint(data), key) {
+		t.Fatalf("setup result leaked key: %#v", data)
+	}
+	provider := cfg.LoadFile()["providers"].(map[string]any)["openai_compatible"].(map[string]any)
+	if provider["api_key"] != key || provider["enabled"] != "auto" || provider["base_url"] != "https://gateway.example.com/v1" {
+		t.Fatalf("saved provider = %#v", provider)
+	}
+}
+
+func TestSetupProviderKeepsExistingKeyOnBlankInput(t *testing.T) {
+	clearProviderEnv(t)
+	raw := config.InitialRuntimeSchema()
+	provider := raw["providers"].(map[string]any)["exa"].(map[string]any)
+	provider["api_key"] = "existing-secret"
+	cfg := testConfig(t)
+	if err := cfg.SetFile(raw); err != nil {
+		t.Fatal(err)
+	}
+	blank := "  "
+	data := New(cfg).SetupProvider(ProviderSetupRequest{Provider: "exa", APIKey: &blank})
+	if data["ok"] != true || data["api_key_src"] != "config" {
+		t.Fatalf("setup result = %#v", data)
+	}
+	saved := cfg.LoadFile()["providers"].(map[string]any)["exa"].(map[string]any)
+	if saved["api_key"] != "existing-secret" {
+		t.Fatalf("existing key was changed: %#v", saved)
+	}
+}
+
+func TestSetupProviderAllowsAnonymousProviderWithoutKeyAndRejectsMCPStdio(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(config.InitialRuntimeSchema()); err != nil {
+		t.Fatal(err)
+	}
+	anonymous := New(cfg).SetupProvider(ProviderSetupRequest{Provider: "anysearch"})
+	if anonymous["ok"] != true || anonymous["has_api_key"] != false || anonymous["enabled"] != "auto" {
+		t.Fatalf("anonymous setup = %#v", anonymous)
+	}
+	mcp := New(cfg).SetupProvider(ProviderSetupRequest{Provider: "ddg"})
+	if mcp["ok"] != false || mcp["error_type"] != "parameter_error" {
+		t.Fatalf("mcp_stdio setup = %#v", mcp)
+	}
+}
+
+func TestSetupProviderRejectsUnsupportedAdapterAndMissingRequiredBaseURL(t *testing.T) {
+	clearProviderEnv(t)
+	for _, tc := range []struct {
+		name     string
+		provider map[string]any
+	}{
+		{
+			name: "unsupported_adapter",
+			provider: map[string]any{
+				"enabled":      false,
+				"adapter":      "custom_unknown_adapter",
+				"capabilities": []any{"source_search"},
+			},
+		},
+		{
+			name: "missing_required_base_url",
+			provider: map[string]any{
+				"enabled":      false,
+				"adapter":      "exa",
+				"capabilities": []any{"source_search"},
+				"settings":     map[string]any{"requires_base_url": true},
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := testConfig(t)
+			if err := cfg.SetFile(map[string]any{
+				"schema_version": 1,
+				"routes":         map[string]any{"source_search": []any{"custom"}},
+				"providers":      map[string]any{"custom": tc.provider},
+			}); err != nil {
+				t.Fatal(err)
+			}
+			key := "custom-secret"
+			data := New(cfg).SetupProvider(ProviderSetupRequest{Provider: "custom", APIKey: &key})
+			if data["ok"] != false || data["error_type"] != "parameter_error" {
+				t.Fatalf("setup result = %#v", data)
+			}
+		})
+	}
+}
+
+func TestSetupProviderRejectsUnsafeBaseURLWithoutWriting(t *testing.T) {
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(config.InitialRuntimeSchema()); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(cfg.ConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	key := "transient-secret"
+	baseURL := "https://user:password@example.com/v1?key=secret"
+	data := New(cfg).SetupProvider(ProviderSetupRequest{Provider: "exa", APIKey: &key, BaseURL: &baseURL})
+	if data["ok"] != false || data["error_type"] != "parameter_error" {
+		t.Fatalf("unsafe URL result = %#v", data)
+	}
+	after, err := os.ReadFile(cfg.ConfigFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("unsafe URL changed config file")
+	}
+}
+
+func TestNormalizeEndpointBaseURLContract(t *testing.T) {
+	for _, value := range []string{
+		"ftp://example.com",
+		"https://user@example.com",
+		"https://example.com?",
+		"https://example.com?key=value",
+		"https://example.com#",
+		"https://example.com#fragment",
+		"example.com",
+	} {
+		if _, err := normalizeEndpointBaseURL(value); err == nil {
+			t.Fatalf("unsafe base URL %q should fail", value)
+		}
+	}
+	if got, err := normalizeEndpointBaseURL("HTTPS://example.com/v1/"); err != nil || got != "https://example.com/v1" {
+		t.Fatalf("normalized base URL = %q, err = %v", got, err)
+	}
+}
+
+func TestStatusAndDoctorReportOnlyEffectiveEnvironmentNames(t *testing.T) {
+	clearProviderEnv(t)
+	raw := config.InitialRuntimeSchema()
+	exa := raw["providers"].(map[string]any)["exa"].(map[string]any)
+	exa["enabled"] = "auto"
+	cfg := testConfig(t)
+	cfg.ConfigDirSource = "environment"
+	if err := cfg.SetFile(raw); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("EXA_API_KEY", "environment-secret")
+
+	svc := New(cfg)
+	status := svc.Status()
+	configInfo := status["config"].(map[string]any)
+	if configInfo["file"] != cfg.ConfigFile || configInfo["dir_source"] != "environment" || configInfo["dir_env"] != config.ConfigDirEnvName {
+		t.Fatalf("config diagnostics = %#v", configInfo)
+	}
+	provider := status["providers"].(map[string]any)["exa"].(map[string]any)
+	if provider["api_key_env_set"] != true || provider["api_key_src"] != "env" || provider["has_api_key"] != true {
+		t.Fatalf("provider environment status = %#v", provider)
+	}
+	if !hasEffectiveEnvironment(status["effective_environment"], config.ConfigDirEnvName, "config_dir", "") || !hasEffectiveEnvironment(status["effective_environment"], "EXA_API_KEY", "provider_api_key", "exa") {
+		t.Fatalf("effective environment = %#v", status["effective_environment"])
+	}
+	if strings.Contains(fmt.Sprint(status), "environment-secret") {
+		t.Fatalf("status leaked environment value: %#v", status)
+	}
+	doctor := svc.Doctor(t.Context())
+	if _, ok := doctor["providers"]; ok {
+		t.Fatal("doctor should remain compact")
+	}
+	if !hasEffectiveEnvironment(doctor["effective_environment"], "EXA_API_KEY", "provider_api_key", "exa") || strings.Contains(fmt.Sprint(doctor), "environment-secret") {
+		t.Fatalf("doctor environment diagnostics = %#v", doctor)
+	}
+}
+
+func TestEffectiveEnvironmentExcludesOverriddenAndDisabledProviderKeys(t *testing.T) {
+	clearProviderEnv(t)
+	raw := config.InitialRuntimeSchema()
+	providers := raw["providers"].(map[string]any)
+	exa := providers["exa"].(map[string]any)
+	exa["enabled"] = "auto"
+	exa["api_key"] = "direct-secret"
+	tavily := providers["tavily"].(map[string]any)
+	tavily["enabled"] = false
+	cfg := testConfig(t)
+	if err := cfg.SetFile(raw); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("EXA_API_KEY", "overridden-env-secret")
+	t.Setenv("TAVILY_API_KEY", "disabled-env-secret")
+
+	status := New(cfg).Status()
+	if hasEffectiveEnvironment(status["effective_environment"], "EXA_API_KEY", "provider_api_key", "exa") || hasEffectiveEnvironment(status["effective_environment"], "TAVILY_API_KEY", "provider_api_key", "tavily") {
+		t.Fatalf("inactive provider variables should be excluded: %#v", status["effective_environment"])
+	}
+	exaStatus := status["providers"].(map[string]any)["exa"].(map[string]any)
+	if exaStatus["api_key_env_set"] != true || exaStatus["api_key_src"] != "config" {
+		t.Fatalf("override diagnostics = %#v", exaStatus)
+	}
+}
+
+func TestOutputSecretValuesIncludesOverriddenEnvironmentAndSensitiveSettings(t *testing.T) {
+	clearProviderEnv(t)
+	raw := config.InitialRuntimeSchema()
+	exa := raw["providers"].(map[string]any)["exa"].(map[string]any)
+	exa["api_key"] = "direct-secret"
+	ddg := raw["providers"].(map[string]any)["ddg"].(map[string]any)
+	settings := ddg["settings"].(map[string]any)
+	settings["env"] = map[string]any{"ACCESS_TOKEN": "stdio-secret", "KEY": "generic-key-secret", "MODE": "true"}
+	cfg := testConfig(t)
+	if err := cfg.SetFile(raw); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("EXA_API_KEY", "overridden-env-secret")
+	values := New(cfg).OutputSecretValues()
+	for _, want := range []string{"direct-secret", "overridden-env-secret", "stdio-secret", "generic-key-secret"} {
+		if !containsString(values, want) {
+			t.Fatalf("secret inventory missing %q: %#v", want, values)
+		}
+	}
+	if containsString(values, "true") {
+		t.Fatalf("generic settings env value should not enter literal replacement inventory: %#v", values)
+	}
+}
+
+func TestOutputSecretValuesFollowsAPIKeyEnvInUnrecognizedSchema(t *testing.T) {
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"providers": map[string]any{
+			"custom": map[string]any{"api_key_env": "CUSTOM_API_KEY"},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("CUSTOM_API_KEY", "custom-environment-secret")
+	if values := New(cfg).OutputSecretValues(); !containsString(values, "custom-environment-secret") {
+		t.Fatalf("secret inventory = %#v", values)
+	}
+}
+
+func hasEffectiveEnvironment(value any, name, purpose, provider string) bool {
+	items, ok := value.([]map[string]any)
+	if !ok {
+		return false
+	}
+	for _, item := range items {
+		itemProvider := ""
+		if value, ok := item["provider"]; ok {
+			itemProvider = fmt.Sprint(value)
+		}
+		if item["name"] == name && item["purpose"] == purpose && itemProvider == provider {
+			return true
+		}
+	}
+	return false
 }
 
 func TestDDGDirectUsesMCPStdioProvider(t *testing.T) {

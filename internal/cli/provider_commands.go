@@ -126,7 +126,7 @@ func runExaGroup(ctx context.Context, svc *service.Service, tool string, args []
 			*numResults = *maxResults
 		}
 		data := annotateProviderTool(svc.ExaSearch(ctx, fs.Arg(0), providers.ExaOptions{NumResults: *numResults, SearchType: *searchType, IncludeText: *includeText, IncludeHighlights: *includeHighlights, StartPublishedDate: *startDate, IncludeDomains: includeDomains.values, ExcludeDomains: excludeDomains.values, Category: *category}), "exa", tool)
-		return printCommand("exa", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "exa", data, makeFormatOutput(outputFlags, svc))
 	case "web_fetch_exa":
 		fs := flagSet("exa web-fetch")
 		maxCharacters := fs.Int("max-characters", 20000, "")
@@ -142,7 +142,7 @@ func runExaGroup(ctx context.Context, svc *service.Service, tool string, args []
 			return printProviderToolParameterError("exa", tool, "web_fetch_exa requires at least one url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.ExaFetch(ctx, urls, providers.ExaFetchOptions{MaxCharacters: *maxCharacters}), "exa", tool)
-		return printCommand("exa", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "exa", data, makeFormatOutput(outputFlags, svc))
 	case "find_similar":
 		fs := flagSet("exa similar")
 		numResults := fs.Int("num-results", 5, "")
@@ -154,7 +154,7 @@ func runExaGroup(ctx context.Context, svc *service.Service, tool string, args []
 			return printProviderToolParameterError("exa", tool, "similar requires url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.ExaSimilar(ctx, fs.Arg(0), *numResults), "exa", tool)
-		return printCommand("exa", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "exa", data, makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("exa", "unsupported exa tool: "+tool, args, svc)
 	}
@@ -186,7 +186,7 @@ func runTavilyGroup(ctx context.Context, svc *service.Service, tool string, args
 			return printProviderToolParameterError("tavily", tool, "tavily_search requires query", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.TavilySearch(ctx, fs.Arg(0), providers.TavilySearchOptions{MaxResults: *maxResults, SearchDepth: *searchDepth, Topic: *topic, TimeRange: *timeRange, StartDate: *startDate, EndDate: *endDate, Country: *country, IncludeRawContent: *includeRawContent, IncludeImages: *includeImages, IncludeFavicon: *includeFavicon, IncludeDomains: includeDomains.values, ExcludeDomains: excludeDomains.values}), "tavily", tool)
-		return printCommand("tavily", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "tavily", data, makeFormatOutput(outputFlags, svc))
 	case "tavily_extract":
 		fs := flagSet("tavily extract")
 		contentFormat := fs.String("extract-format", "markdown", "")
@@ -207,7 +207,7 @@ func runTavilyGroup(ctx context.Context, svc *service.Service, tool string, args
 			return printProviderToolParameterError("tavily", tool, "tavily_extract requires at least one url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.TavilyExtract(ctx, urls, providers.TavilyExtractOptions{Format: *contentFormat, ExtractDepth: *extractDepth, Query: *query, IncludeImages: *includeImages, IncludeFavicon: *includeFavicon, TimeoutSeconds: *timeoutSeconds}), "tavily", tool)
-		return printCommand("tavily", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "tavily", data, makeFormatOutput(outputFlags, svc))
 	case "tavily_map":
 		return runTavilyMapLike(ctx, svc, tool, args)
 	case "tavily_crawl":
@@ -249,10 +249,10 @@ func runTavilyMapLike(ctx context.Context, svc *service.Service, tool string, ar
 	}
 	if tool == "tavily_map" {
 		data := annotateProviderTool(svc.TavilyMap(ctx, fs.Arg(0), providers.TavilyMapOptions{Instructions: *instructions, MaxDepth: *maxDepth, MaxBreadth: *maxBreadth, Limit: *limit, TimeoutSeconds: *timeoutSeconds, AllowExternal: *allowExternal, SelectDomains: selectDomains.values, SelectPaths: selectPaths.values, ExcludeDomains: excludeDomains.values, ExcludePaths: excludePaths.values}), "tavily", tool)
-		return printCommand("tavily", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "tavily", data, makeFormatOutput(outputFlags, svc))
 	}
 	data := annotateProviderTool(svc.TavilyCrawl(ctx, fs.Arg(0), providers.TavilyCrawlOptions{Instructions: *instructions, MaxDepth: *maxDepth, MaxBreadth: *maxBreadth, Limit: *limit, TimeoutSeconds: *timeoutSeconds, AllowExternal: *allowExternal, SelectDomains: selectDomains.values, SelectPaths: selectPaths.values, ExcludeDomains: excludeDomains.values, ExcludePaths: excludePaths.values, ExtractDepth: *extractDepth, Format: *contentFormat, IncludeImages: *includeImages, IncludeFavicon: *includeFavicon}), "tavily", tool)
-	return printCommand("tavily", data, makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "tavily", data, makeFormatOutput(outputFlags, svc))
 }
 
 func runFirecrawlGroup(ctx context.Context, svc *service.Service, tool string, args []string) int {
@@ -267,7 +267,7 @@ func runFirecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 		if fs.NArg() < 1 {
 			return printProviderToolParameterError("firecrawl", tool, "firecrawl_search requires query", outputFlags, svc)
 		}
-		return printCommand("firecrawl", annotateProviderTool(svc.FirecrawlSearch(ctx, fs.Arg(0), *limit), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "firecrawl", annotateProviderTool(svc.FirecrawlSearch(ctx, fs.Arg(0), *limit), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
 	case "firecrawl_scrape":
 		fs := flagSet("firecrawl scrape")
 		attempts := fs.Int("attempts", 0, "")
@@ -278,7 +278,7 @@ func runFirecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 		if fs.NArg() < 1 {
 			return printProviderToolParameterError("firecrawl", tool, "firecrawl_scrape requires url", outputFlags, svc)
 		}
-		return printCommand("firecrawl", annotateProviderTool(svc.FirecrawlScrape(ctx, fs.Arg(0), *attempts), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "firecrawl", annotateProviderTool(svc.FirecrawlScrape(ctx, fs.Arg(0), *attempts), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
 	case "firecrawl_map":
 		fs := flagSet("firecrawl map")
 		limit := fs.Int("limit", 50, "")
@@ -289,7 +289,7 @@ func runFirecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 		if fs.NArg() < 1 {
 			return printProviderToolParameterError("firecrawl", tool, "firecrawl_map requires url", outputFlags, svc)
 		}
-		return printCommand("firecrawl", annotateProviderTool(svc.FirecrawlMap(ctx, fs.Arg(0), *limit), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "firecrawl", annotateProviderTool(svc.FirecrawlMap(ctx, fs.Arg(0), *limit), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
 	case "firecrawl_crawl":
 		fs := flagSet("firecrawl crawl")
 		maxDepth := fs.Int("max-depth", 2, "")
@@ -302,7 +302,7 @@ func runFirecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 		if fs.NArg() < 1 {
 			return printProviderToolParameterError("firecrawl", tool, "firecrawl_crawl requires url", outputFlags, svc)
 		}
-		return printCommand("firecrawl", annotateProviderTool(svc.FirecrawlCrawl(ctx, fs.Arg(0), service.CrawlOptions{MaxDepth: *maxDepth, Limit: *limit, Timeout: *timeoutSeconds}), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "firecrawl", annotateProviderTool(svc.FirecrawlCrawl(ctx, fs.Arg(0), service.CrawlOptions{MaxDepth: *maxDepth, Limit: *limit, Timeout: *timeoutSeconds}), "firecrawl", tool), makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("firecrawl", "unsupported firecrawl tool: "+tool, args, svc)
 	}
@@ -323,7 +323,7 @@ func runContext7Group(ctx context.Context, svc *service.Service, tool string, ar
 		if fs.NArg() > 1 {
 			query = fs.Arg(1)
 		}
-		return printCommand("context7", annotateProviderTool(svc.Context7Library(ctx, fs.Arg(0), query), "context7", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "context7", annotateProviderTool(svc.Context7Library(ctx, fs.Arg(0), query), "context7", tool), makeFormatOutput(outputFlags, svc))
 	case "query_docs":
 		fs := flagSet("context7 query-docs")
 		outputFlags := addOutputFlags(fs)
@@ -333,7 +333,7 @@ func runContext7Group(ctx context.Context, svc *service.Service, tool string, ar
 		if fs.NArg() < 2 {
 			return printProviderToolParameterError("context7", tool, "query_docs requires library_id and query", outputFlags, svc)
 		}
-		return printCommand("context7", annotateProviderTool(svc.Context7Docs(ctx, fs.Arg(0), fs.Arg(1)), "context7", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "context7", annotateProviderTool(svc.Context7Docs(ctx, fs.Arg(0), fs.Arg(1)), "context7", tool), makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("context7", "unsupported context7 tool: "+tool, args, svc)
 	}
@@ -353,11 +353,11 @@ func runDeepWikiGroup(ctx context.Context, svc *service.Service, tool string, ar
 		if fs.NArg() < 2 {
 			return printProviderToolParameterError("deepwiki", tool, "ask_question requires repo and question", outputFlags, svc)
 		}
-		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), fs.Arg(1), service.RepoWikiOptions{Mode: "ask", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), fs.Arg(1), service.RepoWikiOptions{Mode: "ask", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
 	case "read_wiki_structure":
-		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", service.RepoWikiOptions{Mode: "structure", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", service.RepoWikiOptions{Mode: "structure", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
 	case "read_wiki_contents":
-		return printCommand("deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", service.RepoWikiOptions{Mode: "contents", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "deepwiki", annotateProviderTool(svc.RepoWiki(ctx, fs.Arg(0), "", service.RepoWikiOptions{Mode: "contents", Provider: "deepwiki"}), "deepwiki", tool), makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("deepwiki", "unsupported deepwiki tool: "+tool, args, svc)
 	}
@@ -395,7 +395,7 @@ func runZhipuGroup(ctx context.Context, svc *service.Service, tool string, args 
 			return printProviderToolParameterError("zhipu", tool, "zhipu search requires query", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.ZhipuSearch(ctx, fs.Arg(0), providers.ZhipuOptions{Count: *count, SearchEngine: *engine, SearchRecencyFilter: *recency, SearchDomainFilter: *domain, ContentSize: *contentSize}), "zhipu", tool)
-		return printCommand("zhipu", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "zhipu", data, makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("zhipu", "unsupported zhipu tool: "+tool, args, svc)
 	}
@@ -415,7 +415,7 @@ func runDDGGroup(ctx context.Context, svc *service.Service, tool string, args []
 			return printProviderToolParameterError("ddg", tool, "ddg search requires query", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.DDGSearch(ctx, fs.Arg(0), providers.DDGSearchOptions{MaxResults: *maxResults, Region: *region}), "ddg", tool)
-		return printCommand("ddg", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "ddg", data, makeFormatOutput(outputFlags, svc))
 	case "fetch_content":
 		fs := flagSet("ddg fetch-content")
 		startIndex := fs.Int("start-index", 0, "")
@@ -429,7 +429,7 @@ func runDDGGroup(ctx context.Context, svc *service.Service, tool string, args []
 			return printProviderToolParameterError("ddg", tool, "ddg fetch-content requires url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.DDGFetchContent(ctx, fs.Arg(0), providers.DDGFetchOptions{StartIndex: *startIndex, MaxLength: *maxLength, Backend: *backend}), "ddg", tool)
-		return printCommand("ddg", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "ddg", data, makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("ddg", "unsupported ddg tool: "+tool, args, svc)
 	}
@@ -450,7 +450,7 @@ func runFreecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 			return printProviderToolParameterError("freecrawl", tool, "freecrawl search requires query", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.FreecrawlSearch(ctx, fs.Arg(0), providers.FreecrawlSearchOptions{NumResults: *numResults, SearchEngine: *searchEngine, ScrapeResults: *scrapeResults}), "freecrawl", tool)
-		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "freecrawl", data, makeFormatOutput(outputFlags, svc))
 	case "scrape":
 		fs := flagSet("freecrawl scrape")
 		formats := fs.String("formats", "markdown", "")
@@ -467,7 +467,7 @@ func runFreecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 			return printProviderToolParameterError("freecrawl", tool, "freecrawl scrape requires url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.FreecrawlScrape(ctx, fs.Arg(0), providers.FreecrawlScrapeOptions{Formats: splitCSV(*formats), Javascript: *javascript, AntiBot: *antiBot, Cache: *cache, Timeout: *timeoutMS, WaitFor: *waitFor}), "freecrawl", tool)
-		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "freecrawl", data, makeFormatOutput(outputFlags, svc))
 	case "crawl":
 		fs := flagSet("freecrawl crawl")
 		maxDepth := fs.Int("max-depth", 2, "")
@@ -485,7 +485,7 @@ func runFreecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 			return printProviderToolParameterError("freecrawl", tool, "freecrawl crawl requires url", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.FreecrawlCrawl(ctx, fs.Arg(0), providers.FreecrawlCrawlOptions{MaxDepth: *maxDepth, MaxPages: *maxPages, SameDomainOnly: *sameDomainOnly, IncludePatterns: includePatterns.values, ExcludePatterns: excludePatterns.values}), "freecrawl", tool)
-		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "freecrawl", data, makeFormatOutput(outputFlags, svc))
 	case "deep_research":
 		fs := flagSet("freecrawl deep-research")
 		numSources := fs.Int("num-sources", 8, "")
@@ -501,7 +501,7 @@ func runFreecrawlGroup(ctx context.Context, svc *service.Service, tool string, a
 			return printProviderToolParameterError("freecrawl", tool, "freecrawl deep-research requires topic", outputFlags, svc)
 		}
 		data := annotateProviderTool(svc.FreecrawlDeepResearch(ctx, fs.Arg(0), providers.FreecrawlDeepResearchOptions{NumSources: *numSources, MaxDepth: *maxDepth, IncludeAcademic: *includeAcademic, SearchQueries: searchQueries.values}), "freecrawl", tool)
-		return printCommand("freecrawl", data, makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "freecrawl", data, makeFormatOutput(outputFlags, svc))
 	default:
 		return printProviderError("freecrawl", "unsupported freecrawl tool: "+tool, args, svc)
 	}
@@ -544,7 +544,7 @@ func annotateStatusCommands(data map[string]any) map[string]any {
 			if providerData != nil {
 				providerData["direct"] = true
 				providerData["commands"] = commands
-				for _, key := range []string{"available", "enabled", "capabilities", "status", "base_url", "api_key_env", "has_api_key"} {
+				for _, key := range []string{"available", "enabled", "capabilities", "status", "base_url", "api_key_env", "api_key_set", "api_key_env_set", "api_key_src", "has_api_key"} {
 					if value, ok := providerData[key]; ok {
 						item[key] = value
 					}
@@ -601,11 +601,11 @@ func mcpStdioDirectAvailability(provider string, providerData map[string]any) (b
 }
 
 func printProviderError(provider, message string, args []string, svc *service.Service) int {
-	return printCommand(provider, map[string]any{"ok": false, "provider": provider, "error_type": "parameter_error", "error": message}, parseFormatOutput(args, svc))
+	return printCommand(svc, provider, map[string]any{"ok": false, "provider": provider, "error_type": "parameter_error", "error": message}, parseFormatOutput(args, svc))
 }
 
 func printProviderToolParameterError(provider, tool, message string, flags outputFlags, svc *service.Service) int {
-	return printCommand(provider, map[string]any{"ok": false, "provider": provider, "tool": tool, "error_type": "parameter_error", "error": message}, makeFormatOutput(flags, svc))
+	return printCommand(svc, provider, map[string]any{"ok": false, "provider": provider, "tool": tool, "error_type": "parameter_error", "error": message}, makeFormatOutput(flags, svc))
 }
 
 func printProviderHelp(provider string) {

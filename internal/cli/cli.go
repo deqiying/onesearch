@@ -12,6 +12,7 @@ import (
 	"github.com/deqiying/onesearch/internal/app"
 	"github.com/deqiying/onesearch/internal/config"
 	"github.com/deqiying/onesearch/internal/output"
+	"github.com/deqiying/onesearch/internal/redact"
 	"github.com/deqiying/onesearch/internal/service"
 )
 
@@ -55,7 +56,7 @@ func Execute(args []string) int {
 	case "deep":
 		return runDeep(svc, args[1:])
 	case "doctor":
-		return printCommand("doctor", svc.Doctor(ctx), parseFormatOutput(args[1:], svc))
+		return printCommand(svc, "doctor", svc.Doctor(ctx), parseFormatOutput(args[1:], svc))
 	case "status":
 		return runStatus(svc, args[1:])
 	case "smoke":
@@ -67,9 +68,9 @@ func Execute(args []string) int {
 	case "skills":
 		return runSkills(svc, args[1:])
 	case "regression":
-		return printCommand("smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", verbosity: "quiet"})
+		return printCommand(svc, "smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", verbosity: "quiet"})
 	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\n", args[0])
+		fmt.Fprintln(os.Stderr, redact.Text("unknown command: "+args[0], svc.OutputSecretValues()))
 		return 2
 	}
 }
@@ -98,14 +99,14 @@ func runSearch(ctx context.Context, svc *service.Service, args []string) int {
 	fs.Var(&noStreamFlag, "no-stream", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("search", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "search", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("search", "search requires query", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "search", "search requires query", makeFormatOutput(outputFlags, svc))
 	}
 	providers, providerFilters, err := parseSearchProviderFilters(*providerFilter)
 	if err != nil {
-		return printParameterError("search", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "search", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	providerFilters = overlayProviderFilter(providerFilters, "answer_search", *answerProviders)
 	providerFilters = overlayProviderFilter(providerFilters, "source_search", *sourceProviders)
@@ -128,7 +129,7 @@ func runSearch(ctx context.Context, svc *service.Service, args []string) int {
 	if ctx.Err() == context.DeadlineExceeded {
 		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Search timed out after %g seconds", *timeoutSeconds), "query": query, "content": "", "sources": []map[string]any{}, "sources_count": 0, "timeout_seconds": *timeoutSeconds}
 	}
-	return printCommand("search", data, makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "search", data, makeFormatOutput(outputFlags, svc))
 }
 
 func runFetch(ctx context.Context, svc *service.Service, args []string) int {
@@ -140,12 +141,12 @@ func runFetch(ctx context.Context, svc *service.Service, args []string) int {
 	provider := fs.String("provider", "auto", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("fetch", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "fetch", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("fetch", "fetch requires url", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "fetch", "fetch requires url", makeFormatOutput(outputFlags, svc))
 	}
-	return printCommand("fetch", svc.Fetch(ctx, fs.Arg(0), service.FetchOptions{Provider: *provider}), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "fetch", svc.Fetch(ctx, fs.Arg(0), service.FetchOptions{Provider: *provider}), makeFormatOutput(outputFlags, svc))
 }
 
 func runMap(ctx context.Context, svc *service.Service, args []string) int {
@@ -162,13 +163,13 @@ func runMap(ctx context.Context, svc *service.Service, args []string) int {
 	provider := fs.String("provider", "auto", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("map", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "map", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("map", "map requires url", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "map", "map requires url", makeFormatOutput(outputFlags, svc))
 	}
 	data := svc.Map(ctx, fs.Arg(0), service.MapOptions{Instructions: *instructions, MaxDepth: *maxDepth, MaxBreadth: *maxBreadth, Limit: *limit, Timeout: *timeoutSeconds, Provider: *provider})
-	return printCommand("map", data, makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "map", data, makeFormatOutput(outputFlags, svc))
 }
 
 func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
@@ -183,10 +184,10 @@ func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
 	provider := fs.String("provider", "auto", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("crawl", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "crawl", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("crawl", "crawl requires url", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "crawl", "crawl requires url", makeFormatOutput(outputFlags, svc))
 	}
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds)*time.Second)
 	defer cancel()
@@ -194,7 +195,7 @@ func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
 	if ctx.Err() == context.DeadlineExceeded {
 		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Crawl timed out after %d seconds", *timeoutSeconds), "url": fs.Arg(0), "timeout_seconds": *timeoutSeconds}
 	}
-	return printCommand("crawl", data, makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "crawl", data, makeFormatOutput(outputFlags, svc))
 }
 
 func runRepoWiki(ctx context.Context, svc *service.Service, args []string) int {
@@ -208,10 +209,10 @@ func runRepoWiki(ctx context.Context, svc *service.Service, args []string) int {
 	timeoutSeconds := fs.Float64("timeout", 60, "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("repo-wiki", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "repo-wiki", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("repo-wiki", "repo-wiki requires repo", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "repo-wiki", "repo-wiki requires repo", makeFormatOutput(outputFlags, svc))
 	}
 	question := ""
 	if fs.NArg() > 1 {
@@ -223,7 +224,7 @@ func runRepoWiki(ctx context.Context, svc *service.Service, args []string) int {
 	if ctx.Err() == context.DeadlineExceeded {
 		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Repo wiki timed out after %g seconds", *timeoutSeconds), "repo": fs.Arg(0), "timeout_seconds": *timeoutSeconds}
 	}
-	return printCommand("repo-wiki", data, makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "repo-wiki", data, makeFormatOutput(outputFlags, svc))
 }
 
 func runAnyDomains(ctx context.Context, svc *service.Service, args []string) int {
@@ -236,7 +237,7 @@ func runAnyDomains(ctx context.Context, svc *service.Service, args []string) int
 	if fs.NArg() > 0 {
 		domain = fs.Arg(0)
 	}
-	return printCommand("anysearch", svc.AnySearch().Domains(ctx, domain), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "anysearch", svc.AnySearch().Domains(ctx, domain), makeFormatOutput(outputFlags, svc))
 }
 
 func runAnySearch(ctx context.Context, svc *service.Service, args []string) int {
@@ -251,7 +252,7 @@ func runAnySearch(ctx context.Context, svc *service.Service, args []string) int 
 	if fs.NArg() < 1 {
 		return printProviderToolParameterError("anysearch", "search", "anysearch search requires query", outputFlags, svc)
 	}
-	return printCommand("anysearch", svc.AnySearch().Search(ctx, fs.Arg(0), *domain, *subDomain, *maxResults), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "anysearch", svc.AnySearch().Search(ctx, fs.Arg(0), *domain, *subDomain, *maxResults), makeFormatOutput(outputFlags, svc))
 }
 
 func runAnyExtract(ctx context.Context, svc *service.Service, args []string) int {
@@ -264,7 +265,7 @@ func runAnyExtract(ctx context.Context, svc *service.Service, args []string) int
 	if fs.NArg() < 1 {
 		return printProviderToolParameterError("anysearch", "extract", "anysearch extract requires url", outputFlags, svc)
 	}
-	return printCommand("anysearch", svc.AnySearch().Extract(ctx, fs.Arg(0), *maxLength), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "anysearch", svc.AnySearch().Extract(ctx, fs.Arg(0), *maxLength), makeFormatOutput(outputFlags, svc))
 }
 
 func runAnyBatch(ctx context.Context, svc *service.Service, args []string) int {
@@ -277,7 +278,7 @@ func runAnyBatch(ctx context.Context, svc *service.Service, args []string) int {
 	if fs.NArg() < 1 {
 		return printProviderToolParameterError("anysearch", "batch", "anysearch batch requires at least one query", outputFlags, svc)
 	}
-	return printCommand("anysearch", svc.AnySearch().Batch(ctx, fs.Args(), *maxResults), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "anysearch", svc.AnySearch().Batch(ctx, fs.Args(), *maxResults), makeFormatOutput(outputFlags, svc))
 }
 
 func runDeep(svc *service.Service, args []string) int {
@@ -286,12 +287,12 @@ func runDeep(svc *service.Service, args []string) int {
 	evidenceDir := fs.String("evidence-dir", "", "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("deep", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "deep", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() < 1 {
-		return printParameterError("deep", "deep requires query", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "deep", "deep requires query", makeFormatOutput(outputFlags, svc))
 	}
-	return printCommand("deep", svc.DeepPlan(fs.Arg(0), *budget, *evidenceDir), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "deep", svc.DeepPlan(fs.Arg(0), *budget, *evidenceDir), makeFormatOutput(outputFlags, svc))
 }
 
 func runSmoke(ctx context.Context, svc *service.Service, args []string) int {
@@ -301,7 +302,7 @@ func runSmoke(ctx context.Context, svc *service.Service, args []string) int {
 	live := fs.Bool("live", false, "")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("smoke", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "smoke", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if *mock {
 		*mode = "mock"
@@ -309,57 +310,35 @@ func runSmoke(ctx context.Context, svc *service.Service, args []string) int {
 	if *live {
 		*mode = "live"
 	}
-	return printCommand("smoke", svc.Smoke(ctx, *mode), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "smoke", svc.Smoke(ctx, *mode), makeFormatOutput(outputFlags, svc))
 }
 
 func runModel(svc *service.Service, args []string) int {
 	if len(args) == 0 {
-		return parameterError("model requires subcommand")
+		return parameterError(svc, "model requires subcommand")
 	}
 	sub := canonicalModel(args[0])
 	fs := flagSet("model")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args[1:]); err != nil {
-		return printParameterError("model", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "model", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if sub == "current" {
-		return printCommand("model", svc.CurrentModel(), makeFormatOutput(outputFlags, svc))
+		return printCommand(svc, "model", svc.CurrentModel(), makeFormatOutput(outputFlags, svc))
 	}
-	return parameterError("unknown model subcommand")
-}
-
-func runConfig(svc *service.Service, args []string) int {
-	if len(args) == 0 {
-		return parameterError("config requires subcommand")
-	}
-	sub := canonicalConfig(args[0])
-	fs := flagSet("config")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args[1:]); err != nil {
-		return printParameterError("config", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	var data map[string]any
-	switch sub {
-	case "path":
-		data = svc.ConfigPath()
-	case "list":
-		data = svc.ConfigList(false)
-	default:
-		return parameterError("unknown config subcommand")
-	}
-	return printCommand("config", data, makeFormatOutput(outputFlags, svc))
+	return parameterError(svc, "unknown model subcommand")
 }
 
 func runStatus(svc *service.Service, args []string) int {
 	fs := flagSet("status")
 	outputFlags := addOutputFlags(fs)
 	if err := parse(fs, args); err != nil {
-		return printParameterError("status", err.Error(), makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "status", err.Error(), makeFormatOutput(outputFlags, svc))
 	}
 	if fs.NArg() > 0 {
-		return printParameterError("status", "status does not accept positional arguments", makeFormatOutput(outputFlags, svc))
+		return printParameterError(svc, "status", "status does not accept positional arguments", makeFormatOutput(outputFlags, svc))
 	}
-	return printCommand("status", annotateStatusCommands(svc.Status()), makeFormatOutput(outputFlags, svc))
+	return printCommand(svc, "status", annotateStatusCommands(svc.Status()), makeFormatOutput(outputFlags, svc))
 }
 
 func parseSearchProviderFilters(raw string) (string, map[string]string, error) {
@@ -451,25 +430,29 @@ func parseFormatOutput(args []string, svc *service.Service) formatOutput {
 	return makeFormatOutput(flags, svc)
 }
 
-func printCommand(command string, data map[string]any, fo formatOutput) int {
+func printCommand(svc *service.Service, command string, data map[string]any, fo formatOutput, transientSecrets ...string) int {
 	if fo.format == "" {
 		fo.format = "json"
 	}
-	rendered := output.RenderWithOptions(command, data, output.Options{Format: fo.format, Verbosity: fo.verbosity})
+	secrets := append([]string{}, transientSecrets...)
+	if svc != nil {
+		secrets = append(secrets, svc.OutputSecretValues()...)
+	}
+	rendered := output.RenderWithOptions(command, data, output.Options{Format: fo.format, Verbosity: fo.verbosity, SecretValues: secrets})
 	if err := output.Write(fo.output, rendered); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		fmt.Fprintln(os.Stderr, redact.Text(err.Error(), secrets))
 		return 5
 	}
 	fmt.Print(rendered)
 	return output.ExitCode(data)
 }
 
-func printParameterError(command, message string, fo formatOutput) int {
-	return printCommand(command, map[string]any{
+func printParameterError(svc *service.Service, command, message string, fo formatOutput, transientSecrets ...string) int {
+	return printCommand(svc, command, map[string]any{
 		"ok":         false,
 		"error_type": "parameter_error",
 		"error":      message,
-	}, fo)
+	}, fo, transientSecrets...)
 }
 
 func addFormatFlags(fs *flag.FlagSet) (*string, *string) {
@@ -645,8 +628,12 @@ func canonicalModel(command string) string {
 	}
 }
 
-func parameterError(message string) int {
-	fmt.Fprintln(os.Stderr, message)
+func parameterError(svc *service.Service, message string) int {
+	secrets := []string{}
+	if svc != nil {
+		secrets = svc.OutputSecretValues()
+	}
+	fmt.Fprintln(os.Stderr, redact.Text(message, secrets))
 	return 2
 }
 
@@ -672,7 +659,7 @@ func printHelp() {
 	fmt.Println("  freecrawl search|scrape|crawl|deep-research")
 	fmt.Println()
 	fmt.Println("Utility:")
-	fmt.Println("  config, model, skills, regression")
+	fmt.Println("  config path|list|setup, model, skills, regression")
 	fmt.Println("  doctor, status, smoke")
 }
 

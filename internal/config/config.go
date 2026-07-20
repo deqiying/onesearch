@@ -11,6 +11,7 @@ import (
 )
 
 const (
+	ConfigDirEnvName         = "ONESEARCH_CONFIG_DIR"
 	DefaultXAIURL            = "https://api.x.ai/v1"
 	DefaultXAIModel          = "grok-4-fast"
 	DefaultValidationLevel   = "balanced"
@@ -69,7 +70,7 @@ func defaultConfigDir() string {
 }
 
 func overrideDir() string {
-	if value := strings.TrimSpace(os.Getenv("ONESEARCH_CONFIG_DIR")); value != "" {
+	if value := strings.TrimSpace(os.Getenv(ConfigDirEnvName)); value != "" {
 		return value
 	}
 	return ""
@@ -113,6 +114,24 @@ func (c *Config) LoadFile() map[string]any {
 		return map[string]any{}
 	}
 	return out
+}
+
+func (c *Config) LoadFileStrict() (map[string]any, error) {
+	if c == nil {
+		return nil, errors.New("nil config")
+	}
+	data, err := os.ReadFile(c.ConfigFile)
+	if err != nil {
+		return nil, fmt.Errorf("无法读取配置文件: %w", err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(data, &out); err != nil {
+		return nil, fmt.Errorf("配置文件不是有效 JSON: %w", err)
+	}
+	if out == nil {
+		return nil, errors.New("配置文件必须是 JSON object")
+	}
+	return out, nil
 }
 
 func (c *Config) SaveFile(data map[string]any) error {

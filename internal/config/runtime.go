@@ -34,6 +34,11 @@ var supportedAdapters = map[string]struct{}{
 	"deepwiki":                  {},
 }
 
+func IsSupportedAdapter(adapter string) bool {
+	_, ok := supportedAdapters[strings.TrimSpace(adapter)]
+	return ok
+}
+
 type ProviderDefinition struct {
 	ID           string
 	Adapter      string
@@ -78,8 +83,35 @@ type ResolvedProvider struct {
 	Aliases           []string
 }
 
+type ProviderCredentialState struct {
+	DirectValue      string
+	EnvironmentValue string
+	Value            string
+	Source           string
+	DirectSet        bool
+	EnvironmentSet   bool
+}
+
 func LoadRuntime(c *Config) RuntimeConfig {
-	raw := c.LoadFile()
+	raw := map[string]any{}
+	if c != nil {
+		raw = c.LoadFile()
+	}
+	return runtimeFromRaw(raw)
+}
+
+func LoadRuntimeStrict(c *Config) (RuntimeConfig, error) {
+	raw, err := c.LoadFileStrict()
+	if err != nil {
+		return RuntimeConfig{}, err
+	}
+	if !isRuntimeSchema(raw) {
+		return RuntimeConfig{}, fmt.Errorf("配置文件不是可识别的 runtime schema")
+	}
+	return runtimeFromRaw(raw), nil
+}
+
+func runtimeFromRaw(raw map[string]any) RuntimeConfig {
 	isSchema := isRuntimeSchema(raw)
 	runtime := RuntimeConfig{
 		SchemaVersion: 1,
@@ -90,9 +122,6 @@ func LoadRuntime(c *Config) RuntimeConfig {
 		Profiles:      defaultRuntimeProfiles(),
 		Pipelines:     defaultRuntimePipelines(),
 		Raw:           raw,
-	}
-	if c == nil {
-		return runtime
 	}
 	if isSchema {
 		runtime.Source = "config-new"
@@ -152,6 +181,7 @@ func (r RuntimeConfig) ProvidersForOutput(c *Config) map[string]any {
 	sort.Strings(keys)
 	for _, key := range keys {
 		provider := r.Providers[key]
+		credential := ResolveProviderCredential(c, provider)
 		capabilityStatus := map[string]any{}
 		available := false
 		for _, capability := range provider.Capabilities {
@@ -166,19 +196,20 @@ func (r RuntimeConfig) ProvidersForOutput(c *Config) map[string]any {
 			}
 		}
 		out[key] = map[string]any{
-			"adapter":      provider.Adapter,
-			"enabled":      normalizeEnabled(provider.Enabled),
-			"capabilities": append([]string{}, provider.Capabilities...),
-			"base_url":     provider.BaseURL,
-			"api_key":      maskSecret(provider.APIKey),
-			"api_key_env":  provider.APIKeyEnv,
-			"api_key_set":  strings.TrimSpace(provider.APIKey) != "",
-			"api_key_src":  providerAPIKeySource(c, provider),
-			"has_api_key":  providerAPIKey(c, provider) != "",
-			"available":    available,
-			"settings":     settingsForOutput(provider.Settings),
-			"status":       capabilityStatus,
-			"aliases":      append([]string{}, provider.Aliases...),
+			"adapter":         provider.Adapter,
+			"enabled":         normalizeEnabled(provider.Enabled),
+			"capabilities":    append([]string{}, provider.Capabilities...),
+			"base_url":        provider.BaseURL,
+			"api_key":         maskSecret(provider.APIKey),
+			"api_key_env":     provider.APIKeyEnv,
+			"api_key_set":     credential.DirectSet,
+			"api_key_env_set": credential.EnvironmentSet,
+			"api_key_src":     credential.Source,
+			"has_api_key":     credential.Value != "",
+			"available":       available,
+			"settings":        settingsForOutput(provider.Settings),
+			"status":          capabilityStatus,
+			"aliases":         append([]string{}, provider.Aliases...),
 		}
 	}
 	return out
@@ -274,23 +305,29 @@ func (r RuntimeConfig) providerAvailability(provider ProviderDefinition, capabil
 }
 
 func providerAPIKey(c *Config, provider ProviderDefinition) string {
-	if value := strings.TrimSpace(provider.APIKey); value != "" {
-		return value
-	}
-	if provider.APIKeyEnv != "" && c != nil {
-		return c.Get(provider.APIKeyEnv, "")
-	}
-	return ""
+	return ResolveProviderCredential(c, provider).Value
 }
 
-func providerAPIKeySource(c *Config, provider ProviderDefinition) string {
-	if strings.TrimSpace(provider.APIKey) != "" {
-		return "config"
+func ResolveProviderCredential(c *Config, provider ProviderDefinition) ProviderCredentialState {
+	direct := strings.TrimSpace(provider.APIKey)
+	environment := ""
+	if c != nil && strings.TrimSpace(provider.APIKeyEnv) != "" {
+		environment = strings.TrimSpace(c.Get(provider.APIKeyEnv, ""))
 	}
-	if provider.APIKeyEnv != "" && c != nil && c.Get(provider.APIKeyEnv, "") != "" {
-		return "env"
+	state := ProviderCredentialState{
+		DirectValue:      direct,
+		EnvironmentValue: environment,
+		DirectSet:        direct != "",
+		EnvironmentSet:   environment != "",
 	}
-	return ""
+	if state.DirectSet {
+		state.Value = direct
+		state.Source = "config"
+	} else if state.EnvironmentSet {
+		state.Value = environment
+		state.Source = "env"
+	}
+	return state
 }
 
 func maskSecret(value string) string {
