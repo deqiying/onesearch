@@ -61,11 +61,6 @@ func Load() *Config {
 }
 
 func defaultConfigDir() string {
-	if runtime.GOOS == "windows" {
-		if local := strings.TrimSpace(os.Getenv("LOCALAPPDATA")); local != "" {
-			return filepath.Join(local, "onesearch")
-		}
-	}
 	home, err := os.UserHomeDir()
 	if err != nil || home == "" {
 		return filepath.Join(".", ".onesearch")

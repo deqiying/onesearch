@@ -168,7 +168,7 @@ provider 配置继续使用现有 runtime schema，把 MCP stdio 细节放进 `s
 
 这样新版本 `config list` 能看到可用配置模板，但不会在用户未确认时执行 `uvx`、下载包或改变普通 workflow 路由。
 
-用户本机要启用时，只需要在 `%LOCALAPPDATA%\onesearch\config.json` 或 `ONESEARCH_CONFIG_DIR` 指向的配置里覆盖 `enabled: true`，并按需调整 `args`、`env`。
+用户本机要启用时，只需要在 `~/.config/onesearch/config.json` 或 `ONESEARCH_CONFIG_DIR` 指向的配置里覆盖 `enabled: true`，并按需调整 `args`、`env`。
 
 ### direct_only 行为
 

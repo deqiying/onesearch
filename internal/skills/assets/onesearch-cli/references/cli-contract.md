@@ -90,10 +90,9 @@ Responsibilities:
 - `profiles`: required and optional capabilities for readiness checks.
 - `providers`: adapter, capability list, base URL, direct API key, API-key environment key, enabled state, aliases, and settings.
 
-Configuration file defaults:
+Configuration file default on Windows, macOS, and Linux:
 
-- Windows: `%LOCALAPPDATA%\onesearch\config.json`
-- macOS/Linux: `~/.config/onesearch/config.json`
+- `~/.config/onesearch/config.json`
 - Override: `ONESEARCH_CONFIG_DIR`
 
 Provider secrets can be configured with either `providers.<id>.api_key` or the environment variable named by `providers.<id>.api_key_env`. When both are set, `api_key` wins. Runtime orchestration is read from the schema, not inferred from legacy KEY/value config entries.

@@ -51,8 +51,7 @@ go build -trimpath -ldflags "-s -w -X github.com/deqiying/onesearch/internal/app
 
 | 系统 | 路径 |
 | --- | --- |
-| Windows | `%LOCALAPPDATA%\onesearch\config.json` |
-| macOS / Linux | `~/.config/onesearch/config.json` |
+| Windows / macOS / Linux | `~/.config/onesearch/config.json` |
 
 可用 `ONESEARCH_CONFIG_DIR` 指定配置目录。环境变量只用于密钥和少量本机覆盖项，整体能力编排以配置文件中的运行时 schema 为准。
 
