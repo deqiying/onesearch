@@ -20,7 +20,7 @@ func TestReadMarkdownSupportsCapabilityAliases(t *testing.T) {
 
 func TestReadMarkdownIncludesFullSkillGuidance(t *testing.T) {
 	cases := map[string][]string{
-		"base":          {"Onesearch CLI Router", "Agent Routing Primer", "provider direct"},
+		"base":          {"Onesearch CLI Router", "Agent Routing Primer", "provider direct", "onesearch schema --format json", "--help", "vertical_search", "CLI command manifest"},
 		"search":        {"Routing guidance:", "Do not use AnySearch as the default `source_search` route"},
 		"docs":          {"Workflow:", "For Context7, resolve the library first"},
 		"fetch":         {"Workflow:", "If `fetch` returns a config error"},
@@ -33,7 +33,7 @@ func TestReadMarkdownIncludesFullSkillGuidance(t *testing.T) {
 		"zhipu":         {"Zhipu", "onesearch zhipu search"},
 		"ddg":           {"Onesearch DDG", "onesearch ddg fetch-content"},
 		"freecrawl":     {"Onesearch Freecrawl", "onesearch freecrawl deep-research"},
-		"deep-research": {"Workflow:", "Deep planning does not change the default route order"},
+		"deep-research": {"Workflow:", "command_argv", "Deep planning does not change the default route order"},
 	}
 	for name, wants := range cases {
 		text, err := ReadMarkdown(name)
@@ -44,6 +44,35 @@ func TestReadMarkdownIncludesFullSkillGuidance(t *testing.T) {
 			if !strings.Contains(text, want) {
 				t.Fatalf("ReadMarkdown(%q) missing %q", name, want)
 			}
+		}
+	}
+}
+
+func TestRouterSkillContractDocumentsSchemaHelpStatusAndDeepArgv(t *testing.T) {
+	text, err := ReadMarkdown("router")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"onesearch schema --format json", "onesearch search --help", "vertical_search", "command_argv", "runtime configuration schema"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("router skill missing %q", want)
+		}
+	}
+
+	files, err := LoadFiles("router")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var contract string
+	for _, file := range files {
+		if file.Path == "references/cli-contract.md" {
+			contract = string(file.Data)
+			break
+		}
+	}
+	for _, want := range []string{"onesearch schema [canonical-path...]", "strict help", "command_argv", "vertical_search", "onesearch regression"} {
+		if !strings.Contains(contract, want) {
+			t.Fatalf("cli contract missing %q", want)
 		}
 	}
 }

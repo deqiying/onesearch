@@ -59,8 +59,27 @@ Utility commands:
 - `onesearch model current`
 - `onesearch skills list`
 - `onesearch skills show NAME`
+- `onesearch regression`
+- `onesearch schema [canonical-path...]`
 
 Supported output formats are `json`, `markdown`, and `content`. JSON is the default and is the stable format for agents and scripts. Search success output defaults to a compact unified result object; use `--verbose` to include full diagnostics such as routing decisions, provider attempts, and capability status. Error output also defaults to `--quiet`. `--quiet` overrides debug defaults.
+
+## CLI command manifest and strict help
+
+`onesearch schema` returns the versioned CLI command manifest. It is separate from the runtime configuration schema below: `schema` describes canonical commands, inputs, argv bindings, side effects, and status preflight, while `config list --format json` returns runtime `defaults`, `pipelines`, `routes`, `profiles`, and `providers`.
+
+```powershell
+onesearch schema --format json
+onesearch schema search --format json
+onesearch schema exa web-search --format json
+onesearch schema --help
+```
+
+Without a path, `schema` returns the complete manifest; a path query accepts canonical command paths only and returns one matching command. The envelope identifies the CLI manifest with `kind: "onesearch_cli_command_manifest"` and its own `manifest_version`; it does not return runtime configuration, credentials, environment values, local paths, or live availability. Schema output is JSON-only, supports `--output`, and rejects `--quiet`/`--verbose`.
+
+Unknown command paths, unknown flags, extra positionals, conflicting options, or non-JSON schema formats return a structured `parameter_error` with exit code 2. Top-level, provider-group, and leaf `--help`/`-h` return 0 and show canonical usage, summary, positionals, and flags. Help and schema dispatch before runtime config loading, so they do not create `config.json`, read provider keys, call providers, or access the network.
+
+This strict parsing is a compatibility change for callers that previously relied on silently ignored misspelled flags, extra positionals, or conflicting options; those inputs must be corrected rather than treated as successful invocations. Inline boolean values now follow their parsed value, so `--stream=false` and `--no-stream=false` do not activate those presence flags. Repeated array flags are the canonical form; backslash escaping protects commas, whitespace, and backslashes inside one structured array item while unescaped comma/whitespace input remains compatible.
 
 Explicit non-contract:
 
@@ -269,7 +288,7 @@ Status output fields:
 - `providers`: provider-level availability, enabled state, masked key metadata (`api_key_set`, `api_key_env`, `api_key_env_set`, `api_key_src`, and `has_api_key`), aliases, base URL, settings, and supported capabilities.
 - `direct_endpoints`: provider-direct command families such as `exa`, `tavily`, `firecrawl`, `context7`, `deepwiki`, `anysearch`, `zhipu`, `ddg`, and `freecrawl`, with commands and direct availability.
 
-`status` is the agent preflight for choosing concrete tools. Use it after or alongside `doctor` when deciding whether to call a specific capability or provider-direct endpoint. A bundled skill such as `zhipu` only describes command usage; it does not imply `providers.zhipu` is enabled.
+`status` is the agent preflight for choosing concrete tools. `capabilities.<capability>.command` and `direct_endpoints.<provider>.commands` must contain executable canonical leaf paths; in particular, `vertical_search` points to an AnySearch leaf rather than the provider namespace alone. `available` is a local preflight result and does not prove network reachability, credentials, or remote MCP tool availability. Use `status` after or alongside `doctor` when deciding whether to call a specific capability or provider-direct endpoint. A bundled skill such as `zhipu` only describes command usage; it does not imply `providers.zhipu` is enabled.
 
 ## Output security
 
@@ -335,7 +354,7 @@ Expected fields:
 - `allowed_tools`
 - `evidence_dir`
 
-Allowed `steps[].tool` values include `search`, `fetch`, `map`, `crawl`, `repo-wiki`, `exa web-search`, `exa web-fetch`, `exa similar`, `tavily search`, `tavily extract`, `context7 resolve-library-id`, `context7 query-docs`, and `deepwiki ask-question`. Execute provider-direct steps only after `onesearch status --format json` confirms the matching `direct_endpoints.<provider>.available` value is true.
+`preflight[]` and `steps[]` expose machine-executable `command_argv` token arrays. The legacy `command` field is a compatible PowerShell-rendered display string; it must not be parsed by splitting on spaces. Replace runtime placeholders such as `<library_id>` or `<key-url>` before parse-only validation, then execute the token array only after `onesearch status --format json` confirms the matching capability or `direct_endpoints.<provider>.available` value is true. The current planner allowlist is `search`, `fetch`, `map`, `crawl`, `repo-wiki`, `exa web-search`, `exa similar`, `context7 resolve-library-id`, and `context7 query-docs`.
 
 ## Exit codes
 
@@ -356,6 +375,11 @@ go run .\cmd\onesearch doctor --format json
 go run .\cmd\onesearch status --format json
 go run .\cmd\onesearch config list --format json
 go run .\cmd\onesearch config setup --help
+go run .\cmd\onesearch schema --format json
+go run .\cmd\onesearch schema search --format json
+go run .\cmd\onesearch schema exa web-search --format json
+go run .\cmd\onesearch --help
+go run .\cmd\onesearch search --help
 go run .\cmd\onesearch skills list --format json
 go run .\cmd\onesearch skills show onesearch-cli --format content
 go run .\cmd\onesearch skills show exa --format content
@@ -372,3 +396,7 @@ onesearch deep "OpenAI Responses API web_search 和 Chat Completions 联网搜�
 onesearch deep "帮我核验这个说法是真是假：某工具已经完全替代 Tavily 做 AI 搜索了" --format json
 onesearch deep "https://example.com/source" --format json
 ```
+
+Schema/help regression must also verify that an isolated `ONESEARCH_CONFIG_DIR` remains without `config.json`, unknown flags and extra positionals exit 2, and repeated manifest generation is byte-stable. `go test ./...` remains the full repository check; the commands above are the focused public utility smoke checks.
+
+The manifest golden is review-gated. After intentionally changing the public command contract, run `$env:UPDATE_CLI_COMMAND_MANIFEST_GOLDEN = "1"` and then `mise exec -- go test ./internal/cli -run TestSchemaMatchesGolden`; review the generated diff before running the normal test suite again.

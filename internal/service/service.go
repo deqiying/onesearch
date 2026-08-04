@@ -8,12 +8,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/deqiying/onesearch/internal/commandcontract"
 	"github.com/deqiying/onesearch/internal/config"
 	"github.com/deqiying/onesearch/internal/providers"
 	"github.com/deqiying/onesearch/internal/sources"
 )
 
 const sourceWarning = "extra_sources are retrieved in parallel and are not automatically used to verify generated content; use fetch on key URLs for claim-level evidence."
+
+var serviceCommandRegistry = commandcontract.MustDefaultRegistry()
 
 type Service struct {
 	Config *config.Config
@@ -756,22 +759,11 @@ func runtimeProviderStatus(provider config.ResolvedProvider) map[string]any {
 }
 
 func capabilityCommand(capability string) string {
-	switch capability {
-	case "answer_search", "source_search", "docs_search":
-		return "onesearch search"
-	case "page_fetch":
-		return "onesearch fetch"
-	case "site_map":
-		return "onesearch map"
-	case "site_crawl":
-		return "onesearch crawl"
-	case "repo_wiki":
-		return "onesearch repo-wiki"
-	case "vertical_search":
-		return "onesearch anysearch"
-	default:
+	definition, ok := serviceCommandRegistry.PreferredFor(capability)
+	if !ok {
 		return ""
 	}
+	return "onesearch " + strings.Join(definition.Path, " ")
 }
 
 func doctorIssues(minimum, capabilities map[string]any) []map[string]any {

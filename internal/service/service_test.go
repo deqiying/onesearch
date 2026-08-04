@@ -125,6 +125,10 @@ func TestStatusReportsCapabilityAndProviderAvailability(t *testing.T) {
 	if repoWiki["ok"] != true || !containsString(testStrings(repoWiki["available"]), "deepwiki") {
 		t.Fatalf("repo_wiki status = %#v", repoWiki)
 	}
+	verticalSearch := capabilities["vertical_search"].(map[string]any)
+	if verticalSearch["command"] != "onesearch anysearch search" {
+		t.Fatalf("vertical_search command = %#v, want onesearch anysearch search", verticalSearch["command"])
+	}
 	allProviders := data["providers"].(map[string]any)
 	zhipu := allProviders["zhipu"].(map[string]any)
 	if zhipu["available"] != false || zhipu["enabled"] != false {
@@ -470,6 +474,49 @@ func TestDeepPlanCurrentChineseUsesStatusGatedSearchRoute(t *testing.T) {
 	}
 	if containsString(testStrings(data["allowed_tools"]), "zhipu search") {
 		t.Fatalf("deep plan allowed_tools should not advertise ungated zhipu direct command: %#v", data["allowed_tools"])
+	}
+}
+
+func TestDeepPlanCommandsExposeStructuredArgvAndPresentationString(t *testing.T) {
+	clearProviderEnv(t)
+	svc := New(testConfig(t))
+	query := `PowerShell's $HOME; "quoted" & <tag> --literal`
+	data := svc.DeepPlan(query, "deep", filepath.Join(t.TempDir(), "evidence dir's $bucket"))
+
+	groups := []struct {
+		name  string
+		items []map[string]any
+	}{
+		{name: "preflight", items: data["preflight"].([]map[string]any)},
+		{name: "steps", items: data["steps"].([]map[string]any)},
+	}
+	sawSpecialToken := false
+	for _, group := range groups {
+		if len(group.items) == 0 {
+			t.Fatalf("%s must not be empty", group.name)
+		}
+		for _, item := range group.items {
+			argv, ok := item["command_argv"].([]string)
+			if !ok || len(argv) < 2 || argv[0] != "onesearch" {
+				t.Fatalf("%s command_argv = %#v", group.name, item["command_argv"])
+			}
+			command, ok := item["command"].(string)
+			if !ok || command != renderPowerShellCommand(argv) {
+				t.Fatalf("%s command = %#v, argv = %#v", group.name, item["command"], argv)
+			}
+			for _, token := range argv {
+				if token != query {
+					continue
+				}
+				sawSpecialToken = true
+				if command == strings.Join(argv, " ") || !strings.Contains(command, `'PowerShell''s $HOME; "quoted" & <tag> --literal'`) {
+					t.Fatalf("special token was not safely separated from presentation string: argv=%#v command=%q", argv, command)
+				}
+			}
+		}
+	}
+	if !sawSpecialToken {
+		t.Fatalf("query token %q missing from deep command argv", query)
 	}
 }
 

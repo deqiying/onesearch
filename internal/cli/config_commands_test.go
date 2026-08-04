@@ -173,6 +173,37 @@ func TestConfigSetupRejectsAPIKeyArgument(t *testing.T) {
 	}
 }
 
+func TestConfigSetupMalformedSensitiveActivatorDoesNotLeakOrInitializeConfig(t *testing.T) {
+	configDir := filepath.Join(t.TempDir(), "missing-config")
+	t.Setenv(config.ConfigDirEnvName, configDir)
+	secret := "malformed-inline-secret"
+	outputPath := filepath.Join(t.TempDir(), "error.json")
+	var stdout string
+	stderr := captureStderr(t, func() {
+		stdout = captureStdout(t, func() {
+			code := Execute([]string{"config", "setup", "exa", "--output", outputPath, "--api-key-stdin=" + secret})
+			if code != 2 {
+				t.Fatalf("exit code = %d, want 2", code)
+			}
+		})
+	})
+	written, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, value := range map[string]string{"stdout": stdout, "stderr": stderr, "output": string(written)} {
+		if strings.Contains(value, secret) {
+			t.Fatalf("%s leaked sensitive inline value: %q", name, value)
+		}
+	}
+	if !strings.Contains(stdout, "expected boolean") || stdout != string(written) {
+		t.Fatalf("unexpected safe error output: stdout=%q file=%q", stdout, written)
+	}
+	if _, err := os.Stat(filepath.Join(configDir, "config.json")); !os.IsNotExist(err) {
+		t.Fatalf("parse error initialized config: %v", err)
+	}
+}
+
 func TestPrintCommandRedactsConfiguredAndEnvironmentKeysFromErrors(t *testing.T) {
 	cfg := &config.Config{ConfigFile: filepath.Join(t.TempDir(), "config.json"), ConfigDirSource: "test"}
 	raw := config.InitialRuntimeSchema()

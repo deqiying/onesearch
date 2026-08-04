@@ -1,0 +1,6683 @@
+{
+  "ok": true,
+  "kind": "onesearch_cli_command_manifest",
+  "manifest_version": 1,
+  "cli": {
+    "name": "onesearch",
+    "version": "0.2.5"
+  },
+  "scope": {
+    "mode": "all",
+    "path": []
+  },
+  "commands": [
+    {
+      "id": "crawl",
+      "path": [
+        "crawl"
+      ],
+      "category": "workflow",
+      "summary": "Crawl pages from a website.",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "preferred_for": [
+        "site_crawl"
+      ],
+      "aliases": [
+        [
+          "cr"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "limit": {
+            "default": 20,
+            "description": "Maximum crawled pages.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "max_depth": {
+            "default": 2,
+            "description": "Maximum traversal depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "provider": {
+            "default": "auto",
+            "description": "Provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--provider"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "timeout": {
+            "default": 180,
+            "description": "Timeout in seconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/capabilities/site_crawl/ok",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "crawl_result"
+      }
+    },
+    {
+      "id": "deep",
+      "path": [
+        "deep"
+      ],
+      "category": "workflow",
+      "summary": "Create an offline deep-research execution plan.",
+      "aliases": [
+        [
+          "dr"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "budget": {
+            "default": "standard",
+            "description": "Research breadth and depth budget.",
+            "enum": [
+              "quick",
+              "standard",
+              "deep"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--budget"
+            }
+          },
+          "evidence_dir": {
+            "default": "",
+            "description": "Evidence output directory embedded in the plan.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--evidence-dir"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Research question.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "deep_plan"
+      }
+    },
+    {
+      "id": "fetch",
+      "path": [
+        "fetch"
+      ],
+      "category": "workflow",
+      "summary": "Fetch a URL through the page-fetch route.",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "preferred_for": [
+        "page_fetch"
+      ],
+      "aliases": [
+        [
+          "f"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "provider": {
+            "default": "auto",
+            "description": "Provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--provider"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url": {
+            "description": "Target URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/capabilities/page_fetch/ok",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "fetch_result"
+      }
+    },
+    {
+      "id": "map",
+      "path": [
+        "map"
+      ],
+      "category": "workflow",
+      "summary": "Map links from a website.",
+      "capabilities": [
+        "site_map"
+      ],
+      "preferred_for": [
+        "site_map"
+      ],
+      "aliases": [
+        [
+          "m"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "instructions": {
+            "default": "",
+            "description": "Mapping instructions.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--instructions"
+            }
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum returned links.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "max_breadth": {
+            "default": 20,
+            "description": "Maximum links per level.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-breadth"
+            }
+          },
+          "max_depth": {
+            "default": 1,
+            "description": "Maximum traversal depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "provider": {
+            "default": "auto",
+            "description": "Provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--provider"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "timeout": {
+            "default": 150,
+            "description": "Timeout in seconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/capabilities/site_map/ok",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "map_result"
+      }
+    },
+    {
+      "id": "repo-wiki",
+      "path": [
+        "repo-wiki"
+      ],
+      "category": "workflow",
+      "summary": "Read or query a repository wiki.",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "preferred_for": [
+        "repo_wiki"
+      ],
+      "aliases": [
+        [
+          "rw"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "mode": {
+            "default": "",
+            "description": "Repository-wiki operation.",
+            "enum": [
+              "",
+              "ask",
+              "structure",
+              "contents"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--mode"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "provider": {
+            "default": "auto",
+            "description": "Provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--provider"
+            }
+          },
+          "question": {
+            "description": "Optional repository question.",
+            "type": "string",
+            "x-cli-binding": {
+              "index": 1,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "repo": {
+            "description": "Repository in owner/name form.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "timeout": {
+            "default": 60,
+            "description": "Timeout in seconds.",
+            "type": "number",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/capabilities/repo_wiki/ok",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "repo_wiki_result"
+      }
+    },
+    {
+      "id": "search",
+      "path": [
+        "search"
+      ],
+      "category": "workflow",
+      "summary": "Search the web through configured capability routes.",
+      "capabilities": [
+        "answer_search",
+        "docs_search",
+        "source_search"
+      ],
+      "preferred_for": [
+        "answer_search",
+        "docs_search",
+        "source_search"
+      ],
+      "aliases": [
+        [
+          "s"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "answer_providers": {
+            "default": "",
+            "description": "Answer-search provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--answer-providers"
+            }
+          },
+          "docs_providers": {
+            "default": "",
+            "description": "Documentation-search provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--docs-providers"
+            }
+          },
+          "extra_sources": {
+            "default": 0,
+            "description": "Additional source-discovery passes.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extra-sources"
+            }
+          },
+          "fallback": {
+            "default": "",
+            "description": "Provider fallback policy.",
+            "enum": [
+              "",
+              "auto",
+              "off"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--fallback"
+            }
+          },
+          "fetch_providers": {
+            "default": "",
+            "description": "Page-fetch provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--fetch-providers"
+            }
+          },
+          "fetch_sources": {
+            "default": 0,
+            "description": "Number of discovered sources to fetch.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--fetch-sources"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "model": {
+            "default": "",
+            "description": "Optional model override.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--model"
+            }
+          },
+          "no_stream": {
+            "default": false,
+            "description": "Disable answer streaming.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--no-stream"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "platform": {
+            "default": "",
+            "description": "Optional platform hint.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--platform"
+            }
+          },
+          "providers": {
+            "default": "auto",
+            "description": "Global provider filter or capability-specific filters.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--providers"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "repo_providers": {
+            "default": "",
+            "description": "Repository-wiki provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--repo-providers"
+            }
+          },
+          "repo_wiki": {
+            "default": "",
+            "description": "Repository identifier to enrich the search.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--repo-wiki"
+            }
+          },
+          "repo_wiki_mode": {
+            "default": "",
+            "description": "Repository-wiki mode.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--repo-wiki-mode"
+            }
+          },
+          "repo_wiki_query": {
+            "default": "",
+            "description": "Repository-wiki question override.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--repo-wiki-query"
+            }
+          },
+          "source_providers": {
+            "default": "",
+            "description": "Source-search provider filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--source-providers"
+            }
+          },
+          "stream": {
+            "default": false,
+            "description": "Enable answer streaming.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--stream"
+            }
+          },
+          "timeout": {
+            "default": 90,
+            "description": "Timeout in seconds.",
+            "type": "number",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "validation": {
+            "default": "",
+            "description": "Evidence validation level.",
+            "enum": [
+              "",
+              "fast",
+              "balanced",
+              "strict"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--validation"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "no_stream",
+            "stream"
+          ]
+        },
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/capabilities/answer_search/ok",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "search_result"
+      }
+    },
+    {
+      "id": "anysearch.batch",
+      "path": [
+        "anysearch",
+        "batch"
+      ],
+      "category": "provider",
+      "summary": "Run multiple AnySearch queries.",
+      "provider": "anysearch",
+      "capabilities": [
+        "vertical_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "max_results": {
+            "default": 3,
+            "description": "Number of results per query.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "queries": {
+            "description": "Queries to execute.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": true
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "queries"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/anysearch/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "anysearch.domains",
+      "path": [
+        "anysearch",
+        "domains"
+      ],
+      "category": "provider",
+      "summary": "List or inspect AnySearch domains.",
+      "provider": "anysearch",
+      "capabilities": [
+        "vertical_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "description": "Optional domain identifier.",
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/anysearch/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "anysearch.extract",
+      "path": [
+        "anysearch",
+        "extract"
+      ],
+      "category": "provider",
+      "summary": "Extract content from a URL with AnySearch.",
+      "provider": "anysearch",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "max_length": {
+            "default": 20000,
+            "description": "Maximum content length.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-length"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url": {
+            "description": "Target URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/anysearch/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "anysearch.search",
+      "path": [
+        "anysearch",
+        "search"
+      ],
+      "category": "provider",
+      "summary": "Search an AnySearch vertical domain.",
+      "provider": "anysearch",
+      "capabilities": [
+        "vertical_search"
+      ],
+      "preferred_for": [
+        "vertical_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "domain": {
+            "default": "",
+            "description": "Domain filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--domain"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "max_results": {
+            "default": 5,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "sub_domain": {
+            "default": "",
+            "description": "Sub-domain filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--sub-domain"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/anysearch/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "context7.query-docs",
+      "path": [
+        "context7",
+        "query-docs"
+      ],
+      "category": "provider",
+      "summary": "Query documentation from a Context7 library.",
+      "provider": "context7",
+      "capabilities": [
+        "docs_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "library_id": {
+            "description": "Resolved Context7 library identifier.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Documentation query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 1,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "library_id",
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/context7/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "context7.resolve-library-id",
+      "path": [
+        "context7",
+        "resolve-library-id"
+      ],
+      "category": "provider",
+      "summary": "Resolve a Context7 library identifier.",
+      "provider": "context7",
+      "capabilities": [
+        "docs_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "name": {
+            "description": "Library name.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Optional documentation query.",
+            "type": "string",
+            "x-cli-binding": {
+              "index": 1,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/context7/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "ddg.fetch-content",
+      "path": [
+        "ddg",
+        "fetch-content"
+      ],
+      "category": "provider",
+      "summary": "Fetch page content with DuckDuckGo.",
+      "provider": "ddg",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "backend": {
+            "default": "auto",
+            "description": "Fetch backend.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--backend"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "max_length": {
+            "default": 8000,
+            "description": "Maximum content length.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-length"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "start_index": {
+            "default": 0,
+            "description": "Starting content index.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--start-index"
+            }
+          },
+          "url": {
+            "description": "Target URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/ddg/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "ddg.search",
+      "path": [
+        "ddg",
+        "search"
+      ],
+      "category": "provider",
+      "summary": "Search the web with DuckDuckGo.",
+      "provider": "ddg",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "max_results": {
+            "default": 10,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "region": {
+            "default": "",
+            "description": "DuckDuckGo region.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--region"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/ddg/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "deepwiki.ask-question",
+      "path": [
+        "deepwiki",
+        "ask-question"
+      ],
+      "category": "provider",
+      "summary": "Ask a question about a repository wiki.",
+      "provider": "deepwiki",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "question": {
+            "description": "Repository question.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 1,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "repo": {
+            "description": "Repository in owner/name form.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "question",
+          "repo"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/deepwiki/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "deepwiki.read-wiki-contents",
+      "path": [
+        "deepwiki",
+        "read-wiki-contents"
+      ],
+      "category": "provider",
+      "summary": "Read repository wiki contents.",
+      "provider": "deepwiki",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "repo": {
+            "description": "Repository in owner/name form.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/deepwiki/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "deepwiki.read-wiki-structure",
+      "path": [
+        "deepwiki",
+        "read-wiki-structure"
+      ],
+      "category": "provider",
+      "summary": "Read a repository wiki structure.",
+      "provider": "deepwiki",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "repo": {
+            "description": "Repository in owner/name form.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/deepwiki/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "exa.similar",
+      "path": [
+        "exa",
+        "similar"
+      ],
+      "category": "provider",
+      "summary": "Find pages similar to a URL with Exa.",
+      "provider": "exa",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "num_results": {
+            "default": 5,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--num-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url": {
+            "description": "Reference URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/exa/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "exa.web-fetch",
+      "path": [
+        "exa",
+        "web-fetch"
+      ],
+      "category": "provider",
+      "summary": "Fetch one or more URLs with Exa.",
+      "provider": "exa",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "max_characters": {
+            "default": 20000,
+            "description": "Maximum characters per fetched page.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-characters"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url_args": {
+            "description": "URLs supplied as positional arguments.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": true
+            }
+          },
+          "urls": {
+            "description": "URLs to fetch; repeat the flag or provide comma-separated values.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--urls"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "at_least_one",
+          "members": [
+            "url_args",
+            "urls"
+          ]
+        },
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/exa/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "exa.web-search",
+      "path": [
+        "exa",
+        "web-search"
+      ],
+      "category": "provider",
+      "summary": "Search the web with Exa.",
+      "provider": "exa",
+      "capabilities": [
+        "docs_search",
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "default": "",
+            "description": "Optional result category.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--category"
+            }
+          },
+          "exclude_domains": {
+            "description": "Domains to exclude; repeat the flag or provide comma-separated values.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-domains"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_domains": {
+            "description": "Domains to include; repeat the flag or provide comma-separated values.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--include-domains"
+            }
+          },
+          "include_highlights": {
+            "default": false,
+            "description": "Include highlights.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-highlights"
+            }
+          },
+          "include_text": {
+            "default": false,
+            "description": "Include page text.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-text"
+            }
+          },
+          "max_results": {
+            "default": 0,
+            "deprecated": true,
+            "description": "Compatibility flag that overrides num_results when greater than zero.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-results"
+            },
+            "x-cli-overrides": "num_results",
+            "x-cli-overrides-when": "positive"
+          },
+          "num_results": {
+            "default": 5,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--num-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "search_type": {
+            "default": "neural",
+            "description": "Exa search type.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--search-type"
+            }
+          },
+          "start_published_date": {
+            "default": "",
+            "description": "Minimum publication date.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--start-published-date"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/exa/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "firecrawl.crawl",
+      "path": [
+        "firecrawl",
+        "crawl"
+      ],
+      "category": "provider",
+      "summary": "Crawl a website with Firecrawl.",
+      "provider": "firecrawl",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "limit": {
+            "default": 20,
+            "description": "Maximum crawled pages.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "max_depth": {
+            "default": 2,
+            "description": "Maximum traversal depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "timeout": {
+            "default": 180,
+            "description": "Timeout in seconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/firecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "firecrawl.map",
+      "path": [
+        "firecrawl",
+        "map"
+      ],
+      "category": "provider",
+      "summary": "Map links from a website with Firecrawl.",
+      "provider": "firecrawl",
+      "capabilities": [
+        "site_map"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum returned links.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/firecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "firecrawl.scrape",
+      "path": [
+        "firecrawl",
+        "scrape"
+      ],
+      "category": "provider",
+      "summary": "Scrape a URL with Firecrawl.",
+      "provider": "firecrawl",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "attempts": {
+            "default": 0,
+            "description": "Retry attempts; zero uses provider defaults.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--attempts"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url": {
+            "description": "Target URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/firecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "firecrawl.search",
+      "path": [
+        "firecrawl",
+        "search"
+      ],
+      "category": "provider",
+      "summary": "Search the web with Firecrawl.",
+      "provider": "firecrawl",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "limit": {
+            "default": 14,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/firecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "freecrawl.crawl",
+      "path": [
+        "freecrawl",
+        "crawl"
+      ],
+      "category": "provider",
+      "summary": "Crawl a website with Freecrawl.",
+      "provider": "freecrawl",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "exclude_patterns": {
+            "description": "URL patterns to exclude.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-patterns"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_patterns": {
+            "description": "URL patterns to include.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--include-patterns"
+            }
+          },
+          "max_depth": {
+            "default": 2,
+            "description": "Maximum traversal depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "max_pages": {
+            "default": 20,
+            "description": "Maximum crawled pages.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-pages"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "same_domain_only": {
+            "default": false,
+            "description": "Restrict crawl to the starting domain.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--same-domain-only"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/freecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "freecrawl.deep-research",
+      "path": [
+        "freecrawl",
+        "deep-research"
+      ],
+      "category": "provider",
+      "summary": "Run Freecrawl deep research.",
+      "provider": "freecrawl",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_academic": {
+            "default": false,
+            "description": "Include academic sources.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-academic"
+            }
+          },
+          "max_depth": {
+            "default": 3,
+            "description": "Maximum research depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "num_sources": {
+            "default": 8,
+            "description": "Number of sources.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--num-sources"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "search_queries": {
+            "description": "Additional search queries.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--search-queries"
+            }
+          },
+          "topic": {
+            "description": "Research topic.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "topic"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/freecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "freecrawl.scrape",
+      "path": [
+        "freecrawl",
+        "scrape"
+      ],
+      "category": "provider",
+      "summary": "Scrape a URL with Freecrawl.",
+      "provider": "freecrawl",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "anti_bot": {
+            "default": false,
+            "description": "Enable anti-bot handling.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--anti-bot"
+            }
+          },
+          "cache": {
+            "default": false,
+            "description": "Enable cache.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--cache"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "formats": {
+            "default": "markdown",
+            "description": "Comma-separated output formats.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--formats"
+            }
+          },
+          "javascript": {
+            "default": false,
+            "description": "Enable JavaScript rendering.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--javascript"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "timeout": {
+            "default": 60000,
+            "description": "Timeout in milliseconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url": {
+            "description": "Target URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          },
+          "wait_for": {
+            "default": 0,
+            "description": "Wait time in milliseconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--wait-for"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/freecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "freecrawl.search",
+      "path": [
+        "freecrawl",
+        "search"
+      ],
+      "category": "provider",
+      "summary": "Search the web with Freecrawl.",
+      "provider": "freecrawl",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "num_results": {
+            "default": 5,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--num-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "scrape_results": {
+            "default": false,
+            "description": "Scrape result pages.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--scrape-results"
+            }
+          },
+          "search_engine": {
+            "default": "",
+            "description": "Search engine override.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--search-engine"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/freecrawl/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "tavily.crawl",
+      "path": [
+        "tavily",
+        "crawl"
+      ],
+      "category": "provider",
+      "summary": "Run Tavily crawl on a website.",
+      "provider": "tavily",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "allow_external": {
+            "default": false,
+            "description": "Allow external domains.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--allow-external"
+            }
+          },
+          "exclude_domains": {
+            "description": "Domains to exclude.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-domains"
+            }
+          },
+          "exclude_paths": {
+            "description": "Paths to exclude.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-paths"
+            }
+          },
+          "extract_depth": {
+            "default": "",
+            "description": "Extraction depth.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extract-depth"
+            }
+          },
+          "extract_format": {
+            "default": "markdown",
+            "description": "Extracted content format.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extract-format"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_favicon": {
+            "default": false,
+            "description": "Include favicons.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-favicon"
+            }
+          },
+          "include_images": {
+            "default": false,
+            "description": "Include images.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-images"
+            }
+          },
+          "instructions": {
+            "default": "",
+            "description": "Traversal instructions.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--instructions"
+            }
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "max_breadth": {
+            "default": 20,
+            "description": "Maximum links per level.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-breadth"
+            }
+          },
+          "max_depth": {
+            "default": 2,
+            "description": "Maximum traversal depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "select_domains": {
+            "description": "Domains to include.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--select-domains"
+            }
+          },
+          "select_paths": {
+            "description": "Paths to include.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--select-paths"
+            }
+          },
+          "timeout": {
+            "default": 150,
+            "description": "Timeout in seconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/tavily/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "tavily.extract",
+      "path": [
+        "tavily",
+        "extract"
+      ],
+      "category": "provider",
+      "summary": "Extract content from one or more URLs with Tavily.",
+      "provider": "tavily",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "extract_depth": {
+            "default": "",
+            "description": "Extraction depth.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extract-depth"
+            }
+          },
+          "extract_format": {
+            "default": "markdown",
+            "description": "Extracted content format.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extract-format"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_favicon": {
+            "default": false,
+            "description": "Include favicons.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-favicon"
+            }
+          },
+          "include_images": {
+            "default": false,
+            "description": "Include images.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-images"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "default": "",
+            "description": "Extraction relevance query.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--query"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "timeout": {
+            "default": 0,
+            "description": "Timeout in seconds; zero uses provider defaults.",
+            "type": "number",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url_args": {
+            "description": "URLs supplied as positional arguments.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": true
+            }
+          },
+          "urls": {
+            "description": "URLs to extract.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--urls"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "at_least_one",
+          "members": [
+            "url_args",
+            "urls"
+          ]
+        },
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/tavily/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "tavily.map",
+      "path": [
+        "tavily",
+        "map"
+      ],
+      "category": "provider",
+      "summary": "Run Tavily map on a website.",
+      "provider": "tavily",
+      "capabilities": [
+        "site_map"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "allow_external": {
+            "default": false,
+            "description": "Allow external domains.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--allow-external"
+            }
+          },
+          "exclude_domains": {
+            "description": "Domains to exclude.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-domains"
+            }
+          },
+          "exclude_paths": {
+            "description": "Paths to exclude.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-paths"
+            }
+          },
+          "extract_depth": {
+            "default": "",
+            "deprecated": true,
+            "description": "Accepted for compatibility; Tavily map ignores this option.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extract-depth"
+            }
+          },
+          "extract_format": {
+            "default": "markdown",
+            "deprecated": true,
+            "description": "Accepted for compatibility; Tavily map ignores this option.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--extract-format"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_favicon": {
+            "default": false,
+            "deprecated": true,
+            "description": "Accepted for compatibility; Tavily map ignores this option.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-favicon"
+            }
+          },
+          "include_images": {
+            "default": false,
+            "deprecated": true,
+            "description": "Accepted for compatibility; Tavily map ignores this option.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-images"
+            }
+          },
+          "instructions": {
+            "default": "",
+            "description": "Traversal instructions.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--instructions"
+            }
+          },
+          "limit": {
+            "default": 50,
+            "description": "Maximum results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--limit"
+            }
+          },
+          "max_breadth": {
+            "default": 20,
+            "description": "Maximum links per level.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-breadth"
+            }
+          },
+          "max_depth": {
+            "default": 1,
+            "description": "Maximum traversal depth.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-depth"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "select_domains": {
+            "description": "Domains to include.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--select-domains"
+            }
+          },
+          "select_paths": {
+            "description": "Paths to include.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--select-paths"
+            }
+          },
+          "timeout": {
+            "default": 150,
+            "description": "Timeout in seconds.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--timeout"
+            }
+          },
+          "url": {
+            "description": "Website URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/tavily/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "tavily.search",
+      "path": [
+        "tavily",
+        "search"
+      ],
+      "category": "provider",
+      "summary": "Search the web with Tavily.",
+      "provider": "tavily",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "country": {
+            "default": "",
+            "description": "Country filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--country"
+            }
+          },
+          "end_date": {
+            "default": "",
+            "description": "End date.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--end-date"
+            }
+          },
+          "exclude_domains": {
+            "description": "Domains to exclude.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--exclude-domains"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "include_domains": {
+            "description": "Domains to include.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "greedy": true,
+              "kind": "flag",
+              "list_encoding": "backslash_escaped_csv_whitespace",
+              "repeatable": true,
+              "token": "--include-domains"
+            }
+          },
+          "include_favicon": {
+            "default": false,
+            "description": "Include favicons.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-favicon"
+            }
+          },
+          "include_images": {
+            "default": false,
+            "description": "Include images.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-images"
+            }
+          },
+          "include_raw_content": {
+            "default": false,
+            "description": "Include raw page content.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--include-raw-content"
+            }
+          },
+          "max_results": {
+            "default": 6,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--max-results"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "search_depth": {
+            "default": "advanced",
+            "description": "Tavily search depth.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--search-depth"
+            }
+          },
+          "start_date": {
+            "default": "",
+            "description": "Start date.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--start-date"
+            }
+          },
+          "time_range": {
+            "default": "",
+            "description": "Relative time range.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--time-range"
+            }
+          },
+          "topic": {
+            "default": "",
+            "description": "Search topic.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--topic"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/tavily/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "zhipu.search",
+      "path": [
+        "zhipu",
+        "search"
+      ],
+      "category": "provider",
+      "summary": "Search the web with Zhipu.",
+      "provider": "zhipu",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "content_size": {
+            "default": "medium",
+            "description": "Returned content size.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--content-size"
+            }
+          },
+          "count": {
+            "default": 10,
+            "description": "Number of results.",
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--count"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "query": {
+            "description": "Search query.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "search_domain_filter": {
+            "default": "",
+            "description": "Domain filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--search-domain-filter"
+            }
+          },
+          "search_engine": {
+            "default": "",
+            "description": "Search engine override.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--search-engine"
+            }
+          },
+          "search_recency_filter": {
+            "default": "noLimit",
+            "description": "Recency filter.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--search-recency-filter"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/zhipu/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "id": "config.list",
+      "path": [
+        "config",
+        "list"
+      ],
+      "category": "utility",
+      "summary": "Show the redacted runtime configuration schema and provider status.",
+      "aliases": [
+        [
+          "cfg",
+          "l"
+        ],
+        [
+          "cfg",
+          "list"
+        ],
+        [
+          "cfg",
+          "ls"
+        ],
+        [
+          "config",
+          "l"
+        ],
+        [
+          "config",
+          "ls"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "config_result"
+      }
+    },
+    {
+      "id": "config.path",
+      "path": [
+        "config",
+        "path"
+      ],
+      "category": "utility",
+      "summary": "Show the active configuration path.",
+      "aliases": [
+        [
+          "cfg",
+          "p"
+        ],
+        [
+          "cfg",
+          "path"
+        ],
+        [
+          "config",
+          "p"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "config_result"
+      }
+    },
+    {
+      "id": "config.setup",
+      "path": [
+        "config",
+        "setup"
+      ],
+      "category": "utility",
+      "summary": "Configure one provider using hidden TTY or stdin input.",
+      "aliases": [
+        [
+          "cfg",
+          "setup"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "api_key_stdin": {
+            "default": false,
+            "description": "Read one API-key line from stdin.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--api-key-stdin"
+            }
+          },
+          "base_url": {
+            "description": "Provider base URL; an explicitly empty value preserves the current or built-in default.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--base-url"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "provider": {
+            "description": "Provider ID or runtime alias.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "provider"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "input_channels": [
+        {
+          "name": "api_key",
+          "sensitive": true,
+          "bindings": [
+            {
+              "kind": "tty_hidden",
+              "when": "interactive_and_api_key_stdin_is_false"
+            },
+            {
+              "kind": "stdin_line",
+              "activated_by": "api_key_stdin"
+            }
+          ],
+          "required_when_runtime": "provider_requires_key_and_has_no_effective_key",
+          "runtime_check_command": [
+            "config",
+            "list"
+          ],
+          "runtime_check_scope": "/providers/{provider}",
+          "forbidden_binding": "argv"
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "config_write",
+        "stdin_read"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "config_result"
+      }
+    },
+    {
+      "id": "doctor",
+      "path": [
+        "doctor"
+      ],
+      "category": "utility",
+      "summary": "Diagnose configuration and capability readiness.",
+      "aliases": [
+        [
+          "d"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "doctor_result"
+      }
+    },
+    {
+      "id": "model.current",
+      "path": [
+        "model",
+        "current"
+      ],
+      "category": "utility",
+      "summary": "Show the effective model configuration.",
+      "aliases": [
+        [
+          "mdl",
+          "c"
+        ],
+        [
+          "mdl",
+          "cur"
+        ],
+        [
+          "mdl",
+          "current"
+        ],
+        [
+          "model",
+          "c"
+        ],
+        [
+          "model",
+          "cur"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "model_result"
+      }
+    },
+    {
+      "id": "regression",
+      "path": [
+        "regression"
+      ],
+      "category": "utility",
+      "summary": "Run the fixed mock regression suite.",
+      "aliases": [
+        [
+          "reg"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Regression output is always JSON.",
+            "enum": [
+              "json"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "json"
+        ],
+        "variants": [
+          "quiet"
+        ],
+        "contract": "smoke_result"
+      }
+    },
+    {
+      "id": "schema",
+      "path": [
+        "schema"
+      ],
+      "category": "utility",
+      "summary": "Return the versioned CLI command manifest for agents and tooling.",
+      "aliases": [],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "command_path": {
+            "description": "Optional canonical command path to select.",
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": true
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Manifest format; V1 supports JSON only.",
+            "enum": [
+              "json"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the exact manifest bytes to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "json"
+        ],
+        "contract": "command_manifest"
+      }
+    },
+    {
+      "id": "skills.list",
+      "path": [
+        "skills",
+        "list"
+      ],
+      "category": "utility",
+      "summary": "List bundled Onesearch skills.",
+      "aliases": [
+        [
+          "skill",
+          "l"
+        ],
+        [
+          "skill",
+          "list"
+        ],
+        [
+          "skill",
+          "ls"
+        ],
+        [
+          "skills",
+          "l"
+        ],
+        [
+          "skills",
+          "ls"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "default": "",
+            "description": "Filter skills by capability.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--capability"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "skill_result"
+      }
+    },
+    {
+      "id": "skills.show",
+      "path": [
+        "skills",
+        "show"
+      ],
+      "category": "utility",
+      "summary": "Show a bundled skill and its Markdown content.",
+      "aliases": [
+        [
+          "skill",
+          "get"
+        ],
+        [
+          "skill",
+          "load"
+        ],
+        [
+          "skill",
+          "read"
+        ],
+        [
+          "skill",
+          "show"
+        ],
+        [
+          "skills",
+          "get"
+        ],
+        [
+          "skills",
+          "load"
+        ],
+        [
+          "skills",
+          "read"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "capability": {
+            "default": "",
+            "description": "Accepted for compatibility; it does not filter a single skill.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--capability"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "name": {
+            "description": "Skill ID or alias.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "skill_result"
+      }
+    },
+    {
+      "id": "smoke",
+      "path": [
+        "smoke"
+      ],
+      "category": "utility",
+      "summary": "Run mock or live smoke checks.",
+      "aliases": [
+        [
+          "sm"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "live": {
+            "default": false,
+            "description": "Select live mode.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--live"
+            }
+          },
+          "mock": {
+            "default": false,
+            "description": "Select mock mode.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--mock"
+            }
+          },
+          "mode": {
+            "default": "mock",
+            "description": "Smoke mode.",
+            "enum": [
+              "mock",
+              "live"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--mode"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "live",
+            "mock"
+          ]
+        },
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network_when_live"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "smoke_result"
+      }
+    },
+    {
+      "id": "status",
+      "path": [
+        "status"
+      ],
+      "category": "utility",
+      "summary": "Report runtime capability and provider status.",
+      "aliases": [
+        [
+          "st"
+        ]
+      ],
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "status_result"
+      }
+    }
+  ]
+}

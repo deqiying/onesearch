@@ -2,12 +2,9 @@ package cli
 
 import (
 	"context"
-	"flag"
 	"fmt"
-	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/deqiying/onesearch/internal/app"
 	"github.com/deqiying/onesearch/internal/config"
@@ -16,329 +13,54 @@ import (
 	"github.com/deqiying/onesearch/internal/service"
 )
 
-var aliases = map[string]string{
-	"s": "search", "f": "fetch", "m": "map",
-	"cr": "crawl", "rw": "repo-wiki", "dr": "deep",
-	"sm": "smoke", "d": "doctor", "st": "status", "mdl": "model", "cfg": "config", "skill": "skills", "reg": "regression",
-}
-
 func Execute(args []string) int {
 	if len(args) == 0 {
-		printHelp()
+		printRegistryHelp()
 		return 2
 	}
 	if args[0] == "--version" || args[0] == "-v" || args[0] == "--v" {
 		fmt.Printf("%s %s\n", app.Name, app.Version)
 		return 0
 	}
-	if args[0] == "--help" || args[0] == "-h" {
-		printHelp()
+	if definition, namespace, requested := helpTarget(args); requested {
+		switch {
+		case namespace != nil:
+			printNamespaceHelp(*namespace)
+		case definition.ID != "":
+			printCommandHelp(definition)
+		default:
+			printRegistryHelp()
+		}
 		return 0
 	}
-	cfg := config.Load()
-	svc := service.New(cfg)
-	ctx := context.Background()
-	if shouldDispatchProviderCommand(args[0], args[1:]) {
-		return runProviderCommand(ctx, svc, args[0], args[1:])
-	}
-	command := canonical(args[0])
-	switch command {
-	case "search":
-		return runSearch(ctx, svc, args[1:])
-	case "fetch":
-		return runFetch(ctx, svc, args[1:])
-	case "map":
-		return runMap(ctx, svc, args[1:])
-	case "crawl":
-		return runCrawl(ctx, svc, args[1:])
-	case "repo-wiki":
-		return runRepoWiki(ctx, svc, args[1:])
-	case "deep":
-		return runDeep(svc, args[1:])
-	case "doctor":
-		return printCommand(svc, "doctor", svc.Doctor(ctx), parseFormatOutput(args[1:], svc))
-	case "status":
-		return runStatus(svc, args[1:])
-	case "smoke":
-		return runSmoke(ctx, svc, args[1:])
-	case "model":
-		return runModel(svc, args[1:])
-	case "config":
-		return runConfig(svc, args[1:])
-	case "skills":
-		return runSkills(svc, args[1:])
-	case "regression":
-		return printCommand(svc, "smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", verbosity: "quiet"})
-	default:
-		fmt.Fprintln(os.Stderr, redact.Text("unknown command: "+args[0], svc.OutputSecretValues()))
+
+	invocation, ok := resolveInvocation(args)
+	if !ok {
+		if namespace, consumed, found := resolveNamespacePrefix(args); found {
+			if consumed == len(args) {
+				printNamespaceHelp(namespace)
+				return 2
+			}
+			message := fmt.Sprintf("unknown %s subcommand: %s", strings.Join(namespace.Path, " "), args[consumed])
+			return printParameterError(nil, namespace.Path[0], message, formatOutput{format: "json", verbosity: "quiet"})
+		}
+		fmt.Fprintln(os.Stderr, "unknown command: "+args[0])
 		return 2
 	}
-}
+	parsed, parseErr := parseCommand(invocation.Definition, args[invocation.Consumed:])
+	if invocation.Definition.ID == "schema" {
+		if parseErr != nil {
+			return writeStaticParameterError(parseErr.Error(), parsed.String("output"))
+		}
+		return runSchema(parsed)
+	}
+	if parseErr != nil {
+		return printParsedParameterError(parsed, parseErr.Error(), nil)
+	}
 
-func runSearch(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("search")
-	platform := fs.String("platform", "", "")
-	model := fs.String("model", "", "")
-	extra := fs.Int("extra-sources", 0, "")
-	fetchSources := fs.Int("fetch-sources", 0, "")
-	validation := fs.String("validation", "", "")
-	fallback := fs.String("fallback", "", "")
-	providerFilter := fs.String("providers", "auto", "")
-	answerProviders := fs.String("answer-providers", "", "")
-	sourceProviders := fs.String("source-providers", "", "")
-	docsProviders := fs.String("docs-providers", "", "")
-	fetchProviders := fs.String("fetch-providers", "", "")
-	repoProviders := fs.String("repo-providers", "", "")
-	repoWiki := fs.String("repo-wiki", "", "")
-	repoWikiMode := fs.String("repo-wiki-mode", "", "")
-	repoWikiQuery := fs.String("repo-wiki-query", "", "")
-	timeoutSeconds := fs.Float64("timeout", 90, "")
-	streamFlag := boolFlag{}
-	noStreamFlag := boolFlag{}
-	fs.Var(&streamFlag, "stream", "")
-	fs.Var(&noStreamFlag, "no-stream", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "search", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError(svc, "search", "search requires query", makeFormatOutput(outputFlags, svc))
-	}
-	providers, providerFilters, err := parseSearchProviderFilters(*providerFilter)
-	if err != nil {
-		return printParameterError(svc, "search", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	providerFilters = overlayProviderFilter(providerFilters, "answer_search", *answerProviders)
-	providerFilters = overlayProviderFilter(providerFilters, "source_search", *sourceProviders)
-	providerFilters = overlayProviderFilter(providerFilters, "docs_search", *docsProviders)
-	providerFilters = overlayProviderFilter(providerFilters, "page_fetch", *fetchProviders)
-	providerFilters = overlayProviderFilter(providerFilters, "repo_wiki", *repoProviders)
-	query := fs.Arg(0)
-	var stream *bool
-	if streamFlag.set {
-		value := true
-		stream = &value
-	}
-	if noStreamFlag.set {
-		value := false
-		stream = &value
-	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds*float64(time.Second)))
-	defer cancel()
-	data := svc.Search(ctx, query, service.SearchOptions{Platform: *platform, Model: *model, ExtraSources: *extra, FetchSources: *fetchSources, Validation: *validation, Fallback: *fallback, Providers: providers, ProviderFilters: providerFilters, Stream: stream, RepoWiki: *repoWiki, RepoWikiMode: *repoWikiMode, RepoWikiQuery: *repoWikiQuery})
-	if ctx.Err() == context.DeadlineExceeded {
-		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Search timed out after %g seconds", *timeoutSeconds), "query": query, "content": "", "sources": []map[string]any{}, "sources_count": 0, "timeout_seconds": *timeoutSeconds}
-	}
-	return printCommand(svc, "search", data, makeFormatOutput(outputFlags, svc))
-}
-
-func runFetch(ctx context.Context, svc *service.Service, args []string) int {
-	if hasHelpToken(args) {
-		printWorkflowHelp("fetch")
-		return 0
-	}
-	fs := flagSet("fetch")
-	provider := fs.String("provider", "auto", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "fetch", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError(svc, "fetch", "fetch requires url", makeFormatOutput(outputFlags, svc))
-	}
-	return printCommand(svc, "fetch", svc.Fetch(ctx, fs.Arg(0), service.FetchOptions{Provider: *provider}), makeFormatOutput(outputFlags, svc))
-}
-
-func runMap(ctx context.Context, svc *service.Service, args []string) int {
-	if hasHelpToken(args) {
-		printWorkflowHelp("map")
-		return 0
-	}
-	fs := flagSet("map")
-	instructions := fs.String("instructions", "", "")
-	maxDepth := fs.Int("max-depth", 1, "")
-	maxBreadth := fs.Int("max-breadth", 20, "")
-	limit := fs.Int("limit", 50, "")
-	timeoutSeconds := fs.Int("timeout", 150, "")
-	provider := fs.String("provider", "auto", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "map", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError(svc, "map", "map requires url", makeFormatOutput(outputFlags, svc))
-	}
-	data := svc.Map(ctx, fs.Arg(0), service.MapOptions{Instructions: *instructions, MaxDepth: *maxDepth, MaxBreadth: *maxBreadth, Limit: *limit, Timeout: *timeoutSeconds, Provider: *provider})
-	return printCommand(svc, "map", data, makeFormatOutput(outputFlags, svc))
-}
-
-func runCrawl(ctx context.Context, svc *service.Service, args []string) int {
-	if hasHelpToken(args) {
-		printWorkflowHelp("crawl")
-		return 0
-	}
-	fs := flagSet("crawl")
-	maxDepth := fs.Int("max-depth", 2, "")
-	limit := fs.Int("limit", 20, "")
-	timeoutSeconds := fs.Int("timeout", 180, "")
-	provider := fs.String("provider", "auto", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "crawl", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError(svc, "crawl", "crawl requires url", makeFormatOutput(outputFlags, svc))
-	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds)*time.Second)
-	defer cancel()
-	data := svc.Crawl(ctx, fs.Arg(0), service.CrawlOptions{MaxDepth: *maxDepth, Limit: *limit, Timeout: *timeoutSeconds, Provider: *provider})
-	if ctx.Err() == context.DeadlineExceeded {
-		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Crawl timed out after %d seconds", *timeoutSeconds), "url": fs.Arg(0), "timeout_seconds": *timeoutSeconds}
-	}
-	return printCommand(svc, "crawl", data, makeFormatOutput(outputFlags, svc))
-}
-
-func runRepoWiki(ctx context.Context, svc *service.Service, args []string) int {
-	if hasHelpToken(args) {
-		printWorkflowHelp("repo-wiki")
-		return 0
-	}
-	fs := flagSet("repo-wiki")
-	mode := fs.String("mode", "", "")
-	provider := fs.String("provider", "auto", "")
-	timeoutSeconds := fs.Float64("timeout", 60, "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "repo-wiki", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError(svc, "repo-wiki", "repo-wiki requires repo", makeFormatOutput(outputFlags, svc))
-	}
-	question := ""
-	if fs.NArg() > 1 {
-		question = fs.Arg(1)
-	}
-	ctx, cancel := context.WithTimeout(ctx, time.Duration(*timeoutSeconds*float64(time.Second)))
-	defer cancel()
-	data := svc.RepoWiki(ctx, fs.Arg(0), question, service.RepoWikiOptions{Mode: *mode, Provider: *provider})
-	if ctx.Err() == context.DeadlineExceeded {
-		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Repo wiki timed out after %g seconds", *timeoutSeconds), "repo": fs.Arg(0), "timeout_seconds": *timeoutSeconds}
-	}
-	return printCommand(svc, "repo-wiki", data, makeFormatOutput(outputFlags, svc))
-}
-
-func runAnyDomains(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch domains")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printProviderToolParameterError("anysearch", "domains", err.Error(), outputFlags, svc)
-	}
-	domain := ""
-	if fs.NArg() > 0 {
-		domain = fs.Arg(0)
-	}
-	return printCommand(svc, "anysearch", svc.AnySearch().Domains(ctx, domain), makeFormatOutput(outputFlags, svc))
-}
-
-func runAnySearch(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch search")
-	domain := fs.String("domain", "", "")
-	subDomain := fs.String("sub-domain", "", "")
-	maxResults := fs.Int("max-results", 5, "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printProviderToolParameterError("anysearch", "search", err.Error(), outputFlags, svc)
-	}
-	if fs.NArg() < 1 {
-		return printProviderToolParameterError("anysearch", "search", "anysearch search requires query", outputFlags, svc)
-	}
-	return printCommand(svc, "anysearch", svc.AnySearch().Search(ctx, fs.Arg(0), *domain, *subDomain, *maxResults), makeFormatOutput(outputFlags, svc))
-}
-
-func runAnyExtract(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch extract")
-	maxLength := fs.Int("max-length", 20000, "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printProviderToolParameterError("anysearch", "extract", err.Error(), outputFlags, svc)
-	}
-	if fs.NArg() < 1 {
-		return printProviderToolParameterError("anysearch", "extract", "anysearch extract requires url", outputFlags, svc)
-	}
-	return printCommand(svc, "anysearch", svc.AnySearch().Extract(ctx, fs.Arg(0), *maxLength), makeFormatOutput(outputFlags, svc))
-}
-
-func runAnyBatch(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("anysearch batch")
-	maxResults := fs.Int("max-results", 3, "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printProviderToolParameterError("anysearch", "batch", err.Error(), outputFlags, svc)
-	}
-	if fs.NArg() < 1 {
-		return printProviderToolParameterError("anysearch", "batch", "anysearch batch requires at least one query", outputFlags, svc)
-	}
-	return printCommand(svc, "anysearch", svc.AnySearch().Batch(ctx, fs.Args(), *maxResults), makeFormatOutput(outputFlags, svc))
-}
-
-func runDeep(svc *service.Service, args []string) int {
-	fs := flagSet("deep")
-	budget := fs.String("budget", "standard", "")
-	evidenceDir := fs.String("evidence-dir", "", "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "deep", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() < 1 {
-		return printParameterError(svc, "deep", "deep requires query", makeFormatOutput(outputFlags, svc))
-	}
-	return printCommand(svc, "deep", svc.DeepPlan(fs.Arg(0), *budget, *evidenceDir), makeFormatOutput(outputFlags, svc))
-}
-
-func runSmoke(ctx context.Context, svc *service.Service, args []string) int {
-	fs := flagSet("smoke")
-	mode := fs.String("mode", "mock", "")
-	mock := fs.Bool("mock", false, "")
-	live := fs.Bool("live", false, "")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "smoke", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if *mock {
-		*mode = "mock"
-	}
-	if *live {
-		*mode = "live"
-	}
-	return printCommand(svc, "smoke", svc.Smoke(ctx, *mode), makeFormatOutput(outputFlags, svc))
-}
-
-func runModel(svc *service.Service, args []string) int {
-	if len(args) == 0 {
-		return parameterError(svc, "model requires subcommand")
-	}
-	sub := canonicalModel(args[0])
-	fs := flagSet("model")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args[1:]); err != nil {
-		return printParameterError(svc, "model", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if sub == "current" {
-		return printCommand(svc, "model", svc.CurrentModel(), makeFormatOutput(outputFlags, svc))
-	}
-	return parameterError(svc, "unknown model subcommand")
-}
-
-func runStatus(svc *service.Service, args []string) int {
-	fs := flagSet("status")
-	outputFlags := addOutputFlags(fs)
-	if err := parse(fs, args); err != nil {
-		return printParameterError(svc, "status", err.Error(), makeFormatOutput(outputFlags, svc))
-	}
-	if fs.NArg() > 0 {
-		return printParameterError(svc, "status", "status does not accept positional arguments", makeFormatOutput(outputFlags, svc))
-	}
-	return printCommand(svc, "status", annotateStatusCommands(svc.Status()), makeFormatOutput(outputFlags, svc))
+	cfg := config.Load()
+	svc := service.New(cfg)
+	return runParsedCommand(context.Background(), svc, parsed)
 }
 
 func parseSearchProviderFilters(raw string) (string, map[string]string, error) {
@@ -355,15 +77,15 @@ func parseSearchProviderFilters(raw string) (string, map[string]string, error) {
 		if part == "" {
 			continue
 		}
-		idx := strings.Index(part, "=")
-		if idx < 0 {
-			idx = strings.Index(part, ":")
+		index := strings.Index(part, "=")
+		if index < 0 {
+			index = strings.Index(part, ":")
 		}
-		if idx < 0 {
+		if index < 0 {
 			return "", nil, fmt.Errorf("provider filter %q must use capability=providers", part)
 		}
-		capability := normalizeCapabilityFilterKey(strings.TrimSpace(part[:idx]))
-		value := strings.TrimSpace(part[idx+1:])
+		capability := normalizeCapabilityFilterKey(strings.TrimSpace(part[:index]))
+		value := strings.TrimSpace(part[index+1:])
 		if capability == "" || value == "" {
 			return "", nil, fmt.Errorf("provider filter %q must include capability and provider list", part)
 		}
@@ -416,20 +138,6 @@ type formatOutput struct {
 	verbosity string
 }
 
-type outputFlags struct {
-	format  *string
-	output  *string
-	verbose *bool
-	quiet   *bool
-}
-
-func parseFormatOutput(args []string, svc *service.Service) formatOutput {
-	fs := flagSet("format")
-	flags := addOutputFlags(fs)
-	_ = parse(fs, args)
-	return makeFormatOutput(flags, svc)
-}
-
 func printCommand(svc *service.Service, command string, data map[string]any, fo formatOutput, transientSecrets ...string) int {
 	if fo.format == "" {
 		fo.format = "json"
@@ -448,45 +156,7 @@ func printCommand(svc *service.Service, command string, data map[string]any, fo 
 }
 
 func printParameterError(svc *service.Service, command, message string, fo formatOutput, transientSecrets ...string) int {
-	return printCommand(svc, command, map[string]any{
-		"ok":         false,
-		"error_type": "parameter_error",
-		"error":      message,
-	}, fo, transientSecrets...)
-}
-
-func addFormatFlags(fs *flag.FlagSet) (*string, *string) {
-	flags := addOutputFlagsWithDefault(fs, "json")
-	return flags.format, flags.output
-}
-
-func addFormatFlagsWithDefault(fs *flag.FlagSet, defaultFormat string) (*string, *string) {
-	flags := addOutputFlagsWithDefault(fs, defaultFormat)
-	return flags.format, flags.output
-}
-
-func addOutputFlags(fs *flag.FlagSet) outputFlags {
-	return addOutputFlagsWithDefault(fs, "json")
-}
-
-func addOutputFlagsWithDefault(fs *flag.FlagSet, defaultFormat string) outputFlags {
-	return outputFlags{
-		format:  fs.String("format", defaultFormat, ""),
-		output:  fs.String("output", "", ""),
-		verbose: fs.Bool("verbose", false, ""),
-		quiet:   fs.Bool("quiet", false, ""),
-	}
-}
-
-func makeFormatOutput(flags outputFlags, svc *service.Service) formatOutput {
-	verbosity := defaultVerbosity(svc)
-	if flags.verbose != nil && *flags.verbose {
-		verbosity = "verbose"
-	}
-	if flags.quiet != nil && *flags.quiet {
-		verbosity = "quiet"
-	}
-	return formatOutput{format: *flags.format, output: *flags.output, verbosity: verbosity}
+	return printCommand(svc, command, map[string]any{"ok": false, "error_type": "parameter_error", "error": message}, fo, transientSecrets...)
 }
 
 func defaultVerbosity(svc *service.Service) string {
@@ -498,182 +168,4 @@ func defaultVerbosity(svc *service.Service) string {
 		}
 	}
 	return "quiet"
-}
-
-func flagSet(name string) *flag.FlagSet {
-	fs := flag.NewFlagSet(name, flag.ContinueOnError)
-	fs.SetOutput(io.Discard)
-	return fs
-}
-
-func parse(fs *flag.FlagSet, args []string) error {
-	return fs.Parse(reorderFlags(fs, args))
-}
-
-func hasHelpToken(args []string) bool {
-	for _, arg := range args {
-		if isHelpToken(arg) {
-			return true
-		}
-	}
-	return false
-}
-
-func reorderFlags(fs *flag.FlagSet, args []string) []string {
-	var flags []string
-	var positionals []string
-	for i := 0; i < len(args); i++ {
-		token := args[i]
-		if token == "--" {
-			positionals = append(positionals, args[i+1:]...)
-			break
-		}
-		if !strings.HasPrefix(token, "-") || token == "-" {
-			positionals = append(positionals, token)
-			continue
-		}
-		name := strings.TrimLeft(token, "-")
-		if idx := strings.IndexByte(name, '='); idx >= 0 {
-			if fs.Lookup(name[:idx]) != nil {
-				flags = append(flags, token)
-				continue
-			}
-		}
-		f := fs.Lookup(name)
-		if f == nil {
-			positionals = append(positionals, token)
-			continue
-		}
-		flags = append(flags, token)
-		if isBool, ok := f.Value.(interface{ IsBoolFlag() bool }); ok && isBool.IsBoolFlag() {
-			continue
-		}
-		if _, ok := f.Value.(*stringListFlag); ok {
-			for i+1 < len(args) && !looksLikeKnownFlag(fs, args[i+1]) {
-				i++
-				flags = append(flags, args[i])
-			}
-			continue
-		}
-		if i+1 < len(args) {
-			i++
-			flags = append(flags, args[i])
-		}
-	}
-	return append(flags, positionals...)
-}
-
-func looksLikeKnownFlag(fs *flag.FlagSet, token string) bool {
-	if !strings.HasPrefix(token, "-") || token == "-" {
-		return false
-	}
-	name := strings.TrimLeft(token, "-")
-	if idx := strings.IndexByte(name, '='); idx >= 0 {
-		name = name[:idx]
-	}
-	return fs.Lookup(name) != nil
-}
-
-type boolFlag struct {
-	set bool
-}
-
-func (b *boolFlag) String() string { return fmt.Sprint(b.set) }
-func (b *boolFlag) Set(_ string) error {
-	b.set = true
-	return nil
-}
-func (b *boolFlag) IsBoolFlag() bool { return true }
-
-type stringListFlag struct {
-	values []string
-}
-
-func (s *stringListFlag) String() string { return strings.Join(s.values, ",") }
-func (s *stringListFlag) Set(value string) error {
-	for _, part := range strings.Split(value, ",") {
-		for _, token := range strings.Fields(part) {
-			if token != "" {
-				s.values = append(s.values, token)
-			}
-		}
-	}
-	return nil
-}
-
-func canonical(command string) string {
-	if value, ok := aliases[command]; ok {
-		return value
-	}
-	return command
-}
-
-func canonicalConfig(command string) string {
-	switch command {
-	case "p":
-		return "path"
-	case "ls", "l":
-		return "list"
-	default:
-		return command
-	}
-}
-
-func canonicalModel(command string) string {
-	switch command {
-	case "cur", "c":
-		return "current"
-	default:
-		return command
-	}
-}
-
-func parameterError(svc *service.Service, message string) int {
-	secrets := []string{}
-	if svc != nil {
-		secrets = svc.OutputSecretValues()
-	}
-	fmt.Fprintln(os.Stderr, redact.Text(message, secrets))
-	return 2
-}
-
-func printHelp() {
-	fmt.Println(app.Description)
-	fmt.Println()
-	fmt.Println("Usage:")
-	fmt.Println("  onesearch <workflow> [args] [flags]")
-	fmt.Println("  onesearch <provider> <command> [args] [flags]")
-	fmt.Println()
-	fmt.Println("Workflow / capability:")
-	fmt.Println("  search, fetch, map, crawl, repo-wiki, deep")
-	fmt.Println()
-	fmt.Println("Provider direct:")
-	fmt.Println("  exa web-search|web-fetch|similar")
-	fmt.Println("  tavily search|extract|map|crawl")
-	fmt.Println("  firecrawl search|scrape|map|crawl")
-	fmt.Println("  context7 resolve-library-id|query-docs")
-	fmt.Println("  deepwiki ask-question|read-wiki-structure|read-wiki-contents")
-	fmt.Println("  anysearch domains|search|extract|batch")
-	fmt.Println("  zhipu search")
-	fmt.Println("  ddg search|fetch-content")
-	fmt.Println("  freecrawl search|scrape|crawl|deep-research")
-	fmt.Println()
-	fmt.Println("Utility:")
-	fmt.Println("  config path|list|setup, model, skills, regression")
-	fmt.Println("  doctor, status, smoke")
-}
-
-func printWorkflowHelp(command string) {
-	switch command {
-	case "fetch":
-		fmt.Println("onesearch fetch <url> [--provider auto|provider[,provider...]] [--format json|markdown|content] [--output path]")
-	case "map":
-		fmt.Println("onesearch map <url> [--provider auto|provider[,provider...]] [--instructions text] [--max-depth n] [--max-breadth n] [--limit n] [--timeout seconds] [--format json|markdown|content]")
-	case "crawl":
-		fmt.Println("onesearch crawl <url> [--provider auto|provider[,provider...]] [--max-depth n] [--limit n] [--timeout seconds] [--format json|markdown|content]")
-	case "repo-wiki":
-		fmt.Println("onesearch repo-wiki <owner/repo> [question] [--provider auto|provider[,provider...]] [--mode ask|structure|contents] [--timeout seconds] [--format json|markdown|content]")
-	default:
-		fmt.Println("onesearch " + command + " [args] [flags]")
-	}
 }

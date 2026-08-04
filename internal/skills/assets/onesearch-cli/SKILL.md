@@ -32,8 +32,10 @@ Use workflow commands when the user describes the task. Use provider direct comm
 3. Load the most specific skill with `onesearch skills show <skill> --format content` before using detailed provider or workflow commands.
 4. Run `onesearch doctor --format json` when overall provider readiness, API keys, or runtime routes are uncertain.
 5. Run `onesearch status --format json` before choosing a specific capability or provider-direct endpoint; only use providers and capabilities whose status is available.
-6. If a required provider key is missing and the user wants to configure it, use `onesearch config setup <provider>`; never put the key in command arguments or chat output.
-7. Execute the commands from the loaded workflow or provider skill.
+6. Read `onesearch schema --format json` when an agent needs the canonical command, input constraints, argv binding, side effects, or status preflight; use a targeted `onesearch schema <canonical-path...> --format json` when the command is known.
+7. Use `--help` for human-readable top/group/leaf usage; help and schema are static discovery paths and do not load runtime config, create config files, call providers, or access the network. `schema --output` only writes the explicitly requested manifest file.
+8. If a required provider key is missing and the user wants to configure it, use `onesearch config setup <provider>`; never put the key in command arguments or chat output.
+9. Execute the commands from the loaded workflow or provider skill.
 
 ## What Onesearch Provides
 
@@ -78,7 +80,7 @@ Use workflow commands when the user describes the task. Use provider direct comm
 | `site_map` | `fetch`, `tavily`, or `firecrawl` |
 | `site_crawl` | `fetch`, `tavily`, `firecrawl`, or `freecrawl` |
 | `repo_wiki` | `deepwiki` |
-| `vertical_search` | `anysearch` |
+| `vertical_search` | `anysearch search` (explicit/direct-only by default) |
 | `routing` | `onesearch-cli` |
 
 ## Common Routing Commands
@@ -97,9 +99,17 @@ onesearch skills show ddg --format content
 onesearch skills show freecrawl --format content
 onesearch doctor --format json
 onesearch status --format json
+onesearch regression --format json
+onesearch schema --format json
+onesearch schema search --format json
+onesearch schema exa web-search --format json
+onesearch --help
+onesearch search --help
 onesearch config path --format json
 onesearch config list --format json
 ```
+
+`schema` is the CLI command manifest, not the runtime configuration schema. Use `config list --format json` for runtime `defaults`, `pipelines`, `routes`, `profiles`, and `providers`. Targeted schema queries accept canonical paths only; unknown flags, extra positionals, conflicting options, or non-JSON schema formats return parameter error (exit code 2). The manifest and all command-level help are generated from the same command contract.
 
 ## Provider Credential Setup
 
@@ -129,9 +139,10 @@ Never ask a user to paste a real key into normal CLI arguments, source files, lo
 - For current, latest, today, rankings, prices, schedules, hot lists, or social-media trends, use Onesearch instead of answering from memory.
 - Treat search results as discovery candidates. Fetch or extract key URLs before claim-level conclusions.
 - Do not assume a provider skill means that provider is enabled. Check `onesearch status --format json` before calling direct providers such as `exa`, `tavily`, `firecrawl`, `zhipu`, `ddg`, `freecrawl`, or answer providers such as `xai`.
+- Treat `status.capabilities.<capability>.command` and `status.direct_endpoints.<provider>.commands` as executable command paths. `vertical_search` must point to an AnySearch leaf, and `available` is only a local preflight signal, not proof of network, credentials, or remote MCP tool availability.
 - Treat `ddg` and `freecrawl` as direct-only local MCP stdio provider templates unless runtime routes explicitly include them.
 - Keep API keys out of final answers. CLI JSON/content/markdown, dynamic stderr, and `--output` files mask configured, environment, and transient setup secrets.
 
 ## Supporting Reference
 
-Read `references/cli-contract.md` when you need the full command contract, output fields, exit codes, runtime schema, or regression checks.
+Read `references/cli-contract.md` when you need the full command contract, schema/help rules, output fields, exit codes, runtime schema, status preflight, Deep Research `command_argv`, or regression checks.

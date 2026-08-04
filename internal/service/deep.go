@@ -10,11 +10,15 @@ import (
 	"github.com/deqiying/onesearch/internal/providers"
 )
 
-var deepAllowedTools = []string{"context7 query-docs", "context7 resolve-library-id", "crawl", "exa similar", "exa web-search", "fetch", "map", "repo-wiki", "search"}
+var deepAllowedCommandIDs = []string{"context7.query-docs", "context7.resolve-library-id", "crawl", "exa.similar", "exa.web-search", "fetch", "map", "repo-wiki", "search"}
+var powerShellBareArgument = regexp.MustCompile(`^[A-Za-z0-9_./:\\-]+$`)
 
 func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 	start := time.Now()
 	question := strings.TrimSpace(query)
+	if question == "" {
+		return map[string]any{"ok": false, "error_type": "parameter_error", "error": "deep requires non-empty query"}
+	}
 	if budget == "" {
 		budget = "standard"
 	}
@@ -73,23 +77,23 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 	var decomposition []map[string]any
 	var capabilities []map[string]any
 	var steps []map[string]any
-	addStep := func(subID, tool, purpose, command, output string) {
-		steps = append(steps, map[string]any{"id": "s" + stringValue(len(steps)+1), "subquestion_id": subID, "tool": tool, "purpose": purpose, "command": command, "output_path": filepath.Join(evidenceRoot, output)})
+	addStep := func(subID, tool, purpose string, commandArgv []string, output string) {
+		steps = append(steps, map[string]any{"id": "s" + stringValue(len(steps)+1), "subquestion_id": subID, "tool": tool, "purpose": purpose, "command_argv": commandArgv, "command": renderPowerShellCommand(commandArgv), "output_path": filepath.Join(evidenceRoot, output)})
 	}
 	nextFile := func(suffix string) string {
 		return fmtNumber(len(steps)+1) + "-" + suffix
 	}
-	searchCommand := func(q string, extra int, filename string) string {
-		return "onesearch search " + quoteArg(q) + " --validation balanced --extra-sources " + stringValue(extra) + " --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+	searchCommand := func(q string, extra int, filename string) []string {
+		return mustDeepArgv("search", map[string]any{"query": q, "validation": "balanced", "extra_sources": extra, "format": "json", "output": filepath.Join(evidenceRoot, filename)})
 	}
-	exaCommand := func(q string, filename string) string {
-		return "onesearch exa web-search " + quoteArg(q) + " --num-results 5 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+	exaCommand := func(q string, filename string) []string {
+		return mustDeepArgv("exa.web-search", map[string]any{"query": q, "num_results": 5, "format": "json", "output": filepath.Join(evidenceRoot, filename)})
 	}
-	currentSourceCommand := func(q string, filename string) string {
-		return "onesearch search " + quoteArg(q) + " --validation strict --extra-sources 3 --format json --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+	currentSourceCommand := func(q string, filename string) []string {
+		return mustDeepArgv("search", map[string]any{"query": q, "validation": "strict", "extra_sources": 3, "format": "json", "output": filepath.Join(evidenceRoot, filename)})
 	}
-	fetchCommand := func(target, filename string) string {
-		return "onesearch fetch " + quoteArg(target) + " --format markdown --output " + quoteArg(filepath.Join(evidenceRoot, filename))
+	fetchCommand := func(target, filename string) []string {
+		return mustDeepArgv("fetch", map[string]any{"url": target, "format": "markdown", "output": filepath.Join(evidenceRoot, filename)})
 	}
 
 	if knownURL {
@@ -104,7 +108,7 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 			deepCapability("broad_discovery", []string{"search"}, "Broaden the context if the fetched page leaves gaps."),
 		)
 		addStep("sq1", "fetch", "fetch user supplied URL first", fetchCommand(url, "01-fetch.md"), "01-fetch.md")
-		addStep("sq2", "exa similar", "find adjacent sources from the provided URL", "onesearch exa similar "+quoteArg(url)+" --num-results 5 --format json --output "+quoteArg(filepath.Join(evidenceRoot, "02-similar.json")), "02-similar.json")
+		addStep("sq2", "exa similar", "find adjacent sources from the provided URL", mustDeepArgv("exa.similar", map[string]any{"url": url, "num_results": 5, "format": "json", "output": filepath.Join(evidenceRoot, "02-similar.json")}), "02-similar.json")
 		addStep("sq2", "search", "broad discovery for missing context", searchCommand(question, 1, "03-search.json"), "03-search.json")
 	} else {
 		decomposition = append(decomposition, deepSubquestion("sq1", question+" 的整体问题轮廓和候选来源是什么？", "先做 broad discovery，避免一开始把问题拆错。", []string{"broad_discovery"}))
@@ -120,9 +124,9 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 			file := nextFile("exa.json")
 			addStep("sq2", "exa web-search", "official docs and API source discovery", exaCommand(question, file), file)
 			libFile := nextFile("context7-library.json")
-			addStep("sq2", "context7 resolve-library-id", "resolve library id for docs/API intent", "onesearch context7 resolve-library-id "+quoteArg(libraryHint(question))+" "+quoteArg(question)+" --format json --output "+quoteArg(filepath.Join(evidenceRoot, libFile)), libFile)
+			addStep("sq2", "context7 resolve-library-id", "resolve library id for docs/API intent", mustDeepArgv("context7.resolve-library-id", map[string]any{"name": libraryHint(question), "query": question, "format": "json", "output": filepath.Join(evidenceRoot, libFile)}), libFile)
 			docsFile := nextFile("context7-docs.json")
-			addStep("sq2", "context7 query-docs", "retrieve docs after selecting the best library_id", "onesearch context7 query-docs "+quoteArg("<library_id>")+" "+quoteArg(question)+" --format json --output "+quoteArg(filepath.Join(evidenceRoot, docsFile)), docsFile)
+			addStep("sq2", "context7 query-docs", "retrieve docs after selecting the best library_id", mustDeepArgv("context7.query-docs", map[string]any{"library_id": "<library_id>", "query": question, "format": "json", "output": filepath.Join(evidenceRoot, docsFile)}), docsFile)
 		}
 		if recency != "none" || scope == "china" {
 			subID := "sq" + stringValue(len(decomposition)+1)
@@ -149,7 +153,9 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		}
 	}
 
-	sort.Strings(deepAllowedTools)
+	allowedTools := deepAllowedTools()
+	doctorArgv := mustDeepArgv("doctor", map[string]any{"format": "json"})
+	statusArgv := mustDeepArgv("status", map[string]any{"format": "json"})
 	return map[string]any{
 		"ok":                  true,
 		"mode":                "deep_research",
@@ -161,12 +167,12 @@ func (s *Service) DeepPlan(query, budget, evidenceDir string) map[string]any {
 		"decomposition":       decomposition,
 		"capability_plan":     dedupeCapabilities(capabilities),
 		"evidence_policy":     "fetch_before_claim",
-		"preflight":           []map[string]any{{"tool": "doctor", "command": "onesearch doctor --format json", "when": "overall configuration readiness is uncertain", "executed_by_deep_command": false}, {"tool": "status", "command": "onesearch status --format json", "when": "choosing a specific capability, provider filter, or provider-direct endpoint", "executed_by_deep_command": false}},
+		"preflight":           []map[string]any{{"tool": "doctor", "command_argv": doctorArgv, "command": renderPowerShellCommand(doctorArgv), "when": "overall configuration readiness is uncertain", "executed_by_deep_command": false}, {"tool": "status", "command_argv": statusArgv, "command": renderPowerShellCommand(statusArgv), "when": "choosing a specific capability, provider filter, or provider-direct endpoint", "executed_by_deep_command": false}},
 		"steps":               steps,
 		"gap_check":           map[string]any{"required": true, "rule": "fetch missing evidence for key claims or downgrade unsupported claims to unverified candidates", "unsupported_claim_action": "downgrade_to_unverified_candidate"},
 		"final_answer_policy": "cite fetched evidence, list unverified candidates, and include key commands",
 		"usage_boundary":      map[string]any{"search": "onesearch search runs live fast/broad search immediately.", "deep": "onesearch deep is an offline planner; it does not execute provider calls or fetch pages.", "execution": "An AI agent or user executes the listed steps with existing CLI commands, then performs gap_check."},
-		"allowed_tools":       deepAllowedTools,
+		"allowed_tools":       allowedTools,
 		"evidence_dir":        evidenceRoot,
 		"elapsed_ms":          providers.Elapsed(start),
 	}
@@ -229,11 +235,37 @@ func slugify(text string) string {
 	return slug
 }
 
-func quoteArg(value string) string {
-	value = strings.ReplaceAll(value, "`", "``")
-	value = strings.ReplaceAll(value, "$", "`$")
-	value = strings.ReplaceAll(value, `"`, "`\"")
-	return `"` + value + `"`
+func mustDeepArgv(id string, values map[string]any) []string {
+	argv, err := serviceCommandRegistry.BuildArgv(id, values)
+	if err != nil {
+		panic("invalid deep command contract: " + err.Error())
+	}
+	return argv
+}
+
+func deepAllowedTools() []string {
+	tools := make([]string, 0, len(deepAllowedCommandIDs))
+	for _, id := range deepAllowedCommandIDs {
+		definition, ok := serviceCommandRegistry.LookupID(id)
+		if !ok {
+			panic("missing deep command contract: " + id)
+		}
+		tools = append(tools, strings.Join(definition.Path, " "))
+	}
+	sort.Strings(tools)
+	return tools
+}
+
+func renderPowerShellCommand(argv []string) string {
+	quoted := make([]string, len(argv))
+	for index, value := range argv {
+		if powerShellBareArgument.MatchString(value) {
+			quoted[index] = value
+			continue
+		}
+		quoted[index] = "'" + strings.ReplaceAll(value, "'", "''") + "'"
+	}
+	return strings.Join(quoted, " ")
 }
 
 func libraryHint(question string) string {
