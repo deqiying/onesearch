@@ -2,9 +2,78 @@ package output
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 )
+
+func TestJSONFormattingDefaultsCompactAndPrettyIsOptIn(t *testing.T) {
+	data := map[string]any{
+		"ok":     true,
+		"html":   "<tag>",
+		"nested": map[string]any{"value": "line one\nline two"},
+	}
+	compact := RenderWithOptions("custom", data, Options{Format: "json", Verbosity: "verbose"})
+	pretty := RenderWithOptions("custom", data, Options{Format: "json", Pretty: true, Verbosity: "verbose"})
+
+	if !strings.HasSuffix(compact, "\n") || strings.Count(compact, "\n") != 1 || strings.Contains(compact, "\n  ") {
+		t.Fatalf("default JSON is not one compact line with a trailing LF: %q", compact)
+	}
+	if !strings.HasSuffix(pretty, "\n") || strings.Count(pretty, "\n") <= 1 || !strings.Contains(pretty, "\n  \"") {
+		t.Fatalf("pretty JSON is not indented with a trailing LF: %q", pretty)
+	}
+	if strings.Contains(compact, `\u003c`) || strings.Contains(pretty, `\u003c`) {
+		t.Fatalf("JSON formatting changed HTML escaping: compact=%q pretty=%q", compact, pretty)
+	}
+
+	var compactValue, prettyValue any
+	if err := json.Unmarshal([]byte(compact), &compactValue); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(pretty), &prettyValue); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(compactValue, prettyValue) {
+		t.Fatalf("compact and pretty JSON differ semantically:\ncompact=%#v\npretty=%#v", compactValue, prettyValue)
+	}
+}
+
+func TestJSONFormattingDoesNotChangeQuietOrVerbosePayloads(t *testing.T) {
+	data := map[string]any{
+		"ok":       true,
+		"provider": "exa",
+		"tool":     "web_search_exa",
+		"query":    "format contract",
+		"content":  strings.Repeat("payload ", 200),
+		"result":   map[string]any{"results": []map[string]any{{"title": "Result", "url": "https://example.com"}}},
+	}
+	for _, verbosity := range []string{"quiet", "verbose"} {
+		compact := RenderWithOptions("exa", data, Options{Format: "json", Verbosity: verbosity})
+		pretty := RenderWithOptions("exa", data, Options{Format: "json", Pretty: true, Verbosity: verbosity})
+
+		var compactValue, prettyValue any
+		if err := json.Unmarshal([]byte(compact), &compactValue); err != nil {
+			t.Fatalf("decode compact %s JSON: %v", verbosity, err)
+		}
+		if err := json.Unmarshal([]byte(pretty), &prettyValue); err != nil {
+			t.Fatalf("decode pretty %s JSON: %v", verbosity, err)
+		}
+		if !reflect.DeepEqual(compactValue, prettyValue) {
+			t.Fatalf("%s compact and pretty payloads differ:\ncompact=%#v\npretty=%#v", verbosity, compactValue, prettyValue)
+		}
+	}
+}
+
+func TestPrettyDoesNotAffectNonJSONFormats(t *testing.T) {
+	data := map[string]any{"ok": true, "content": "plain text"}
+	for _, format := range []string{"content", "markdown"} {
+		compact := RenderWithOptions("custom", data, Options{Format: format, Verbosity: "verbose"})
+		pretty := RenderWithOptions("custom", data, Options{Format: format, Pretty: true, Verbosity: "verbose"})
+		if compact != pretty {
+			t.Fatalf("Pretty changed %s output:\nwithout=%q\nwith=%q", format, compact, pretty)
+		}
+	}
+}
 
 func TestQuietSearchOutputMergesFetchedPages(t *testing.T) {
 	data := map[string]any{
@@ -93,19 +162,21 @@ func TestQuietProviderToolOutputKeepsJobEnvelopeWithoutRawResult(t *testing.T) {
 func TestRenderWithOptionsRedactsEveryFormatAndVerbosity(t *testing.T) {
 	for _, format := range []string{"json", "content", "markdown"} {
 		for _, verbosity := range []string{"quiet", "verbose"} {
-			data := map[string]any{
-				"ok":         false,
-				"error_type": "network_error",
-				"error":      "provider echoed actual-secret in response",
-				"api_key":    "field-secret",
-				"nested":     []map[string]any{{"authorization": "Bearer field-secret"}},
-			}
-			rendered := RenderWithOptions("exa", data, Options{Format: format, Verbosity: verbosity, SecretValues: []string{"actual-secret"}})
-			if strings.Contains(rendered, "actual-secret") || strings.Contains(rendered, "field-secret") {
-				t.Fatalf("%s/%s leaked a secret: %q", format, verbosity, rendered)
-			}
-			if data["api_key"] != "field-secret" || !strings.Contains(data["error"].(string), "actual-secret") {
-				t.Fatalf("renderer mutated input for %s/%s: %#v", format, verbosity, data)
+			for _, pretty := range []bool{false, true} {
+				data := map[string]any{
+					"ok":         false,
+					"error_type": "network_error",
+					"error":      "provider echoed actual-secret in response",
+					"api_key":    "field-secret",
+					"nested":     []map[string]any{{"authorization": "Bearer field-secret"}},
+				}
+				rendered := RenderWithOptions("exa", data, Options{Format: format, Pretty: pretty, Verbosity: verbosity, SecretValues: []string{"actual-secret"}})
+				if strings.Contains(rendered, "actual-secret") || strings.Contains(rendered, "field-secret") {
+					t.Fatalf("%s/%s/pretty=%t leaked a secret: %q", format, verbosity, pretty, rendered)
+				}
+				if data["api_key"] != "field-secret" || !strings.Contains(data["error"].(string), "actual-secret") {
+					t.Fatalf("renderer mutated input for %s/%s/pretty=%t: %#v", format, verbosity, pretty, data)
+				}
 			}
 		}
 	}

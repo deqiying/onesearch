@@ -163,6 +163,85 @@ func TestProviderCommandParameterErrorKeepsProviderAndTool(t *testing.T) {
 	}
 }
 
+func TestRegressionFormattingAndUnsupportedFlags(t *testing.T) {
+	t.Setenv("ONESEARCH_CONFIG_DIR", t.TempDir())
+	compact := captureStdout(t, func() {
+		if code := Execute([]string{"regression"}); code != 0 {
+			t.Fatalf("compact regression exit code = %d, want 0", code)
+		}
+	})
+	pretty := captureStdout(t, func() {
+		if code := Execute([]string{"regression", "--pretty"}); code != 0 {
+			t.Fatalf("pretty regression exit code = %d, want 0", code)
+		}
+	})
+	explicitCompact := captureStdout(t, func() {
+		if code := Execute([]string{"regression", "--pretty=false"}); code != 0 {
+			t.Fatalf("explicit compact regression exit code = %d, want 0", code)
+		}
+	})
+	assertCompactJSONText(t, compact)
+	assertPrettyJSONText(t, pretty)
+	assertCompactJSONText(t, explicitCompact)
+	results := map[string]map[string]any{}
+	for name, value := range map[string]string{"compact": compact, "pretty": pretty, "explicit compact": explicitCompact} {
+		var result map[string]any
+		if err := json.Unmarshal([]byte(value), &result); err != nil {
+			t.Fatalf("decode %s regression: %v", name, err)
+		}
+		if result["ok"] != true || result["mode"] != "mock" {
+			t.Fatalf("%s regression = %#v", name, result)
+		}
+		// Each invocation measures its own runtime, so compare the stable payload.
+		if _, ok := result["elapsed_ms"]; !ok {
+			t.Fatalf("%s regression lost elapsed_ms: %#v", name, result)
+		}
+		delete(result, "elapsed_ms")
+		results[name] = result
+	}
+	for _, name := range []string{"pretty", "explicit compact"} {
+		if !reflect.DeepEqual(results["compact"], results[name]) {
+			t.Fatalf("compact and %s regression JSON differ semantically:\ncompact=%#v\n%s=%#v", name, results["compact"], name, results[name])
+		}
+	}
+
+	for _, args := range [][]string{
+		{"regression", "--quiet"},
+		{"regression", "--verbose"},
+		{"regression", "--output", "result.json"},
+		{"regression", "--format", "content"},
+	} {
+		stdout := captureStdout(t, func() {
+			if code := Execute(args); code != 2 {
+				t.Fatalf("Execute(%#v) = %d, want 2", args, code)
+			}
+		})
+		assertCompactJSONText(t, stdout)
+	}
+}
+
+func TestHelpExposesPrettyForSchemaAndRegression(t *testing.T) {
+	root := captureStdout(t, func() {
+		if code := Execute([]string{"--help"}); code != 0 {
+			t.Fatalf("root help exit code = %d, want 0", code)
+		}
+	})
+	if !strings.Contains(root, "onesearch schema [canonical-command-path...] [--pretty] [--output path]") {
+		t.Fatalf("root help does not advertise schema --pretty: %q", root)
+	}
+
+	for _, command := range []string{"schema", "regression"} {
+		stdout := captureStdout(t, func() {
+			if code := Execute([]string{command, "--help"}); code != 0 {
+				t.Fatalf("%s help exit code = %d, want 0", command, code)
+			}
+		})
+		if !strings.Contains(stdout, "--pretty") || !strings.Contains(stdout, "Indent JSON output") {
+			t.Fatalf("%s help does not describe --pretty: %q", command, stdout)
+		}
+	}
+}
+
 func TestSkillsListCommandIncludesProviderSkills(t *testing.T) {
 	t.Setenv("ONESEARCH_CONFIG_DIR", t.TempDir())
 	output := captureStdout(t, func() {

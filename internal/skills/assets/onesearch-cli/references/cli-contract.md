@@ -62,7 +62,7 @@ Utility commands:
 - `onesearch regression`
 - `onesearch schema [canonical-path...]`
 
-Supported output formats are `json`, `markdown`, and `content`. JSON is the default and is the stable format for agents and scripts. Search success output defaults to a compact unified result object; use `--verbose` to include full diagnostics such as routing decisions, provider attempts, and capability status. Error output also defaults to `--quiet`. `--quiet` overrides debug defaults.
+Supported output formats are `json`, `markdown`, and `content`. JSON is the default and is the stable format for agents and scripts. Its physical layout is one-line compact JSON with one trailing LF; `--pretty` enables two-space indentation for explicit human inspection. Layout never switches automatically for TTYs. `--pretty` changes whitespace only, is independent from the quiet/verbose payload variants, and is accepted but ignored by commands when they use a supported content/markdown format. Search success output defaults to a field-compacted unified result object; use `--verbose` to include full diagnostics such as routing decisions, provider attempts, and capability status. Error output also defaults to `--quiet`. `--quiet` overrides debug defaults.
 
 ## CLI command manifest and strict help
 
@@ -72,10 +72,11 @@ Supported output formats are `json`, `markdown`, and `content`. JSON is the defa
 onesearch schema --format json
 onesearch schema search --format json
 onesearch schema exa web-search --format json
+onesearch schema --pretty
 onesearch schema --help
 ```
 
-Without a path, `schema` returns the complete manifest; a path query accepts canonical command paths only and returns one matching command. The envelope identifies the CLI manifest with `kind: "onesearch_cli_command_manifest"` and its own `manifest_version`; it does not return runtime configuration, credentials, environment values, local paths, or live availability. Schema output is JSON-only, supports `--output`, and rejects `--quiet`/`--verbose`.
+Without a path, `schema` returns the complete manifest; a path query accepts canonical command paths only and returns one matching command. The envelope identifies the CLI manifest with `kind: "onesearch_cli_command_manifest"` and its own `manifest_version`; it does not return runtime configuration, credentials, environment values, local paths, or live availability. Schema output is JSON-only, compact by default, supports `--pretty` and `--output`, and rejects `--quiet`/`--verbose`.
 
 Unknown command paths, unknown flags, extra positionals, conflicting options, or non-JSON schema formats return a structured `parameter_error` with exit code 2. Top-level, provider-group, and leaf `--help`/`-h` return 0 and show canonical usage, summary, positionals, and flags. Help and schema dispatch before runtime config loading, so they do not create `config.json`, read provider keys, call providers, or access the network.
 
@@ -201,6 +202,14 @@ Standalone workflow provider filters:
 
 ## Output contract
 
+JSON presentation contract:
+
+- Omitted `--pretty` or `--pretty=false`: one-line compact JSON with one trailing LF.
+- `--pretty` or `--pretty=true`: two-space-indented JSON with one trailing LF.
+- Compact and pretty outputs decode to the same JSON value; layout does not change redaction, exit codes, or quiet/verbose fields.
+- stdout and an explicitly requested `--output` file receive the same rendered bytes.
+- `schema` and `regression` remain JSON-only. Other commands accept `--pretty` with content/markdown but the flag has no effect.
+
 Common fields:
 
 - `ok`: boolean success status.
@@ -273,7 +282,7 @@ Doctor output fields:
 - `issues`: compact diagnostics such as `missing_required_capability` and `provider_config_error`
 - `elapsed_ms`
 
-`doctor` is a compact diagnostic command and defaults to compact JSON for agent-first usage. It should not print the full runtime schema or config file content by default. Use `doctor --format content` for a short human-readable summary, and `config list --format json` for complete `defaults`, `pipelines`, `routes`, `profiles`, and `providers`.
+`doctor` is a field-compacted diagnostic command and defaults to compact JSON serialization for agent-first usage. It should not print the full runtime schema or config file content by default. Use `doctor --format content` for a short human-readable summary, `doctor --pretty` to inspect the same JSON fields with indentation, and `config list --format json` for complete `defaults`, `pipelines`, `routes`, `profiles`, and `providers`.
 
 Status output fields:
 
@@ -292,7 +301,7 @@ Status output fields:
 
 ## Output security
 
-Credential redaction is mandatory for every CLI command. JSON, content, markdown, quiet/default/verbose output, dynamic stderr, provider error bodies, and `--output` files must not contain configured API keys, values read through `api_key_env`, sensitive `settings.env` values, or transient `config setup` key input. Sensitive fields are masked before formatting, and known credential values are replaced with `********` again after rendering. There is no flag that disables redaction.
+Credential redaction is mandatory for every CLI command. JSON, content, markdown, quiet/default/verbose, compact/pretty output, dynamic stderr, provider error bodies, and `--output` files must not contain configured API keys, values read through `api_key_env`, sensitive `settings.env` values, or transient `config setup` key input. Sensitive fields are masked before formatting, and known credential values are replaced with `********` again after rendering. There is no flag that disables redaction.
 
 Environment variable names and the effective config path are diagnostic metadata and may be shown by `doctor` and `status`. Environment variable values must never appear in their DTOs or rendered output.
 
@@ -376,6 +385,7 @@ go run .\cmd\onesearch status --format json
 go run .\cmd\onesearch config list --format json
 go run .\cmd\onesearch config setup --help
 go run .\cmd\onesearch schema --format json
+go run .\cmd\onesearch schema --pretty
 go run .\cmd\onesearch schema search --format json
 go run .\cmd\onesearch schema exa web-search --format json
 go run .\cmd\onesearch --help
@@ -397,6 +407,6 @@ onesearch deep "帮我核验这个说法是真是假：某工具已经完全替�
 onesearch deep "https://example.com/source" --format json
 ```
 
-Schema/help regression must also verify that an isolated `ONESEARCH_CONFIG_DIR` remains without `config.json`, unknown flags and extra positionals exit 2, and repeated manifest generation is byte-stable. `go test ./...` remains the full repository check; the commands above are the focused public utility smoke checks.
+Schema/help regression must also verify that an isolated `ONESEARCH_CONFIG_DIR` remains without `config.json`, unknown flags and extra positionals exit 2, default compact and explicit pretty generation are independently byte-stable, and stdout matches `--output`. `go test ./...` remains the full repository check; the commands above are the focused public utility smoke checks.
 
-The manifest golden is review-gated and normalizes the release-derived `cli.version` to `<runtime-version>`; a separate assertion verifies that real schema output still reports the current `app.Version`. After intentionally changing the public command contract, run `$env:UPDATE_CLI_COMMAND_MANIFEST_GOLDEN = "1"` and then `mise exec -- go test ./internal/cli -run TestSchemaMatchesGolden`; review the generated diff before running the normal test suite again.
+The manifest golden is review-gated, generated from explicit `schema --pretty`, and normalizes the release-derived `cli.version` to `<runtime-version>`; a separate assertion verifies that real schema output still reports the current `app.Version`. After intentionally changing the public command contract, run `$env:UPDATE_CLI_COMMAND_MANIFEST_GOLDEN = "1"` and then `mise exec -- go test ./internal/cli -run TestSchemaMatchesGolden`; review the generated diff before running the normal test suite again.

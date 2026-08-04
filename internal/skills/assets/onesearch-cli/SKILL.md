@@ -32,7 +32,7 @@ Use workflow commands when the user describes the task. Use provider direct comm
 3. Load the most specific skill with `onesearch skills show <skill> --format content` before using detailed provider or workflow commands.
 4. Run `onesearch doctor --format json` when overall provider readiness, API keys, or runtime routes are uncertain.
 5. Run `onesearch status --format json` before choosing a specific capability or provider-direct endpoint; only use providers and capabilities whose status is available.
-6. Read `onesearch schema --format json` when an agent needs the canonical command, input constraints, argv binding, side effects, or status preflight; use a targeted `onesearch schema <canonical-path...> --format json` when the command is known.
+6. Read `onesearch schema --format json` when an agent needs the canonical command, input constraints, argv binding, side effects, or status preflight; use a targeted `onesearch schema <canonical-path...> --format json` when the command is known. JSON is compact by default for agent use; add `--pretty` only for explicit human inspection.
 7. Use `--help` for human-readable top/group/leaf usage; help and schema are static discovery paths and do not load runtime config, create config files, call providers, or access the network. `schema --output` only writes the explicitly requested manifest file.
 8. If a required provider key is missing and the user wants to configure it, use `onesearch config setup <provider>`; never put the key in command arguments or chat output.
 9. Execute the commands from the loaded workflow or provider skill.
@@ -109,7 +109,7 @@ onesearch config path --format json
 onesearch config list --format json
 ```
 
-`schema` is the CLI command manifest, not the runtime configuration schema. Use `config list --format json` for runtime `defaults`, `pipelines`, `routes`, `profiles`, and `providers`. Targeted schema queries accept canonical paths only; unknown flags, extra positionals, conflicting options, or non-JSON schema formats return parameter error (exit code 2). The manifest and all command-level help are generated from the same command contract.
+`schema` is the CLI command manifest, not the runtime configuration schema. Use `config list --format json` for runtime `defaults`, `pipelines`, `routes`, `profiles`, and `providers`. Targeted schema queries accept canonical paths only; unknown flags, extra positionals, conflicting options, or non-JSON schema formats return parameter error (exit code 2). JSON output is one-line compact by default with a trailing newline; `--pretty` enables two-space indentation without changing payload fields. The manifest and all command-level help are generated from the same command contract.
 
 ## Provider Credential Setup
 
@@ -128,7 +128,7 @@ $env:EXA_API_KEY |
 
 `config setup` accepts canonical provider IDs and aliases, writes only the target provider's `api_key`, an explicitly supplied non-empty `base_url`, and `enabled: "auto"`. It has no `--api-key` argument. Required-key HTTP providers reject an empty first-time key; anonymous DeepWiki and AnySearch keys are optional; `mcp_stdio` providers are unsupported by this command.
 
-Never ask a user to paste a real key into normal CLI arguments, source files, logs, or agent responses. `doctor` and `status` may expose the effective config path and environment variable names for diagnostics, but never their values. All CLI output formats, verbosity modes, dynamic stderr, and `--output` files apply credential redaction.
+Never ask a user to paste a real key into normal CLI arguments, source files, logs, or agent responses. `doctor` and `status` may expose the effective config path and environment variable names for diagnostics, but never their values. All CLI output formats, verbosity and pretty modes, dynamic stderr, and `--output` files apply credential redaction.
 
 ## Routing Rules
 
@@ -141,7 +141,7 @@ Never ask a user to paste a real key into normal CLI arguments, source files, lo
 - Do not assume a provider skill means that provider is enabled. Check `onesearch status --format json` before calling direct providers such as `exa`, `tavily`, `firecrawl`, `zhipu`, `ddg`, `freecrawl`, or answer providers such as `xai`.
 - Treat `status.capabilities.<capability>.command` and `status.direct_endpoints.<provider>.commands` as executable command paths. `vertical_search` must point to an AnySearch leaf, and `available` is only a local preflight signal, not proof of network, credentials, or remote MCP tool availability.
 - Treat `ddg` and `freecrawl` as direct-only local MCP stdio provider templates unless runtime routes explicitly include them.
-- Keep API keys out of final answers. CLI JSON/content/markdown, dynamic stderr, and `--output` files mask configured, environment, and transient setup secrets.
+- Keep API keys out of final answers. CLI JSON/content/markdown, compact/pretty output, dynamic stderr, and `--output` files mask configured, environment, and transient setup secrets.
 
 ## Supporting Reference
 

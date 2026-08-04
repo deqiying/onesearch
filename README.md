@@ -110,9 +110,11 @@ $env:OPENAI_COMPATIBLE_API_KEY |
 
 OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远请求 `/v1/responses`，`openai_chat_completions` 永远请求 `/v1/chat/completions`，不会互相降级。两者都支持 JSON 与 SSE 响应解析；`providers.<id>.settings.stream` 控制是否主动发起流式请求，`search --stream/--no-stream` 可临时覆盖。`openai_responses` 默认启用 `tools: ["web_search"]` 和 `tool_choice: "required"`；`openai_compatible` 默认不附加工具，但可通过 `settings.tools` / `settings.tool_choice` 透传给支持 Chat Completions tools 的服务。`settings` 中的空字符串、空数组和空对象会保留内置默认值。
 
-`doctor` 默认输出适合 agent 解析的紧凑诊断 JSON，只列 `ok/status/error`、当前配置文件路径及来源、有效环境变量名、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。`status` 输出同一份配置来源摘要，以及当前能力命令和 provider-direct 端点的实际可用状态，例如 `answer_search`、`docs_search`、`page_fetch`、`vertical_search` 以及 `exa`、`tavily`、`zhipu` 是否可用。`status.capabilities.vertical_search.command` 指向可执行的 AnySearch leaf；`available` 只表示本地 preflight，不代表网络、凭据或远端 MCP tool 已验证。环境变量诊断只包含变量名、用途和 provider，不包含 value。
+`doctor` 默认输出适合 agent 解析的字段精简诊断 JSON，只列 `ok/status/error`、当前配置文件路径及来源、有效环境变量名、最低 profile 和 `issues` 问题项；不会输出完整配置文件内容。`status` 输出同一份配置来源摘要，以及当前能力命令和 provider-direct 端点的实际可用状态，例如 `answer_search`、`docs_search`、`page_fetch`、`vertical_search` 以及 `exa`、`tavily`、`zhipu` 是否可用。`status.capabilities.vertical_search.command` 指向可执行的 AnySearch leaf；`available` 只表示本地 preflight，不代表网络、凭据或远端 MCP tool 已验证。环境变量诊断只包含变量名、用途和 provider，不包含 value。
 
-所有 CLI 动态输出统一执行凭据脱敏，包括 JSON、content、markdown、`--quiet`、`--verbose`、动态 stderr 和 `--output` 文件。直接配置 key、`api_key_env` 的实际值以及敏感 `settings.env` 值至少会替换为 `********`；没有关闭脱敏的 debug 选项。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。`config list --format json` 查看 runtime schema 的 `routes`、`providers` 和 `defaults`；`schema` 查看 CLI command manifest，不读取或输出当前 runtime 配置。
+所有 CLI 动态输出统一执行凭据脱敏，包括 JSON、content、markdown、`--quiet`、`--verbose`、`--pretty`、动态 stderr 和 `--output` 文件。直接配置 key、`api_key_env` 的实际值以及敏感 `settings.env` 值至少会替换为 `********`；没有关闭脱敏的 debug 选项。普通错误默认 `--quiet` 精简输出，需要 provider attempts、routing decision 等完整诊断时加 `--verbose`。需要人类短摘要时用 `doctor --format content`。`config list --format json` 查看 runtime schema 的 `routes`、`providers` 和 `defaults`；`schema` 查看 CLI command manifest，不读取或输出当前 runtime 配置。
+
+`--format json` 默认输出单行 compact JSON，并保留结尾换行；人工检查时显式使用 `--pretty` 获得两空格缩进。排版不根据 TTY 自动变化，`--pretty` 也不改变 quiet/verbose 的字段集合；对 content/markdown format，该参数无效果。
 
 ## CLI 合同、schema 和 help
 
@@ -122,10 +124,11 @@ OpenAI 协议适配器会自动补齐 `/v1` 路径：`openai_responses` 永远�
 onesearch schema --format json
 onesearch schema search --format json
 onesearch schema exa web-search --format json
+onesearch schema --pretty
 onesearch schema --help
 ```
 
-`schema` 默认输出 JSON；targeted 查询只接受 canonical path，未知 path、未知 flag、多余位置参数或非 JSON format 返回 `parameter_error`（退出码 2）。schema/help 均在加载 runtime 配置前处理，不创建 `config.json`、不读取密钥、不访问网络或 provider。`--help` 面向人类，top/group/leaf 命令均返回 0，并展示 canonical usage、位置参数和 flags。严格解析会把过去可能被静默忽略的拼写错误 flag、多余位置参数和冲突选项改为退出码 2；脚本应修正这些输入，不能依赖旧的“看似成功”行为。
+`schema` 默认输出 compact JSON，使用 `--pretty` 可切换为多行排版；targeted 查询只接受 canonical path，未知 path、未知 flag、多余位置参数或非 JSON format 返回 `parameter_error`（退出码 2）。schema/help 均在加载 runtime 配置前处理，不创建 `config.json`、不读取密钥、不访问网络或 provider。`--help` 面向人类，top/group/leaf 命令均返回 0，并展示 canonical usage、位置参数和 flags。严格解析会把过去可能被静默忽略的拼写错误 flag、多余位置参数和冲突选项改为退出码 2；脚本应修正这些输入，不能依赖旧的“看似成功”行为。
 
 ## 常用命令
 
@@ -160,7 +163,7 @@ onesearch smoke --mock --format json
 主推新格式：
 
 ```powershell
-onesearch <provider> <command> [args] [--format json|markdown|content]
+onesearch <provider> <command> [args] [--format json|markdown|content] [--pretty]
 ```
 
 调用 provider-direct 命令前先运行 `onesearch status --format json`，确认 `direct_endpoints.<provider>.available` 为 `true`；如果只是要限制 workflow provider，也先确认对应 `capabilities.<capability>.available` 列表里有该 provider。`vertical_search` 的 status 命令必须是可执行的 AnySearch leaf，而不是仅有 namespace 的 provider group。
@@ -200,7 +203,7 @@ onesearch freecrawl deep-research "topic"
 
 输出格式：
 
-- `json`：给 agent 和脚本解析。
+- `json`：给 agent 和脚本解析；默认单行 compact，人工检查时使用 `--pretty`。
 - `markdown`：给人看诊断、结果和抓取正文。
 - `content`：只输出核心正文或短摘要。
 

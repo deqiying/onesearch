@@ -149,7 +149,7 @@ func runParsedCommand(ctx context.Context, svc *service.Service, parsed *parsedC
 	case "skills.show":
 		return printCommand(svc, "skills", skillShowData(parsed.String("name")), fo)
 	case "regression":
-		return printCommand(svc, "smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", verbosity: "quiet"})
+		return printCommand(svc, "smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", pretty: fo.pretty, verbosity: "quiet"})
 	default:
 		return printParameterError(svc, outputCommand(parsed.Definition.ID), "unsupported command binding: "+parsed.Definition.ID, fo)
 	}
@@ -328,7 +328,7 @@ func formatOutputFromParsed(parsed *parsedCommand, svc *service.Service) formatO
 	if format == "" {
 		format = "json"
 	}
-	return formatOutput{format: format, output: parsed.String("output"), verbosity: verbosity}
+	return formatOutput{format: format, pretty: parsed.Bool("pretty"), output: parsed.String("output"), verbosity: verbosity}
 }
 
 func printParsedParameterError(parsed *parsedCommand, message string, svc *service.Service) int {

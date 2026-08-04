@@ -53,6 +53,41 @@ func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	}
 }
 
+func TestSchemaFormattingDefaultsCompactAndPrettyIsOptIn(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "full", args: []string{"schema"}},
+		{name: "targeted", args: []string{"schema", "search"}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			compact := runSchemaForTest(t, test.args, 0)
+			compactFalseArgs := append(append([]string{}, test.args...), "--pretty=false")
+			if compactFalse := runSchemaForTest(t, compactFalseArgs, 0); compactFalse != compact {
+				t.Fatal("--pretty=false differs from omitted --pretty")
+			}
+			prettyArgs := append(append([]string{}, test.args...), "--pretty")
+			pretty := runSchemaForTest(t, prettyArgs, 0)
+			assertCompactJSONText(t, compact)
+			assertPrettyJSONText(t, pretty)
+
+			var compactValue, prettyValue any
+			if err := json.Unmarshal([]byte(compact), &compactValue); err != nil {
+				t.Fatal(err)
+			}
+			if err := json.Unmarshal([]byte(pretty), &prettyValue); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(compactValue, prettyValue) {
+				t.Fatal("compact and pretty schema differ semantically")
+			}
+		})
+	}
+}
+
 func TestSchemaRejectsAliasTargetsAndNonJSONFormatAsJSONErrors(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -61,6 +96,8 @@ func TestSchemaRejectsAliasTargetsAndNonJSONFormatAsJSONErrors(t *testing.T) {
 	}{
 		{name: "alias target", args: []string{"schema", "s"}, wantErr: "unknown canonical command path: s"},
 		{name: "non-JSON format", args: []string{"schema", "--format", "markdown"}, wantErr: "expected one of json"},
+		{name: "quiet remains unsupported", args: []string{"schema", "--quiet"}, wantErr: "unknown flag --quiet"},
+		{name: "verbose remains unsupported", args: []string{"schema", "--verbose"}, wantErr: "unknown flag --verbose"},
 	}
 
 	for _, test := range tests {
@@ -78,12 +115,15 @@ func TestSchemaRejectsAliasTargetsAndNonJSONFormatAsJSONErrors(t *testing.T) {
 }
 
 func TestSchemaOutputIsDeterministicAndPreservesStaticBindings(t *testing.T) {
-	first := runSchemaForTest(t, []string{"schema"}, 0)
-	second := runSchemaForTest(t, []string{"schema"}, 0)
-	if first != second {
-		t.Fatal("schema output is not deterministic")
+	for _, args := range [][]string{{"schema"}, {"schema", "--pretty"}} {
+		first := runSchemaForTest(t, args, 0)
+		second := runSchemaForTest(t, args, 0)
+		if first != second {
+			t.Fatalf("schema output is not deterministic for args %#v", args)
+		}
 	}
 
+	first := runSchemaForTest(t, []string{"schema"}, 0)
 	var manifest commandcontract.Manifest
 	if err := json.Unmarshal([]byte(first), &manifest); err != nil {
 		t.Fatal(err)
@@ -104,14 +144,85 @@ func TestSchemaOutputIsDeterministicAndPreservesStaticBindings(t *testing.T) {
 }
 
 func TestSchemaOutputFileMatchesStdoutBytes(t *testing.T) {
-	outputPath := filepath.Join(t.TempDir(), "schema.json")
-	stdout := runSchemaForTest(t, []string{"schema", "--output", outputPath}, 0)
-	written, err := os.ReadFile(outputPath)
-	if err != nil {
-		t.Fatal(err)
+	for _, pretty := range []bool{false, true} {
+		name := "compact"
+		if pretty {
+			name = "pretty"
+		}
+		t.Run(name, func(t *testing.T) {
+			outputPath := filepath.Join(t.TempDir(), "schema.json")
+			args := []string{"schema", "--output", outputPath}
+			if pretty {
+				args = append(args, "--pretty")
+			}
+			stdout := runSchemaForTest(t, args, 0)
+			written, err := os.ReadFile(outputPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stdout != string(written) {
+				t.Fatalf("stdout and --output differ\nstdout bytes: %d\nfile bytes: %d", len(stdout), len(written))
+			}
+			if pretty {
+				assertPrettyJSONText(t, stdout)
+			} else {
+				assertCompactJSONText(t, stdout)
+			}
+		})
 	}
-	if stdout != string(written) {
-		t.Fatalf("stdout and --output differ\nstdout bytes: %d\nfile bytes: %d", len(stdout), len(written))
+}
+
+func TestSchemaErrorsMatchOutputFileForCompactAndPretty(t *testing.T) {
+	tests := []struct {
+		name string
+		args func(string, bool) []string
+	}{
+		{name: "unknown canonical path", args: func(path string, pretty bool) []string {
+			args := []string{"schema", "missing", "--output", path}
+			if pretty {
+				args = append(args, "--pretty")
+			}
+			return args
+		}},
+		{name: "parse error", args: func(path string, pretty bool) []string {
+			args := []string{"schema", "--output", path}
+			if pretty {
+				args = append(args, "--pretty")
+			}
+			return append(args, "--unknown-flag")
+		}},
+	}
+
+	for _, test := range tests {
+		for _, pretty := range []bool{false, true} {
+			layout := "compact"
+			if pretty {
+				layout = "pretty"
+			}
+			t.Run(test.name+"/"+layout, func(t *testing.T) {
+				outputPath := filepath.Join(t.TempDir(), "error.json")
+				stdout := runSchemaForTest(t, test.args(outputPath, pretty), 2)
+				written, err := os.ReadFile(outputPath)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if stdout != string(written) {
+					t.Fatalf("%s schema error stdout and file differ:\nstdout=%q\nfile=%q", layout, stdout, written)
+				}
+				if pretty {
+					assertPrettyJSONText(t, stdout)
+				} else {
+					assertCompactJSONText(t, stdout)
+				}
+				var result map[string]any
+				if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+					t.Fatal(err)
+				}
+				if result["ok"] != false || result["error_type"] != "parameter_error" {
+					t.Fatalf("schema error = %#v", result)
+				}
+			})
+		}
 	}
 }
 
@@ -121,6 +232,7 @@ func TestSchemaAndHelpDoNotCreateConfig(t *testing.T) {
 		args []string
 	}{
 		{name: "schema", args: []string{"schema"}},
+		{name: "pretty schema", args: []string{"schema", "--pretty"}},
 		{name: "root help", args: []string{"--help"}},
 		{name: "command help", args: []string{"search", "--help"}},
 	}
@@ -204,7 +316,7 @@ func TestEveryPublicHelpPathIsStaticAndRegistryBacked(t *testing.T) {
 }
 
 func TestSchemaMatchesGolden(t *testing.T) {
-	got := normalizeSchemaGolden(t, runSchemaForTest(t, []string{"schema"}, 0))
+	got := normalizeSchemaGolden(t, runSchemaForTest(t, []string{"schema", "--pretty"}, 0))
 	path := filepath.Join("testdata", "cli-command-manifest-v1.golden.json")
 	if os.Getenv("UPDATE_CLI_COMMAND_MANIFEST_GOLDEN") == "1" {
 		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
@@ -217,6 +329,20 @@ func TestSchemaMatchesGolden(t *testing.T) {
 	}
 	if got != string(want) {
 		t.Fatal("CLI command manifest differs from golden; review the contract diff and rerun with UPDATE_CLI_COMMAND_MANIFEST_GOLDEN=1")
+	}
+}
+
+func assertCompactJSONText(t *testing.T, value string) {
+	t.Helper()
+	if !strings.HasSuffix(value, "\n") || strings.Count(value, "\n") != 1 || strings.Contains(value, "\n  ") {
+		t.Fatalf("JSON is not one compact line with a trailing LF: %q", value)
+	}
+}
+
+func assertPrettyJSONText(t *testing.T, value string) {
+	t.Helper()
+	if !strings.HasSuffix(value, "\n") || strings.Count(value, "\n") <= 1 || !strings.Contains(value, "\n  \"") {
+		t.Fatalf("JSON is not pretty-printed with a trailing LF: %q", value)
 	}
 }
 

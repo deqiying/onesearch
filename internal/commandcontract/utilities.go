@@ -44,6 +44,7 @@ func utilityDefinitions() []CommandDefinition {
 			ID: "regression", Path: []string{"regression"}, Aliases: [][]string{{"reg"}}, Category: CategoryUtility, Visibility: VisibilityPublic,
 			Summary: "Run the fixed mock regression suite.", Options: []OptionDefinition{
 				{Name: "format", Flag: "format", Type: TypeString, Default: "json", HasDefault: true, Enum: []string{"json"}, Description: "Regression output is always JSON."},
+				prettyOption(),
 			}, Availability: localAvailability(), SideEffects: runtimeSideEffects(), Output: OutputDefinition{DefaultFormat: "json", Formats: []string{"json"}, Variants: []string{"quiet"}, Contract: "smoke_result"},
 		},
 		{
@@ -52,6 +53,7 @@ func utilityDefinitions() []CommandDefinition {
 			Positionals: []PositionalDefinition{variadicPositional("command_path", "Optional canonical command path to select.", 0)},
 			Options: []OptionDefinition{
 				{Name: "format", Flag: "format", Type: TypeString, Default: "json", HasDefault: true, Enum: []string{"json"}, Description: "Manifest format; V1 supports JSON only."},
+				prettyOption(),
 				optionDefault("output", "output", TypeString, "", "Also write the exact manifest bytes to this path."),
 			},
 			Availability: localAvailability(), SideEffects: []string{"filesystem_write_when_output_is_set"}, Output: OutputDefinition{DefaultFormat: "json", Formats: []string{"json"}, Contract: "command_manifest"},

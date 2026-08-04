@@ -78,6 +78,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "provider": {
             "default": "auto",
             "description": "Provider filter.",
@@ -240,6 +250,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Research question.",
             "minLength": 1,
@@ -352,6 +372,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "provider": {
@@ -527,6 +557,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "provider": {
             "default": "auto",
             "description": "Provider filter.",
@@ -684,6 +724,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "provider": {
@@ -937,6 +987,16 @@
               "token": "--platform"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "providers": {
             "default": "auto",
             "description": "Global provider filter or capability-specific filters.",
@@ -1168,6 +1228,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "queries": {
             "description": "Queries to execute.",
             "items": {
@@ -1301,6 +1371,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -1416,6 +1496,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -1561,6 +1651,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Search query.",
             "minLength": 1,
@@ -1701,6 +1801,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Documentation query.",
             "minLength": 1,
@@ -1830,6 +1940,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "query": {
@@ -1969,6 +2089,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -2111,6 +2241,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Search query.",
             "minLength": 1,
@@ -2239,6 +2379,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "question": {
@@ -2372,6 +2522,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -2490,6 +2650,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -2622,6 +2792,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -2750,6 +2930,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -2978,6 +3168,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Search query.",
             "minLength": 1,
@@ -3138,6 +3338,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -3278,6 +3488,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -3408,6 +3628,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -3536,6 +3766,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "query": {
@@ -3708,6 +3948,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -3866,6 +4116,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -4043,6 +4303,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -4191,6 +4461,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "query": {
@@ -4453,6 +4733,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -4651,6 +4941,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "query": {
@@ -4939,6 +5239,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -5189,6 +5499,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Search query.",
             "minLength": 1,
@@ -5369,6 +5689,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "query": {
             "description": "Search query.",
             "minLength": 1,
@@ -5536,6 +5866,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -5640,6 +5980,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -5757,6 +6107,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "provider": {
@@ -5892,6 +6252,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -6006,6 +6376,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -6089,6 +6469,16 @@
               "repeatable": false,
               "token": "--format"
             }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
           }
         },
         "type": "object"
@@ -6157,6 +6547,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           }
         },
@@ -6244,6 +6644,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {
@@ -6388,6 +6798,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -6521,6 +6941,16 @@
               "token": "--output"
             }
           },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
           "quiet": {
             "default": false,
             "description": "Return the compact result variant.",
@@ -6622,6 +7052,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
             }
           },
           "quiet": {

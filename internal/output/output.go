@@ -14,6 +14,7 @@ import (
 
 type Options struct {
 	Format       string
+	Pretty       bool
 	Verbosity    string
 	SecretValues []string
 }
@@ -49,7 +50,9 @@ func RenderWithOptions(command string, data map[string]any, options Options) str
 		var buf bytes.Buffer
 		encoder := json.NewEncoder(&buf)
 		encoder.SetEscapeHTML(false)
-		encoder.SetIndent("", "  ")
+		if options.Pretty {
+			encoder.SetIndent("", "  ")
+		}
 		_ = encoder.Encode(data)
 		rendered = buf.String()
 	}

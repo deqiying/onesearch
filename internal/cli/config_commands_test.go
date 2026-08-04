@@ -136,27 +136,44 @@ func TestConfigSetupFailureRedactsTransientKeyInEveryFormat(t *testing.T) {
 }
 
 func TestConfigSetupOutputFileReceivesSameRedactedContent(t *testing.T) {
-	configDir := t.TempDir()
-	t.Setenv(config.ConfigDirEnvName, configDir)
-	t.Setenv("EXA_API_KEY", "")
-	secret := "output-file-secret"
-	useConfigInput(t, false, secret+"\n", "")
-	outputPath := filepath.Join(t.TempDir(), "setup.json")
-
-	stdout := captureStdout(t, func() {
-		if code := Execute([]string{"config", "setup", "exa", "--api-key-stdin", "--output", outputPath, "--format", "json"}); code != 0 {
-			t.Fatalf("exit code = %d, want 0", code)
+	for _, pretty := range []bool{false, true} {
+		name := "compact"
+		if pretty {
+			name = "pretty"
 		}
-	})
-	written, err := os.ReadFile(outputPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if stdout != string(written) {
-		t.Fatalf("stdout and --output differ\nstdout: %q\nfile: %q", stdout, written)
-	}
-	if strings.Contains(stdout, secret) || strings.Contains(string(written), secret) {
-		t.Fatalf("output leaked key: stdout=%q file=%q", stdout, written)
+		t.Run(name, func(t *testing.T) {
+			configDir := t.TempDir()
+			t.Setenv(config.ConfigDirEnvName, configDir)
+			t.Setenv("EXA_API_KEY", "")
+			secret := "output-file-" + name + "-secret"
+			useConfigInput(t, false, secret+"\n", "")
+			outputPath := filepath.Join(t.TempDir(), "setup.json")
+			args := []string{"config", "setup", "exa", "--api-key-stdin", "--output", outputPath, "--format", "json"}
+			if pretty {
+				args = append(args, "--pretty")
+			}
+
+			stdout := captureStdout(t, func() {
+				if code := Execute(args); code != 0 {
+					t.Fatalf("exit code = %d, want 0", code)
+				}
+			})
+			written, err := os.ReadFile(outputPath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if stdout != string(written) {
+				t.Fatalf("stdout and --output differ\nstdout: %q\nfile: %q", stdout, written)
+			}
+			if strings.Contains(stdout, secret) || strings.Contains(string(written), secret) {
+				t.Fatalf("output leaked key: stdout=%q file=%q", stdout, written)
+			}
+			if pretty {
+				assertPrettyJSONText(t, stdout)
+			} else {
+				assertCompactJSONText(t, stdout)
+			}
+		})
 	}
 }
 
@@ -181,7 +198,7 @@ func TestConfigSetupMalformedSensitiveActivatorDoesNotLeakOrInitializeConfig(t *
 	var stdout string
 	stderr := captureStderr(t, func() {
 		stdout = captureStdout(t, func() {
-			code := Execute([]string{"config", "setup", "exa", "--output", outputPath, "--api-key-stdin=" + secret})
+			code := Execute([]string{"config", "setup", "exa", "--pretty", "--output", outputPath, "--api-key-stdin=" + secret})
 			if code != 2 {
 				t.Fatalf("exit code = %d, want 2", code)
 			}
@@ -199,6 +216,7 @@ func TestConfigSetupMalformedSensitiveActivatorDoesNotLeakOrInitializeConfig(t *
 	if !strings.Contains(stdout, "expected boolean") || stdout != string(written) {
 		t.Fatalf("unexpected safe error output: stdout=%q file=%q", stdout, written)
 	}
+	assertPrettyJSONText(t, stdout)
 	if _, err := os.Stat(filepath.Join(configDir, "config.json")); !os.IsNotExist(err) {
 		t.Fatalf("parse error initialized config: %v", err)
 	}

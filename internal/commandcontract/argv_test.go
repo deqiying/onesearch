@@ -44,6 +44,25 @@ func TestBuildArgvRepeatsArraysAndOnlyEmitsTrueBooleans(t *testing.T) {
 	}
 }
 
+func TestBuildArgvEmitsPrettyOnlyWhenTrue(t *testing.T) {
+	registry := MustDefaultRegistry()
+	pretty, err := registry.BuildArgv("schema", map[string]any{"pretty": true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"onesearch", "schema", "--pretty"}; !reflect.DeepEqual(pretty, want) {
+		t.Fatalf("pretty argv = %#v, want %#v", pretty, want)
+	}
+
+	compact, err := registry.BuildArgv("schema", map[string]any{"pretty": false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"onesearch", "schema"}; !reflect.DeepEqual(compact, want) {
+		t.Fatalf("compact argv = %#v, want %#v", compact, want)
+	}
+}
+
 func TestBuildArgvPlacesNormalPositionalsBeforeFlags(t *testing.T) {
 	registry := testArgvRegistry(t)
 	got, err := registry.BuildArgv("demo", map[string]any{"mode": "deep", "queries": []string{"query"}})

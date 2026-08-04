@@ -15,11 +15,14 @@ onesearch exa web-search "query" --format json
 onesearch fetch "https://example.com" --provider exa --format json
 onesearch schema --format json
 onesearch schema exa web-search --format json
+onesearch schema --pretty
 onesearch status --format json
 onesearch skills list --format json
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
 ```
+
+JSON output is one-line compact by default and keeps a trailing newline. Use `--pretty` for two-space indentation during human inspection; output layout does not switch automatically for TTYs, and `--pretty` does not change quiet/verbose payload fields.
 
 `schema` returns the versioned CLI command manifest for agents and scripts; `config list --format json` remains the runtime configuration schema. `schema` and every command-level `--help` are static discovery paths: they return before runtime config/provider loading, do not create config files, and do not access the network. `schema --output` only writes the explicitly requested manifest file. Unknown flags or extra positional arguments are parameter errors (exit code 2).
 

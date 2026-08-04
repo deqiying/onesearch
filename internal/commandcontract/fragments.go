@@ -24,9 +24,14 @@ func enumOption(name, flag string, defaultValue any, values []string, descriptio
 	return OptionDefinition{Name: name, Flag: flag, Type: TypeString, Default: defaultValue, HasDefault: true, Enum: values, Description: description}
 }
 
+func prettyOption() OptionDefinition {
+	return optionDefault("pretty", "pretty", TypeBoolean, false, "Indent JSON output; ignored for non-JSON formats.")
+}
+
 func outputOptions() []OptionDefinition {
 	return []OptionDefinition{
 		{Name: "format", Flag: "format", Type: TypeString, Default: "json", HasDefault: true, Enum: []string{"json", "markdown", "content"}, Description: "Output format."},
+		prettyOption(),
 		optionDefault("output", "output", TypeString, "", "Also write the rendered output to this path."),
 		optionDefault("verbose", "verbose", TypeBoolean, false, "Include verbose diagnostics."),
 		optionDefault("quiet", "quiet", TypeBoolean, false, "Return the compact result variant."),

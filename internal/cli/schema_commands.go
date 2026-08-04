@@ -15,12 +15,13 @@ import (
 
 func runSchema(parsed *parsedCommand) int {
 	path := parsed.Strings("command_path")
+	pretty := parsed.Bool("pretty")
 	definitions := commandRegistry.Commands()
 	scope := commandcontract.ManifestScope{Mode: "all", Path: []string{}}
 	if len(path) > 0 {
 		definition, ok := commandRegistry.LookupCanonical(path...)
 		if !ok || definition.Visibility != commandcontract.VisibilityPublic {
-			return writeStaticError("unknown canonical command path: "+strings.Join(path, " "), parsed.String("output"), schemaPaths())
+			return writeStaticError("unknown canonical command path: "+strings.Join(path, " "), parsed.String("output"), schemaPaths(), pretty)
 		}
 		definitions = []commandcontract.CommandDefinition{definition}
 		scope = commandcontract.ManifestScope{Mode: "command", Path: append([]string{}, path...)}
@@ -40,28 +41,30 @@ func runSchema(parsed *parsedCommand) int {
 		OK: true, Kind: commandcontract.ManifestKind, ManifestVersion: commandcontract.ManifestVersion,
 		CLI: commandcontract.CLIInfo{Name: app.Name, Version: app.Version}, Scope: scope, Commands: commands,
 	}
-	return writeStaticJSON(manifest, parsed.String("output"), 0)
+	return writeStaticJSON(manifest, parsed.String("output"), pretty, 0)
 }
 
-func writeStaticParameterError(message, outputPath string) int {
-	return writeStaticError(message, outputPath, nil)
+func writeStaticParameterError(message, outputPath string, pretty bool) int {
+	return writeStaticError(message, outputPath, nil, pretty)
 }
 
-func writeStaticError(message, outputPath string, availablePaths []string) int {
+func writeStaticError(message, outputPath string, availablePaths []string, pretty bool) int {
 	data := struct {
 		OK             bool     `json:"ok"`
 		ErrorType      string   `json:"error_type"`
 		Error          string   `json:"error"`
 		AvailablePaths []string `json:"available_paths,omitempty"`
 	}{OK: false, ErrorType: "parameter_error", Error: message, AvailablePaths: availablePaths}
-	return writeStaticJSON(data, outputPath, 2)
+	return writeStaticJSON(data, outputPath, pretty, 2)
 }
 
-func writeStaticJSON(value any, outputPath string, exitCode int) int {
+func writeStaticJSON(value any, outputPath string, pretty bool, exitCode int) int {
 	var buffer bytes.Buffer
 	encoder := json.NewEncoder(&buffer)
 	encoder.SetEscapeHTML(false)
-	encoder.SetIndent("", "  ")
+	if pretty {
+		encoder.SetIndent("", "  ")
+	}
 	if err := encoder.Encode(value); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 5

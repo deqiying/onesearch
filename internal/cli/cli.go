@@ -50,7 +50,7 @@ func Execute(args []string) int {
 	parsed, parseErr := parseCommand(invocation.Definition, args[invocation.Consumed:])
 	if invocation.Definition.ID == "schema" {
 		if parseErr != nil {
-			return writeStaticParameterError(parseErr.Error(), parsed.String("output"))
+			return writeStaticParameterError(parseErr.Error(), parsed.String("output"), parsed.Bool("pretty"))
 		}
 		return runSchema(parsed)
 	}
@@ -134,6 +134,7 @@ func normalizeCapabilityFilterKey(value string) string {
 
 type formatOutput struct {
 	format    string
+	pretty    bool
 	output    string
 	verbosity string
 }
@@ -146,7 +147,7 @@ func printCommand(svc *service.Service, command string, data map[string]any, fo 
 	if svc != nil {
 		secrets = append(secrets, svc.OutputSecretValues()...)
 	}
-	rendered := output.RenderWithOptions(command, data, output.Options{Format: fo.format, Verbosity: fo.verbosity, SecretValues: secrets})
+	rendered := output.RenderWithOptions(command, data, output.Options{Format: fo.format, Pretty: fo.pretty, Verbosity: fo.verbosity, SecretValues: secrets})
 	if err := output.Write(fo.output, rendered); err != nil {
 		fmt.Fprintln(os.Stderr, redact.Text(err.Error(), secrets))
 		return 5

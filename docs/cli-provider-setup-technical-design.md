@@ -2,18 +2,18 @@
 
 ## 实施状态
 
-状态：已实现并完成验证（2026-07-20）。
+状态：已实现并完成验证（初始实现 2026-07-20；JSON compact/pretty 合同同步 2026-08-04）。
 
 本方案已经按“全局脱敏基础设施 → 严格配置写入 → setup 交互 → status/doctor 诊断 → 文档与测试”的顺序落地：
 
 - 新增 `onesearch config setup <provider>`，支持隐藏 TTY 输入、`--api-key-stdin`、可选 `--base-url`、canonical ID/kebab-case/alias 解析和 `enabled: "auto"`。
 - 新增严格 JSON/runtime schema 读取和 `providers.<canonical-id>` 定向 patch；损坏或不可识别的配置不会被覆盖。
-- 新增共享 redaction package；结构化数据在格式化前深拷贝脱敏，rendered text 在 stdout、动态 stderr 和 `--output` 前再次按实际凭据值替换。
+- 新增共享 redaction package；结构化数据在格式化前深拷贝脱敏，compact/pretty rendered text 在 stdout、动态 stderr 和 `--output` 前再次按实际凭据值替换。
 - `status` 和 `doctor` 已输出当前 `config.file`、`dir_source`、必要时的 `dir_env` 以及不含 value 的 `effective_environment`。
 - `api_key_set`、`api_key_env_set`、`api_key_src` 和 `has_api_key` 已统一使用 trim 后的凭据状态。
 - README、内置 `onesearch-cli` Skill 和 CLI contract 已同步更新。
 
-验证结果：`go test ./...` 通过；隔离临时配置目录中的实际 CLI smoke 已覆盖 setup、doctor、status、mock smoke、三级 help 和 key 原文泄漏断言。原方案中的 atomic replace、跨进程锁、远端 key 有效性探测仍保持为非目标。
+验证结果：`go test ./...` 通过；单元测试覆盖 setup 的 compact/pretty JSON、stdout/`--output` 一致性和 key 原文泄漏断言，隔离临时配置目录中的实际 CLI smoke 已覆盖 setup、doctor、status、mock smoke 和三级 help。原方案中的 atomic replace、跨进程锁、远端 key 有效性探测仍保持为非目标。
 
 ## 背景
 
@@ -203,6 +203,7 @@ onesearch config setup <provider> `
   [--base-url <url>] `
   [--api-key-stdin] `
   [--format json|markdown|content] `
+  [--pretty] `
   [--output <path>] `
   [--quiet|--verbose]
 ```
@@ -345,6 +346,7 @@ API key 的保护范围不局限于 `config setup`。以下来源都视为敏感
 - stdout 和动态 stderr。
 - JSON、content、markdown。
 - quiet、默认和 `--verbose`。
+- compact JSON 和 `--pretty` JSON。
 - `--output` 文件。
 - 正常结果、参数错误、配置错误、网络错误和 provider 响应错误。
 
@@ -379,7 +381,7 @@ flowchart LR
 
 ### Setup 成功输出
 
-默认 JSON 示例：
+`--pretty` JSON 示例（默认 JSON 为同一对象的单行 compact serialization）：
 
 ```json
 {
@@ -592,6 +594,7 @@ type ProviderSetupRequest struct {
 ```go
 type Options struct {
     Format       string
+    Pretty       bool
     Verbosity    string
     SecretValues []string
 }
@@ -615,7 +618,7 @@ type Options struct {
 
 `doctor` 在配置不完整时通常 `ok == false`，会先进入 `compactError()`；其 doctor allowlist 必须同步加入 `effective_environment`，否则默认 quiet JSON 会丢失新增诊断，而 `--verbose` 才能看到，造成格式/verbosity 不一致。
 
-formatter 不主动读取 API key 原文。service DTO allowlist、格式化前字段脱敏和格式化后实际值替换必须同时存在：前两者减少敏感数据流动，最后一道门确保 future field、`--verbose`、远端错误回显和 `--output` 不会绕过保护。`output.Write()` 只能接收已经完成最终文本脱敏的 rendered string。
+formatter 不主动读取 API key 原文。service DTO allowlist、格式化前字段脱敏和格式化后实际值替换必须同时存在：前两者减少敏感数据流动，最后一道门确保 future field、`--verbose`、`--pretty`、远端错误回显和 `--output` 不会绕过保护。`output.Write()` 只能接收已经完成最终文本脱敏的 rendered string。
 
 ## 数据写入示例
 
@@ -760,7 +763,7 @@ formatter 不主动读取 API key 原文。service DTO allowlist、格式化前�
 6. Verification
    - 运行单元测试和仓库现有 smoke。
    - 使用临时 `ONESEARCH_CONFIG_DIR` 做端到端配置验证。
-   - 检查 JSON/content/markdown、quiet/verbose、stdout/stderr/`--output`、错误退出码、文件 patch 范围和敏感信息泄漏。
+   - 检查 JSON/content/markdown、quiet/verbose、compact/pretty、stdout/stderr/`--output`、错误退出码、文件 patch 范围和敏感信息泄漏。
 
 ## 测试方案
 
@@ -804,14 +807,14 @@ formatter 不主动读取 API key 原文。service DTO allowlist、格式化前�
 构造包含 `config-secret-value`、`env-secret-value` 和 `transient-secret-value` 的内部输入，至少覆盖：
 
 - JSON、content、markdown 都不包含任一 key 原文，脱敏占位符统一为 `********`。
-- quiet、默认、`--verbose` 使用相同脱敏前置步骤。
+- quiet、默认、`--verbose`、compact 和 `--pretty` 使用相同脱敏前置步骤。
 - 敏感值出现在顶层字段、嵌套 map、slice、普通 content、provider attempt 和 HTTP 错误 body 时都被替换。
 - `api_key`、`authorization`、token、secret、password 等敏感字段即使不在 secret-values 列表中也被屏蔽。
 - `settings.env` 的变量名保留、所有 value 屏蔽；其中敏感命名项的实际值即使出现在其他错误字符串中也会被替换。
 - `api_key_env`、`api_key_src`、`api_key_set`、`api_key_env_set`、`has_api_key`、配置路径和环境变量名保持可读。
 - 空值被忽略；重复值和前缀重叠值按长度降序稳定处理；包含正则特殊字符的 key 按字面量处理。
 - 脱敏不修改传入 map，避免影响 `ExitCode()` 或调用方后续逻辑。
-- `--output` 文件内容与 stdout 的已脱敏 rendered string 一致。
+- compact/pretty 的 `--output` 文件内容分别与 stdout 的已脱敏 rendered string 一致。
 
 ### Status 与 Doctor 单元测试
 
@@ -881,7 +884,7 @@ git diff --check
 5. provider ID、kebab-case/underscore 写法和 alias 都能解析到唯一 canonical ID。
 6. 任一失败路径都不覆盖损坏配置，也不产生部分业务字段更新。
 7. setup 只修改目标 provider 的 `api_key`、用户显式输入的 `base_url` 和 `enabled`。
-8. 任意 CLI 命令的 stdout、动态 stderr、`--output`、quiet/verbose、JSON/content/markdown、错误输出和测试快照中均不出现直接配置 key、`api_key_env` 值、`settings.env` 敏感值或 setup 瞬时 key 原文。
+8. 任意 CLI 命令的 stdout、动态 stderr、`--output`、quiet/verbose、compact/pretty、JSON/content/markdown、错误输出和测试快照中均不出现直接配置 key、`api_key_env` 值、`settings.env` 敏感值或 setup 瞬时 key 原文。
 9. provider 错误响应即使原样包含当前 key，最终 CLI 输出也只能出现 `********`。
 10. `status` 和 `doctor` 在所有格式中输出当前有效 `config.file`；能显示 `ONESEARCH_CONFIG_DIR` 和有效 provider key 环境变量的名称/用途，但不存在环境变量 value 字段。
 11. `api_key_set`、`api_key_env_set`、`api_key_src`、`has_api_key` 能准确表达直接配置、环境变量、覆盖和缺失状态。

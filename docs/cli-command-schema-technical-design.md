@@ -11,10 +11,11 @@
 - `internal/commandcontract` 按 workflow、provider、utility 维护 44 个 public executable definitions（43 个既有叶子加 `schema`）和 12 个 namespace definitions，对外组装单一 manifest。
 - CLI active path 使用 command definition 驱动的 typed parser 和 binding，不再保留旧 `flag.FlagSet`/`reorderFlags` handler；未知 flag、多余位置参数和互斥组合在配置或 service 初始化前返回退出码 2。
 - 数组 flag 保留未转义逗号/空白的兼容输入，并通过 manifest 中的 `list_encoding` 与 `BuildArgv()` 的反斜杠编码保证结构化数组 token 可逆。
-- schema 成功与错误使用独立静态 JSON encoder，不进入动态结果 compact/redaction；除显式 `--output` 外不写文件。
+- schema 成功与错误使用独立静态 JSON encoder，不进入动态结果的字段精简/redaction；JSON 默认单行 compact，显式 `--pretty` 使用两空格缩进，除显式 `--output` 外不写文件。
 - `status.capabilities.vertical_search.command` 已由 `PreferredFor` 生成 `onesearch anysearch search`；provider-direct command 清单也由 registry/binding 生成。
 - Deep planner 的 allowlist、preflight 和 steps 已由 contract ID 与 `BuildArgv()` 生成；`command_argv` 是机器合同，`command` 保留为 PowerShell 展示字符串。
-- 完整 manifest golden 位于 `internal/cli/testdata/cli-command-manifest-v1.golden.json`，仅通过显式环境变量更新流程变更；其中随发布变化的 `cli.version` 归一化为 `<runtime-version>`，真实输出另行断言等于当前 `app.Version`。
+- 完整 manifest golden 位于 `internal/cli/testdata/cli-command-manifest-v1.golden.json`，通过显式 `schema --pretty` 和环境变量更新流程生成；其中随发布变化的 `cli.version` 归一化为 `<runtime-version>`，真实输出另行断言等于当前 `app.Version`。
+- 44 个 public commands 均暴露 `--pretty`；schema 默认输出单行 compact JSON，显式 `--pretty` 使用两空格缩进，二者保留结尾 LF 且数据语义一致。
 
 实施阶段采用了一个不改变合同目标的细化：`internal/cli/command_parser.go` 直接解释 typed definitions，而不是再构造 `flag.FlagSet`，从而保证 active path 只有一次 argv 解析。
 
@@ -23,6 +24,7 @@
 - `mise exec -- go test -count=1 ./...` 通过；一次初始运行中的 fake MCP server 超时已通过定向复跑和随后全量复跑确认属于瞬时抖动。
 - `mise exec -- go vet ./...` 通过。
 - `mise exec -- go run ./cmd/onesearch smoke --mock --format json` 返回 `ok: true`，13 个 mock cases 全部通过。
+- 隔离配置 smoke 验证 full/targeted schema 默认均为 1 行、`--pretty` 均为多行，且两种排版语义相等、静态查询不创建配置。
 - 隔离 `ONESEARCH_CONFIG_DIR` 下的 targeted schema、provider leaf help 和非法 argv smoke 均未创建 `config.json`；schema `--output` 仅写入显式目标文件。
 - 文档绝对文件系统路径扫描和 `git diff --check` 通过。
 
@@ -231,7 +233,7 @@ type NamespaceDefinition struct {
 
 `internal/commandcontract` 同时提供 `BuildArgv(id, values) ([]string, error)` 或等价 token builder，返回以 `onesearch` 为首 token 的完整 argv。它不负责 shell quoting，也不得用 `strings.Join()` 生成可执行命令。`internal/service/deep.go` 使用 token 生成 planner step/preflight 的 `command_argv`；为兼容现有读者而保留的 `command` 明确是 PowerShell 展示字段，由专用 renderer 从 token 安全转义生成。`internal/service/service.go` 根据 `PreferredFor` 取得 canonical path 并生成 capability command，避免 service 继续复制 flag token 和路径字符串。
 
-公共 `--format`、`--output`、`--quiet`、`--verbose` 通过共享 option fragment 注册，并由适用的 command 选择后展开到各自 `input_schema`，保证单命令结果可以独立使用。`schema` 自身只选择 JSON `--format` 和 `--output`，不注册 quiet/verbose。
+公共 `--format`、`--pretty`、`--output`、`--quiet`、`--verbose` 通过共享 option fragment 注册，并由适用的 command 选择后展开到各自 `input_schema`，保证单命令结果可以独立使用。`schema` 自身只选择 JSON `--format`、`--pretty` 和 `--output`，不注册 quiet/verbose。
 
 ### 源码组织
 
@@ -263,6 +265,9 @@ onesearch schema search --format json
 # 获取一个 provider-direct 叶子命令
 onesearch schema exa web-search --format json
 
+# 人工检查多行 JSON
+onesearch schema --pretty
+
 # 保存同一份 JSON
 onesearch schema --format json --output cli-command-schema.json
 
@@ -276,11 +281,12 @@ V1 规则：
 2. 提供 command path 时只接受 canonical path；alias 作为输出元数据展示，但不作为 agent 查询合同。
 3. 结果 envelope 始终相同，单命令查询的 `commands` 数组长度为 1。
 4. `--format` 省略时默认为 `json`，显式值也只接受 `json`；`markdown` 和 `content` 返回 `parameter_error`。人类说明继续使用 `--help`。
-5. 支持 `--output <path>`；写入内容与 stdout 完全一致，写入失败返回 5。
-6. 不接受 `--quiet`、`--verbose`，因为选择范围已经由 command path 决定，manifest 本身没有运行时诊断变体。
-7. 未知 command path、未知 flag、多余位置参数或非 JSON format 返回结构化 `parameter_error`，退出码为 2。
-8. 成功返回 0；该命令不产生 config error、network error 或 evidence error。
-9. 输出不包含 `generated_at`、随机 ID、绝对路径或本机状态，保证同一二进制重复执行时结果稳定。
+5. JSON 默认单行 compact 并保留结尾 LF；`--pretty` 切换为两空格缩进，不改变 manifest 数据。
+6. 支持 `--output <path>`；写入内容与 stdout 完全一致，写入失败返回 5。
+7. 不接受 `--quiet`、`--verbose`，因为选择范围已经由 command path 决定，manifest 本身没有运行时诊断变体。
+8. 未知 command path、未知 flag、多余位置参数或非 JSON format 返回结构化 `parameter_error`，退出码为 2。
+9. 成功返回 0；该命令不产生 config error、network error 或 evidence error。
+10. 输出不包含 `generated_at`、随机 ID、绝对路径或本机状态，保证同一二进制重复执行时结果稳定。
 
 ### 静态分派
 
@@ -527,7 +533,7 @@ schema 只表达静态能力关系，不混入本机动态状态：
 - command、alias、property、enum、constraint 均显式排序。
 - 不输出时间戳、本机路径、当前配置、随机值或 map 原始遍历顺序。
 - 完整输出和目标 command 输出共享同一 assembler，不维护两种结构。
-- 相同 `manifest_version` 和 CLI build 下，重复执行应得到 byte-for-byte 一致的 JSON。
+- 相同 `manifest_version`、CLI build 和 pretty 参数下，重复执行应得到 byte-for-byte 一致的 JSON；默认 compact 与显式 pretty 解码后深度相等。
 
 ## 版本与兼容性
 
@@ -565,20 +571,20 @@ schema 只表达静态能力关系，不混入本机动态状态：
 | `internal/commandcontract/argv.go` | 从结构化输入生成 canonical argv token，供 service planner 和测试复用。 |
 | `internal/commandcontract/workflows.go` | 注册 6 个 workflow 及其参数、availability、side effect、output contract。 |
 | `internal/commandcontract/providers.go` | 注册 27 个 provider-direct 叶子 definition 和 9 个 namespace metadata。 |
-| `internal/commandcontract/utilities.go` | 注册 utility namespace、嵌套叶子、alias 和 `schema` 自身。 |
+| `internal/commandcontract/utilities.go` | 注册 utility namespace、嵌套叶子、alias、`schema` 自身及 JSON presentation option。 |
 | `internal/cli/command_bindings.go` | 将 contract ID 唯一绑定到现有 CLI handler。 |
 | `internal/cli/command_parser.go` | 从 definition 构造 flag parser，并执行 positional、类型和 constraint 校验。 |
-| `internal/cli/schema_commands.go` | 实现完整/单命令 manifest、JSON-only flags、稳定输出和错误 envelope。 |
+| `internal/cli/schema_commands.go` | 实现完整/单命令 manifest、JSON-only flags、compact/pretty 稳定输出和错误 envelope。 |
 | `internal/cli/cli.go` | 在 config load 前处理 nested help/schema；用 registry 收敛顶层 dispatch、严格 parser 和 help。 |
 | `internal/cli/provider_commands.go` | 用 registry 替代重复的 provider command map/help/status command 枚举；保留 provider 调用 handler。 |
 | `internal/cli/config_commands.go` | 接入 utility definitions，保留 setup 的 TTY/stdin 安全实现。 |
 | `internal/cli/skills_commands.go` | 接入 utility definitions，不改变 Skill 内容读取行为。 |
 | `internal/service/service.go` | 使用 command contract 生成 capability command，移除独立 `capabilityCommand()` 字符串映射。 |
 | `internal/service/deep.go` | 用 contract ID 和 argv builder 生成 `allowed_tools`、preflight/step 的 `command_argv`；保留经专用 PowerShell renderer 生成的兼容展示字段 `command`。 |
-| `internal/output/output.go` | 如有需要，增加只处理 typed static manifest 的 JSON 写入 helper；不改变动态结果脱敏合同。 |
+| `internal/output/output.go` | 动态 JSON 默认 compact，显式 `Pretty` 条件缩进；不改变动态结果脱敏合同。 |
 | `internal/commandcontract/registry_test.go` | 覆盖定义唯一性、schema 生成、input channel、排序和敏感默认值禁令。 |
 | `internal/commandcontract/argv_test.go` | 覆盖 required、variadic、array、alias、constraint 与 canonical argv 生成。 |
-| `internal/cli/schema_commands_test.go` | 覆盖 full/target/error/side-effect-free/deterministic/golden 行为。 |
+| `internal/cli/schema_commands_test.go` | 覆盖 full/target/error/side-effect-free/compact/pretty/deterministic/golden 行为。 |
 | `internal/cli/cli_test.go` | 覆盖 registry 与 dispatch、alias、严格未知 flag、多余参数、全部 help 路径。 |
 | `internal/service/service_test.go` | 覆盖 status capability command 和 deep planner 全部 argv 都能在 command contract 中解析并通过 parse-only。 |
 | `internal/cli/testdata/cli-command-manifest-v1.golden.json` | 保存由 registry 生成的完整回归快照；只通过显式更新流程生成。 |
@@ -623,7 +629,7 @@ schema 只表达静态能力关系，不混入本机动态状态：
 1. 定义 typed manifest DTO 和 `manifest_version: 1`。
 2. 从 command contract 生成完整命令数组和每个命令的 Draft 2020-12 input schema。
 3. 实现无 path 的 full query 和 canonical path 的 targeted query。
-4. 实现 JSON-only `--format`、`--output`、结构化错误和稳定排序。
+4. 实现 JSON-only `--format`、`--pretty`、`--output`、结构化错误和稳定排序。
 5. 在 `Execute()` 中于 `config.Load()` 前分派 schema。
 6. 生成完整 golden，并验证 targeted entry 与 full manifest 中对应 entry 完全相同。
 
@@ -702,10 +708,11 @@ schema 只表达静态能力关系，不混入本机动态状态：
 5. 所有 `input_schema` 是 JSON object，包含 Draft URI、`additionalProperties: false` 和可解析的 `x-cli-binding`；variadic property 正确包含 `minItems`/`maxItems`。
 6. `config setup` 包含 hidden TTY/stdin `input_channels`、stdin 激活 flag、runtime check、动态必填条件和禁止 argv binding。
 7. manifest 不包含 runtime config、API key 值、环境变量值、本机路径、时间戳或实时 availability 值。
-8. 相同进程连续生成两次结果 byte-for-byte 相同。
-9. `--output` 文件与 stdout 相同，写入失败返回 5。
-10. 不存在配置文件时执行 full/target query，执行后目录仍不存在。
-11. golden 只在显式 update 模式下变化，普通测试发现差异即失败。
+8. 默认 compact 与显式 pretty 解码后深度相等，各自连续生成两次都 byte-for-byte 相同。
+9. compact/pretty 的 `--output` 文件分别与 stdout 相同，写入失败返回 5。
+10. schema 成功、unknown canonical path 和可识别 pretty 的参数错误均遵循所选排版。
+11. 不存在配置文件时执行 full/target query，执行后目录仍不存在。
+12. golden 由显式 pretty 输出生成，只在显式 update 模式下变化，普通测试发现差异即失败。
 
 ### Input channel 安全测试
 
@@ -722,6 +729,7 @@ schema 只表达静态能力关系，不混入本机动态状态：
 - schema 成功输出不经过 search/provider compact 分支。
 - typed static encoder 不会把 schema 中的 `token`、`secret` 等 property name 替换成 mask。
 - schema 参数错误仍符合公共 error envelope，并且没有 runtime hint 或配置路径泄漏。
+- schema compact/pretty 只改变空白，均保留结尾 LF；stdout 与 `--output` 在成功和错误路径逐字节一致。
 - 现有动态结果 redaction 测试保持通过，不能因 static manifest 增加绕过真实运行时凭据脱敏的入口。
 
 ### 端到端 smoke
@@ -761,7 +769,7 @@ git diff --check
 
 ## 验收标准
 
-1. `onesearch schema` 返回完整、稳定、可解析的 CLI command manifest。
+1. `onesearch schema` 返回完整、稳定、可解析的单行 compact CLI command manifest；`--pretty` 返回语义相同的两空格缩进结果。
 2. `onesearch schema <canonical-path...>` 返回与 full manifest 完全一致的单条 command definition。
 3. manifest 清楚区分自身版本、CLI 版本和 runtime schema，不返回 runtime 配置。
 4. 43 个现有 public 终端路由和新增的 `schema` 路由都有唯一 canonical definition；最终数量由 command contract 测试固定。
@@ -789,7 +797,7 @@ git diff --check
 - **输出 schema 精度**：provider payload 和 verbose 诊断仍是动态 map。V1 明确 opaque 比维护一份不真实的完整 schema 更安全。
 - **Schema 名称歧义**：裸 `schema` 容易与 runtime schema 混淆。通过 `kind`、`manifest_version`、README 术语和命令说明固定其 CLI manifest 语义，不再增加 `manifest`/`cli-schema` 同义顶层入口。
 - **静态输出与脱敏**：schema 定义可能出现 `token`、`secret` 等字段名，不能被动态结果的字段名脱敏器改写；同时 registry 必须禁止携带任何真实敏感默认值。
-- **Golden 体积与评审噪音**：完整 golden 可能较大，但它是 generated contract snapshot，不是手写源。更新必须显式进行，并由人工复核 diff。
+- **Golden 体积与评审噪音**：完整 golden 可能较大，但它是由显式 `schema --pretty` 生成的 contract snapshot，不是手写源。更新必须显式进行，并由人工复核 diff；运行时默认 compact 由独立测试锁定。
 
 ## 推荐结论
 

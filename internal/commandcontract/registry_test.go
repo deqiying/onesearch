@@ -30,6 +30,36 @@ func TestDefaultRegistryIndexesCanonicalAliasesAndCapabilities(t *testing.T) {
 	}
 }
 
+func TestEveryPublicCommandExposesPrettyPresentationOption(t *testing.T) {
+	for _, command := range MustDefaultRegistry().Commands() {
+		var pretty OptionDefinition
+		for _, option := range command.Options {
+			if option.Name == "pretty" {
+				pretty = option
+				break
+			}
+		}
+		defaultValue, defaultOK := pretty.Default.(bool)
+		if pretty.Flag != "pretty" || pretty.Type != TypeBoolean || !pretty.HasDefault || !defaultOK || defaultValue {
+			t.Fatalf("command %q pretty option = %#v, want --pretty boolean default false", command.ID, pretty)
+		}
+		for _, variant := range command.Output.Variants {
+			if variant == "pretty" {
+				t.Fatalf("command %q exposes pretty as a payload variant", command.ID)
+			}
+		}
+
+		property, ok := command.Manifest().InputSchema["properties"].(map[string]any)["pretty"].(map[string]any)
+		if !ok || property["type"] != "boolean" || property["default"] != false {
+			t.Fatalf("command %q pretty input schema = %#v", command.ID, property)
+		}
+		binding, _ := property["x-cli-binding"].(map[string]any)
+		if binding["token"] != "--pretty" || binding["kind"] != "flag" {
+			t.Fatalf("command %q pretty binding = %#v", command.ID, binding)
+		}
+	}
+}
+
 func TestRegistryRejectsConflictingDefinitions(t *testing.T) {
 	base := CommandDefinition{
 		ID: "demo", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic,

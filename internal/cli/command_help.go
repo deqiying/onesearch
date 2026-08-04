@@ -15,7 +15,7 @@ func printRegistryHelp() {
 	fmt.Println("Usage:")
 	fmt.Println("  onesearch <workflow> [args] [flags]")
 	fmt.Println("  onesearch <provider> <command> [args] [flags]")
-	fmt.Println("  onesearch schema [canonical-command-path...] [--output path]")
+	fmt.Println("  onesearch schema [canonical-command-path...] [--pretty] [--output path]")
 	fmt.Println()
 	printTopCommandGroup("Workflow / capability", commandcontract.CategoryWorkflow)
 	printTopNamespaces("Provider direct", commandcontract.CategoryProvider)

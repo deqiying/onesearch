@@ -130,6 +130,33 @@ func TestInlineFalseDoesNotActivatePresenceBoolean(t *testing.T) {
 	}
 }
 
+func TestPrettyBooleanParsingAndOutputCombinations(t *testing.T) {
+	definition := mustCLICommandDefinition(t, "search")
+	pretty, err := parseCommand(definition, []string{"query", "--quiet", "--pretty"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !pretty.Bool("pretty") || !pretty.ValueIsSet("pretty") || !pretty.Bool("quiet") {
+		t.Fatalf("pretty/quiet values = %#v", pretty.Values)
+	}
+
+	compact, err := parseCommand(definition, []string{"query", "--format", "content", "--pretty=false"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if compact.Bool("pretty") || compact.ValueIsSet("pretty") || compact.String("format") != "content" {
+		t.Fatalf("compact content values = %#v", compact.Values)
+	}
+
+	verbose, err := parseCommand(definition, []string{"query", "--verbose", "--pretty=true"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !verbose.Bool("pretty") || !verbose.Bool("verbose") {
+		t.Fatalf("pretty/verbose values = %#v", verbose.Values)
+	}
+}
+
 func TestDeepPlanCommandArgvAreAcceptedByCLIParser(t *testing.T) {
 	plan := service.New(nil).DeepPlan(`PowerShell's $HOME; "quoted" & <tag> --literal`, "deep", t.TempDir())
 	groups := [][]map[string]any{
