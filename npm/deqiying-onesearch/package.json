@@ -1,6 +1,6 @@
 {
   "name": "@deqiying/onesearch",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Scoped entry point for the onesearch CLI.",
   "license": "UNLICENSED",
   "bin": {
@@ -21,7 +21,7 @@
     "url": "https://github.com/deqiying/onesearch/issues"
   },
   "dependencies": {
-    "onesearch": "0.2.6"
+    "onesearch": "0.2.7"
   },
   "publishConfig": {
     "access": "public"
