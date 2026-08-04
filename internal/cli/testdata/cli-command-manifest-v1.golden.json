@@ -4,7 +4,7 @@
   "manifest_version": 1,
   "cli": {
     "name": "onesearch",
-    "version": "0.2.5"
+    "version": "<runtime-version>"
   },
   "scope": {
     "mode": "all",

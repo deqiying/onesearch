@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"os"
@@ -9,15 +10,21 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/deqiying/onesearch/internal/app"
 	"github.com/deqiying/onesearch/internal/commandcontract"
 	"github.com/deqiying/onesearch/internal/config"
 )
+
+const schemaGoldenRuntimeVersion = "<runtime-version>"
 
 func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	fullBytes := runSchemaForTest(t, []string{"schema"}, 0)
 	var full commandcontract.Manifest
 	if err := json.Unmarshal([]byte(fullBytes), &full); err != nil {
 		t.Fatal(err)
+	}
+	if full.CLI.Name != app.Name || full.CLI.Version != app.Version {
+		t.Fatalf("schema CLI identity = %#v, want name %q and version %q", full.CLI, app.Name, app.Version)
 	}
 	if got := len(full.Commands); got != 44 {
 		t.Fatalf("full schema command count = %d, want 44", got)
@@ -197,7 +204,7 @@ func TestEveryPublicHelpPathIsStaticAndRegistryBacked(t *testing.T) {
 }
 
 func TestSchemaMatchesGolden(t *testing.T) {
-	got := runSchemaForTest(t, []string{"schema"}, 0)
+	got := normalizeSchemaGolden(t, runSchemaForTest(t, []string{"schema"}, 0))
 	path := filepath.Join("testdata", "cli-command-manifest-v1.golden.json")
 	if os.Getenv("UPDATE_CLI_COMMAND_MANIFEST_GOLDEN") == "1" {
 		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
@@ -211,6 +218,36 @@ func TestSchemaMatchesGolden(t *testing.T) {
 	if got != string(want) {
 		t.Fatal("CLI command manifest differs from golden; review the contract diff and rerun with UPDATE_CLI_COMMAND_MANIFEST_GOLDEN=1")
 	}
+}
+
+func normalizeSchemaGolden(t *testing.T, raw string) string {
+	t.Helper()
+	var manifest commandcontract.Manifest
+	if err := json.Unmarshal([]byte(raw), &manifest); err != nil {
+		t.Fatalf("decode CLI command manifest: %v", err)
+	}
+	if manifest.CLI.Version == "" {
+		t.Fatal("CLI command manifest has an empty cli.version")
+	}
+	encodedVersion := encodeSchemaGoldenString(t, manifest.CLI.Version)
+	encodedPlaceholder := encodeSchemaGoldenString(t, schemaGoldenRuntimeVersion)
+	versionField := append([]byte(`"version": `), encodedVersion...)
+	placeholderField := append([]byte(`"version": `), encodedPlaceholder...)
+	if count := bytes.Count([]byte(raw), versionField); count != 1 {
+		t.Fatalf("CLI command manifest cli.version field occurrences = %d, want 1", count)
+	}
+	return string(bytes.Replace([]byte(raw), versionField, placeholderField, 1))
+}
+
+func encodeSchemaGoldenString(t *testing.T, value string) []byte {
+	t.Helper()
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	if err := encoder.Encode(value); err != nil {
+		t.Fatalf("encode CLI command manifest string: %v", err)
+	}
+	return bytes.TrimSuffix(buffer.Bytes(), []byte("\n"))
 }
 
 func runSchemaForTest(t *testing.T, args []string, wantCode int) string {

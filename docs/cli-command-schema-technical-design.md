@@ -14,7 +14,7 @@
 - schema 成功与错误使用独立静态 JSON encoder，不进入动态结果 compact/redaction；除显式 `--output` 外不写文件。
 - `status.capabilities.vertical_search.command` 已由 `PreferredFor` 生成 `onesearch anysearch search`；provider-direct command 清单也由 registry/binding 生成。
 - Deep planner 的 allowlist、preflight 和 steps 已由 contract ID 与 `BuildArgv()` 生成；`command_argv` 是机器合同，`command` 保留为 PowerShell 展示字符串。
-- 完整 manifest golden 位于 `internal/cli/testdata/cli-command-manifest-v1.golden.json`，仅通过显式环境变量更新流程变更。
+- 完整 manifest golden 位于 `internal/cli/testdata/cli-command-manifest-v1.golden.json`，仅通过显式环境变量更新流程变更；其中随发布变化的 `cli.version` 归一化为 `<runtime-version>`，真实输出另行断言等于当前 `app.Version`。
 
 实施阶段采用了一个不改变合同目标的细化：`internal/cli/command_parser.go` 直接解释 typed definitions，而不是再构造 `flag.FlagSet`，从而保证 active path 只有一次 argv 解析。
 

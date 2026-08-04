@@ -399,4 +399,4 @@ onesearch deep "https://example.com/source" --format json
 
 Schema/help regression must also verify that an isolated `ONESEARCH_CONFIG_DIR` remains without `config.json`, unknown flags and extra positionals exit 2, and repeated manifest generation is byte-stable. `go test ./...` remains the full repository check; the commands above are the focused public utility smoke checks.
 
-The manifest golden is review-gated. After intentionally changing the public command contract, run `$env:UPDATE_CLI_COMMAND_MANIFEST_GOLDEN = "1"` and then `mise exec -- go test ./internal/cli -run TestSchemaMatchesGolden`; review the generated diff before running the normal test suite again.
+The manifest golden is review-gated and normalizes the release-derived `cli.version` to `<runtime-version>`; a separate assertion verifies that real schema output still reports the current `app.Version`. After intentionally changing the public command contract, run `$env:UPDATE_CLI_COMMAND_MANIFEST_GOLDEN = "1"` and then `mise exec -- go test ./internal/cli -run TestSchemaMatchesGolden`; review the generated diff before running the normal test suite again.

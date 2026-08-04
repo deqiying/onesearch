@@ -122,8 +122,13 @@ func TestGlobalMCPCommandNoLongerDispatches(t *testing.T) {
 	if shouldDispatchProviderCommand("mcp", []string{"web_search_exa"}) {
 		t.Fatal("mcp compatibility router should not dispatch")
 	}
-	if code := Execute([]string{"mcp", "web_search_exa"}); code != 2 {
-		t.Fatalf("mcp command exit code = %d, want 2", code)
+	stderr := captureStderr(t, func() {
+		if code := Execute([]string{"mcp", "web_search_exa"}); code != 2 {
+			t.Fatalf("mcp command exit code = %d, want 2", code)
+		}
+	})
+	if !strings.Contains(stderr, "unknown command: mcp") {
+		t.Fatalf("mcp command stderr = %q", stderr)
 	}
 }
 
