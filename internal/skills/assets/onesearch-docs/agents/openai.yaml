@@ -1,2 +1,4 @@
-name: onesearch-docs
-description: Status-aware documentation lookup workflows for Onesearch.
+interface:
+  display_name: "Onesearch Documentation Lookup"
+  short_description: "Find current official API and framework documentation"
+  default_prompt: "Use $onesearch-docs to route a current, version-specific API, SDK, package, or framework documentation lookup."

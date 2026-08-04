@@ -144,10 +144,6 @@ func runParsedCommand(ctx context.Context, svc *service.Service, parsed *parsedC
 		return printCommand(svc, "config", svc.ConfigList(false), fo)
 	case "config.setup":
 		return runParsedConfigSetup(svc, parsed, fo)
-	case "skills.list":
-		return printCommand(svc, "skills", skillsListData(parsed.String("capability")), fo)
-	case "skills.show":
-		return printCommand(svc, "skills", skillShowData(parsed.String("name")), fo)
 	case "regression":
 		return printCommand(svc, "smoke", svc.Smoke(ctx, "mock"), formatOutput{format: "json", pretty: fo.pretty, verbosity: "quiet"})
 	default:

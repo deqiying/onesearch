@@ -3,28 +3,35 @@ name: onesearch-docs
 description: Use when an AI agent needs Onesearch for API, SDK, package, library, framework, or official documentation lookup with docs_search routing, especially current docs, version-specific usage, setup, migration, Context7 resolution, or Exa official docs discovery through the Onesearch CLI.
 ---
 
-# Onesearch Docs Skill
+# Onesearch Docs
 
-Use this skill for documentation and API-reference questions. Run `onesearch doctor --format json` when overall configuration is uncertain. Run `onesearch status --format json` before choosing Context7, Exa, or another docs provider; use only providers listed in `status.capabilities.docs_search.available` or available provider-direct endpoints.
+Use this workflow for exact API behavior, SDK setup, version-specific examples, migrations, and official package or framework documentation. Do not route ordinary news or general current-event questions here.
 
-Use this workflow skill when the user asks by intent, such as current API docs, SDK setup, package options, library examples, framework configuration, version-specific behavior, or migration guidance.
+## Discover the Contracts
 
-Prefer these commands:
-
-```powershell
-onesearch status --format json
-onesearch context7 resolve-library-id "library name" --format json
-onesearch context7 query-docs "/org/project" "specific docs question" --format json
-onesearch exa web-search "official docs query" --include-domains docs.example.com --format json
+```text
+onesearch schema context7 resolve-library-id --format json
+onesearch schema context7 query-docs --format json
+onesearch schema exa web-search --format json
 ```
 
-Workflow:
+## Workflow
 
-- Decide whether the user is asking for docs/API behavior, versioned library usage, SDK setup, migration, or framework configuration.
-- For Context7, resolve the library first with `context7 resolve-library-id`, then fetch focused docs with `context7 query-docs`.
-- Use `exa web-search` when Context7 does not cover the library, when official docs domains matter, or when the target is a spec, paper, changelog, or product page.
-- Do not call a provider-direct docs command unless `status.direct_endpoints.<provider>.available` is true.
-- Keep docs search separate from news/current search. Do not present general web results as official documentation.
-- Fetch or quote only the relevant docs evidence before making exact API claims.
+1. Run `onesearch status --format json`. Use a direct provider only when its `direct_endpoints` entry is available.
+2. Prefer Context7 for covered libraries: resolve the library ID first, then ask one focused question.
+3. Use Exa when Context7 lacks coverage or when an official docs domain, spec, changelog, paper, or product page is the better source.
+4. Verify exact signatures, defaults, version behavior, and migration claims against returned documentation evidence.
 
-Provider keys and route order are determined by Onesearch config, not by this skill. `status` is the source of truth for actual docs provider availability.
+```text
+onesearch context7 resolve-library-id "library name" --format json
+onesearch context7 query-docs "/org/project" "focused API question" --format json
+onesearch exa web-search "official product API documentation" --include-domains docs.example.com --format json
+```
+
+Never guess a Context7 library ID. Resolve it and preserve the returned canonical identifier. General web results are not automatically official documentation.
+
+## Output and Recovery
+
+Use compact JSON to inspect library IDs, snippets, URLs, and provider metadata. Use `--format content` for the complete selected documentation text or `--verbose` when full structured content is required.
+
+On `parameter_error`, inspect the failing leaf schema. On `config_error`, run `doctor` and `status`. If Context7 is unavailable or lacks coverage, use an available docs provider such as Exa and state the source boundary.

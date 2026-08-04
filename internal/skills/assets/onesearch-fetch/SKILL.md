@@ -3,35 +3,36 @@ name: onesearch-fetch
 description: Use when an AI agent needs Onesearch to fetch URL content, inspect evidence pages, map a site, or verify claims from source pages.
 ---
 
-# Onesearch Fetch Skill
+# Onesearch Fetch
 
-Use this skill when the user provides URLs, when a search result must become evidence, or when a claim needs page-level verification.
+Use this workflow when the user supplies a URL, when a search candidate must become evidence, or when a site must be mapped or crawled within explicit bounds.
 
-Prefer these commands:
+## Discover the Contracts
 
-```powershell
-onesearch status --format json
-onesearch fetch "https://example.com/page" --format json
-onesearch fetch "https://example.com/page" --provider exa --format json
-onesearch map "https://example.com" --provider firecrawl --instructions "find API docs" --format json
-onesearch crawl "https://example.com" --provider tavily --max-depth 2 --limit 20 --format json
-onesearch tavily extract "https://example.com/page" --format json
-onesearch firecrawl scrape "https://example.com/page" --format json
-onesearch exa web-fetch "https://example.com/page" --max-characters 12000 --format json
-onesearch ddg fetch-content "https://example.com/page" --max-length 8000 --format json
-onesearch freecrawl scrape "https://example.com/page" --formats markdown --format json
+```text
+onesearch schema fetch --format json
+onesearch schema map --format json
+onesearch schema crawl --format json
 ```
 
-Workflow:
+## Choose the Operation
 
-- Use `fetch` for claim-level evidence. Its output is evidence; search output is only discovery.
-- Run `onesearch status --format json` before choosing `--provider` or provider-direct fetch/map/crawl commands. Use only providers listed in `status.capabilities.page_fetch.available`, `status.capabilities.site_map.available`, `status.capabilities.site_crawl.available`, or the matching available `direct_endpoints` entry.
-- Use workflow `--provider` when the task should keep workflow output but force an upstream provider.
-- Use `tavily extract`, `firecrawl scrape`, `exa web-fetch`, `ddg fetch-content`, or `freecrawl scrape` when the task explicitly needs a provider-direct command and the matching direct endpoint is available.
-- Use `map` to discover site structure before selecting pages to fetch.
-- Use `tavily map`, `tavily crawl`, `firecrawl map`, `firecrawl crawl`, or `freecrawl crawl` when you need direct provider behavior.
-- For multi-source work, fetch the few key sources that support the answer rather than dumping every discovered URL.
-- Distinguish fetched evidence from candidates in your final answer.
-- If `fetch` returns a config error, run `doctor` and `status`, then report the missing `page_fetch` provider instead of silently switching tools.
+- `fetch`: read one page as claim-level evidence.
+- `map`: discover site URLs before selecting pages.
+- `crawl`: collect a bounded section of a site.
 
-`page_fetch` currently routes through configured Tavily, Firecrawl, and Exa providers. DDG and Freecrawl are direct-only by default unless runtime routes explicitly include them. Provider availability is visible in `status`.
+Run `onesearch status --format json` before selecting `--provider`. Match `fetch`, `map`, and `crawl` to `page_fetch`, `site_map`, and `site_crawl` availability respectively. DDG and Freecrawl are direct-only unless runtime config explicitly includes them in a workflow route.
+
+```text
+onesearch fetch "https://example.com/page" --format json
+onesearch map "https://example.com" --provider firecrawl --format json
+onesearch crawl "https://example.com/docs" --provider tavily --max-depth 2 --limit 20 --format json
+```
+
+Fetch only the pages needed to support the answer. Keep discovery candidates separate from fetched evidence, and keep maps/crawls bounded to the relevant domain and scope.
+
+## Output and Recovery
+
+Use compact JSON for URLs, provider metadata, previews, and crawl state. Use `--format content` for the complete primary page text or `--verbose` for full structured pages.
+
+On `parameter_error`, inspect only the failing leaf schema. On `config_error`, run `doctor` then `status`. If a provider is unavailable, choose another provider listed for the same capability; do not silently change from fetch to search.

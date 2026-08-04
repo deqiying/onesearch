@@ -1,0 +1,4 @@
+interface:
+  display_name: "Onesearch Web Research"
+  short_description: "Search, fetch, crawl, and verify sources with Onesearch"
+  default_prompt: "Use $onesearch to route this web research task through the smallest suitable Onesearch workflow."

@@ -3,23 +3,34 @@ name: onesearch-deep-research
 description: Use when an AI agent needs Onesearch Deep Research planning for complex, multi-step research without executing provider calls during planning.
 ---
 
-# Onesearch Deep Research Skill
+# Onesearch Deep Research
 
-Use this skill for complex research questions that need decomposition, evidence planning, and gap checks.
+Use this skill for complex questions that need decomposition, evidence planning, and an explicit gap check. `onesearch deep` is an offline planner: it does not call search, fetch, map, `doctor`, or any provider.
 
-Prefer this command first:
+## Discover the Contract
 
-```powershell
+```text
+onesearch schema deep --format json
+```
+
+## Plan and Execute
+
+```text
 onesearch deep "research question" --budget standard --format json
 ```
 
-Workflow:
+1. Read `intent_signals`, `decomposition`, `capability_plan`, `preflight`, `steps`, and `gap_check`.
+2. Substitute any runtime placeholders with validated values.
+3. Run `onesearch status --format json` before executing planned dynamic steps.
+4. Execute each `preflight[].command_argv` or `steps[].command_argv` as an argv token array.
+5. Fetch key sources before claim-level conclusions, then use `gap_check` to acquire missing evidence or downgrade unsupported claims.
 
-- `onesearch deep` is an offline planner. It does not call search, fetch, map, doctor, or providers.
-- Read `intent_signals`, `decomposition`, `capability_plan`, `preflight`, `steps`, and `gap_check`.
-- Before executing returned `preflight[].command_argv` or `steps[].command_argv`, run `onesearch status --format json` and use only available capabilities, provider filters, and provider-direct endpoints. Execute the argv token arrays; `command` is only a compatible PowerShell display field. If a planned command names an unavailable provider, replace it with `onesearch search`/workflow routing through an available provider or report the gap.
-- Fetch key sources before claim-level statements; use `gap_check` to fetch missing evidence or downgrade unsupported claims.
-- Do not force the task into a fixed topic recipe. The plan should follow the user's actual intent and risk level.
-- Run `onesearch doctor --format json` separately when overall configuration health is uncertain.
+The compatible `command` field is display-only. Never split it on spaces, reinterpret quoting, or execute it in place of `command_argv`.
 
-Deep planning does not change the default route order or provider configuration.
+If a planned provider is unavailable, replace it only with a semantically equivalent available workflow/provider or report the gap. Do not force every task into a fixed topic recipe.
+
+## Output and Recovery
+
+Use compact JSON for plan execution. Use `--format content` only when a human-readable plan body is sufficient, and `--verbose` when full structured details are needed.
+
+On `parameter_error`, inspect only `schema deep`. Configuration/provider errors can arise later when executing planned commands; recover according to each command's own skill and typed error.

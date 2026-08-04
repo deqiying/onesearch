@@ -1,2 +1,4 @@
-name: onesearch-deep-research
-description: Deep Research planning workflows for Onesearch.
+interface:
+  display_name: "Onesearch Deep Research Workflows"
+  short_description: "Plan complex multi-step research with Onesearch"
+  default_prompt: "Use $onesearch-deep-research to plan a complex multi-step research workflow without executing provider calls."

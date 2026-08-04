@@ -219,6 +219,38 @@ jobs:
         shell: bash
         run: dist/npm-bin-linux-x64/onesearch --version
 
+      - name: Verify agent discovery
+        if: matrix.goos == 'linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          binary="dist/npm-bin-linux-x64/onesearch"
+
+          schema_json="$("${binary}" schema skills show --format json)"
+          if [[ "${schema_json}" != *'"ok":true'* || "${schema_json}" != *'"id":"skills.show"'* ]]; then
+            echo "Targeted skills.show schema is missing the expected contract" >&2
+            exit 1
+          fi
+
+          skills_json="$("${binary}" skills list --format json)"
+          if [[ "${skills_json}" != *'"id":"onesearch"'* || "${skills_json}" == *'"onesearch-cli"'* ]]; then
+            echo "Bundled skill list does not include onesearch" >&2
+            exit 1
+          fi
+
+          skill_content="$("${binary}" skills show onesearch --format content)"
+          if [[ "${skill_content}" != *'# Onesearch Router'* ]]; then
+            echo "Bundled onesearch router content is missing the expected heading" >&2
+            exit 1
+          fi
+
+          contract_content="$("${binary}" skills show onesearch --file references/agent-execution-contract.md --format content)"
+          if [[ "${contract_content}" != *'# Onesearch Agent Execution Contract'* ]]; then
+            echo "Bundled agent execution contract content is missing the expected heading" >&2
+            exit 1
+          fi
+
       - name: Upload npm binary artifact
         uses: actions/upload-artifact@v6
         with:
@@ -300,6 +332,37 @@ jobs:
           set -euo pipefail
           chmod +x npm/packages/linux-x64/bin/onesearch npm/packages/darwin-arm64/bin/onesearch
           npm/packages/linux-x64/bin/onesearch --version
+
+      - name: Verify downloaded agent discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          binary="npm/packages/linux-x64/bin/onesearch"
+
+          schema_json="$("${binary}" schema skills show --format json)"
+          if [[ "${schema_json}" != *'"ok":true'* || "${schema_json}" != *'"id":"skills.show"'* ]]; then
+            echo "Targeted skills.show schema is missing the expected contract" >&2
+            exit 1
+          fi
+
+          skills_json="$("${binary}" skills list --format json)"
+          if [[ "${skills_json}" != *'"id":"onesearch"'* || "${skills_json}" == *'"onesearch-cli"'* ]]; then
+            echo "Bundled skill list does not include onesearch" >&2
+            exit 1
+          fi
+
+          skill_content="$("${binary}" skills show onesearch --format content)"
+          if [[ "${skill_content}" != *'# Onesearch Router'* ]]; then
+            echo "Bundled onesearch router content is missing the expected heading" >&2
+            exit 1
+          fi
+
+          contract_content="$("${binary}" skills show onesearch --file references/agent-execution-contract.md --format content)"
+          if [[ "${contract_content}" != *'# Onesearch Agent Execution Contract'* ]]; then
+            echo "Bundled agent execution contract content is missing the expected heading" >&2
+            exit 1
+          fi
 
       - name: Pack dry run
         shell: bash

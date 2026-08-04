@@ -1,2 +1,4 @@
-name: onesearch-zhipu
-description: Status-gated Zhipu Chinese current search and source discovery guidance for Onesearch.
+interface:
+  display_name: "Onesearch Zhipu Chinese Search"
+  short_description: "Find current Chinese web sources and trending topics"
+  default_prompt: "Use $onesearch-zhipu to find current Chinese web sources, China-specific facts, or trending topics."

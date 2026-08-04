@@ -5,45 +5,26 @@ description: Use when an AI agent needs DuckDuckGo through Onesearch, especially
 
 # Onesearch DDG
 
-Use DDG for local MCP stdio-backed DuckDuckGo source discovery and page content fetching. Prefer DDG direct commands when the task names DDG, DuckDuckGo, or `duckduckgo-mcp-server`.
+Use DDG for local MCP stdio-backed DuckDuckGo discovery and lightweight page content fetching. It is direct-only by default and does not automatically join workflow routes.
 
-## Bridge Contract
+## Discover the Contracts
 
-This provider is direct-only by default. It is not automatically added to normal `search`, `fetch`, or `crawl` workflow routes unless the user explicitly adds it to runtime `routes`.
-
-If command details may have changed, run:
-
-```powershell
-onesearch skills show ddg --format content
+```text
+onesearch schema ddg search --format json
+onesearch schema ddg fetch-content --format json
 ```
 
-Use the provider command family by default:
+Run `onesearch status --format json` and require `status.direct_endpoints.ddg.available == true` before a direct call. This local preflight does not start the MCP process or prove remote fetch behavior.
 
-```powershell
-onesearch status --format json
+```text
 onesearch ddg search "query" --max-results 10 --format json
 onesearch ddg fetch-content "https://example.com" --max-length 8000 --format json
 ```
 
-Before using DDG direct commands, confirm `status.direct_endpoints.ddg.available == true`. If DDG is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable local provider.
+Search results are discovery candidates. Fetch important URLs before citing claims. Do not assume DDG is a normal `source_search` or `page_fetch` route unless runtime config explicitly adds it.
 
-## Commands
+## Output and Recovery
 
-| Purpose | Command |
-| --- | --- |
-| Search | `onesearch ddg search "query"` |
-| Fetch content | `onesearch ddg fetch-content "https://example.com"` |
+Use compact JSON for candidates, previews, and provider/tool context. Use `--format content` for complete fetched text or `--verbose` for full structured data.
 
-## Options
-
-- `search --max-results`: maximum search results.
-- `search --region`: DuckDuckGo region, passed to the local MCP server.
-- `fetch-content --start-index`: starting character index for content extraction.
-- `fetch-content --max-length`: maximum extracted content length.
-- `fetch-content --backend`: upstream fetch backend, such as `auto`.
-
-## Guardrails
-
-- Do not assume DDG is enabled just because the skill exists; `status.direct_endpoints.ddg.available` is the source of truth.
-- DDG search results are discovery candidates. Fetch important URLs before citing claims.
-- `status` only validates configuration shape and local command lookup; it does not start `uvx` or prove the upstream MCP package can fetch the web.
+On `parameter_error`, inspect the failing DDG leaf schema. On `config_error`, run `doctor` and `status`. If the local MCP executable is missing or fails to start, report the prerequisite; do not install it automatically.

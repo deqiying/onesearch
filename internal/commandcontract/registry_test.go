@@ -92,9 +92,9 @@ func TestRegistryReturnsCopies(t *testing.T) {
 func TestRuntimeCommandsDeclareFirstRunConfigInitialization(t *testing.T) {
 	registry := MustDefaultRegistry()
 	for _, command := range registry.Commands() {
-		if command.ID == "schema" {
+		if command.ID == "schema" || command.ID == "skills.list" || command.ID == "skills.show" {
 			if contains(command.SideEffects, "config_initialize_when_missing") {
-				t.Fatal("schema must remain independent from runtime config initialization")
+				t.Fatalf("static command %q must remain independent from runtime config initialization", command.ID)
 			}
 			continue
 		}

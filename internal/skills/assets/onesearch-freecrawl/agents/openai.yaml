@@ -1,2 +1,4 @@
-name: onesearch-freecrawl
-description: Status-gated Freecrawl MCP stdio provider commands for Onesearch.
+interface:
+  display_name: "Onesearch Freecrawl Web Research"
+  short_description: "Run local MCP scraping and crawling with Freecrawl"
+  default_prompt: "Use $onesearch-freecrawl to run status-gated local MCP scraping, crawling, or deep research."

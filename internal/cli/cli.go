@@ -57,6 +57,9 @@ func Execute(args []string) int {
 	if parseErr != nil {
 		return printParsedParameterError(parsed, parseErr.Error(), nil)
 	}
+	if invocation.Definition.ID == "skills.list" || invocation.Definition.ID == "skills.show" {
+		return runStaticSkillCommand(parsed)
+	}
 
 	cfg := config.Load()
 	svc := service.New(cfg)

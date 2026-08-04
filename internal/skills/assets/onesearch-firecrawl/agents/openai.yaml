@@ -1,2 +1,4 @@
-name: onesearch-firecrawl
-description: Status-gated Firecrawl provider commands for Onesearch.
+interface:
+  display_name: "Onesearch Firecrawl Web Research"
+  short_description: "Search, scrape, map, and crawl sites with Firecrawl"
+  default_prompt: "Use $onesearch-firecrawl to run status-gated web search, scraping, markdown extraction, mapping, or crawling."

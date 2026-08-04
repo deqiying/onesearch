@@ -18,16 +18,28 @@ func skillsListData(capability string) map[string]any {
 	return map[string]any{"ok": true, "skills": items, "total": len(items)}
 }
 
-func skillShowData(name string) map[string]any {
+func skillShowData(name, filePath string) map[string]any {
 	definition, err := skills.Describe(name)
 	if err != nil {
 		return map[string]any{"ok": false, "error_type": "parameter_error", "error": err.Error()}
 	}
-	content, err := skills.ReadMarkdown(name)
+	file, err := skills.ReadFile(name, filePath)
 	if err != nil {
-		return map[string]any{"ok": false, "skill": definition.ID, "error_type": "local_error", "error": err.Error()}
+		return map[string]any{"ok": false, "skill": definition.ID, "error_type": "parameter_error", "error": err.Error()}
 	}
-	return map[string]any{"ok": true, "skill": skillDefinitionData(definition), "content": content}
+	return map[string]any{"ok": true, "skill": skillDefinitionData(definition), "file": file.Path, "content": string(file.Data)}
+}
+
+func runStaticSkillCommand(parsed *parsedCommand) int {
+	fo := formatOutputFromParsed(parsed, nil)
+	switch parsed.Definition.ID {
+	case "skills.list":
+		return printCommand(nil, "skills", skillsListData(parsed.String("capability")), fo)
+	case "skills.show":
+		return printCommand(nil, "skills", skillShowData(parsed.String("name"), parsed.String("file")), fo)
+	default:
+		return printParameterError(nil, "skills", "unsupported static skill command: "+parsed.Definition.ID, fo)
+	}
 }
 
 func skillDefinitionData(definition skills.Definition) map[string]any {

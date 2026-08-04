@@ -11,7 +11,7 @@
 - 新增共享 redaction package；结构化数据在格式化前深拷贝脱敏，compact/pretty rendered text 在 stdout、动态 stderr 和 `--output` 前再次按实际凭据值替换。
 - `status` 和 `doctor` 已输出当前 `config.file`、`dir_source`、必要时的 `dir_env` 以及不含 value 的 `effective_environment`。
 - `api_key_set`、`api_key_env_set`、`api_key_src` 和 `has_api_key` 已统一使用 trim 后的凭据状态。
-- README、内置 `onesearch-cli` Skill 和 CLI contract 已同步更新。
+- README、内置 `onesearch` Skill 和 CLI contract 已同步更新。
 
 验证结果：`go test ./...` 通过；单元测试覆盖 setup 的 compact/pretty JSON、stdout/`--output` 一致性和 key 原文泄漏断言，隔离临时配置目录中的实际 CLI smoke 已覆盖 setup、doctor、status、mock smoke 和三级 help。原方案中的 atomic replace、跨进程锁、远端 key 有效性探测仍保持为非目标。
 
@@ -717,8 +717,8 @@ formatter 不主动读取 API key 原文。service DTO allowlist、格式化前�
 | `internal/output/output_test.go` | 覆盖所有格式、verbosity、嵌套字段和错误字符串的全局脱敏。 |
 | `go.mod`、`go.sum` | 增加 `golang.org/x/term` 直接依赖。 |
 | `README.md` | 增加配置命令、交互示例和安全说明。 |
-| `internal/skills/assets/onesearch-cli/SKILL.md` | 让 agent 能发现并正确使用新配置命令。 |
-| `internal/skills/assets/onesearch-cli/references/cli-contract.md` | 更新 utility command 和 config 输出合同。 |
+| `internal/skills/assets/onesearch/SKILL.md` | 让 agent 能发现并正确使用新配置命令。 |
+| `internal/skills/assets/onesearch/references/agent-execution-contract.md` | 更新 utility command 和 config 输出合同。 |
 
 第一阶段不需要修改：
 

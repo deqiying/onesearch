@@ -2,8 +2,10 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"os"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -261,7 +263,7 @@ func TestSkillsListCommandIncludesProviderSkills(t *testing.T) {
 		item := raw.(map[string]any)
 		found[item["id"].(string)] = true
 	}
-	for _, id := range []string{"onesearch-cli", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"} {
+	for _, id := range []string{"onesearch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"} {
 		if !found[id] {
 			t.Fatalf("skills list missing %s: %#v", id, got["skills"])
 		}
@@ -274,13 +276,107 @@ func TestSkillsListCommandIncludesProviderSkills(t *testing.T) {
 func TestSkillsShowCommandPrintsContent(t *testing.T) {
 	t.Setenv("ONESEARCH_CONFIG_DIR", t.TempDir())
 	output := captureStdout(t, func() {
-		if code := Execute([]string{"skills", "show", "onesearch-cli", "--format", "content"}); code != 0 {
+		if code := Execute([]string{"skills", "show", "onesearch", "--format", "content"}); code != 0 {
 			t.Fatalf("exit code = %d, want 0", code)
 		}
 	})
-	if !strings.Contains(output, "Onesearch CLI Router") || !strings.Contains(output, "provider direct") {
+	if !strings.Contains(output, "Onesearch Router") || !strings.Contains(output, "Agent Execution Loop") || !strings.Contains(output, "references/agent-execution-contract.md") {
 		t.Fatalf("skills show content = %q", output)
 	}
+}
+
+func TestSkillsShowReadsOneBundledFile(t *testing.T) {
+	configDir := filepath.Join(t.TempDir(), "missing-config")
+	t.Setenv("ONESEARCH_CONFIG_DIR", configDir)
+	output := captureStdout(t, func() {
+		if code := Execute([]string{"skills", "show", "onesearch", "--file", "agents/openai.yaml", "--format", "json"}); code != 0 {
+			t.Fatalf("exit code = %d, want 0", code)
+		}
+	})
+	var got map[string]any
+	if err := json.Unmarshal([]byte(output), &got); err != nil {
+		t.Fatal(err)
+	}
+	if got["ok"] != true || got["file"] != "agents/openai.yaml" || !strings.Contains(got["content"].(string), "display_name") {
+		t.Fatalf("skills show file = %#v", got)
+	}
+	assertConfigNotCreated(t, configDir)
+}
+
+func TestSkillDiscoveryDoesNotInitializeConfig(t *testing.T) {
+	tests := []struct {
+		name     string
+		args     []string
+		wantCode int
+	}{
+		{name: "list", args: []string{"skills", "list", "--format", "json"}, wantCode: 0},
+		{name: "show", args: []string{"skills", "show", "onesearch", "--format", "content"}, wantCode: 0},
+		{name: "retired main skill name", args: []string{"skills", "show", "onesearch-cli", "--format", "json"}, wantCode: 2},
+		{name: "unknown skill", args: []string{"skills", "show", "missing", "--format", "json"}, wantCode: 2},
+		{name: "unknown file", args: []string{"skills", "show", "onesearch", "--file", "missing.md", "--format", "json"}, wantCode: 2},
+		{name: "parse error", args: []string{"skills", "list", "--unknown"}, wantCode: 2},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configDir := filepath.Join(t.TempDir(), "missing-config")
+			t.Setenv("ONESEARCH_CONFIG_DIR", configDir)
+			captureStdout(t, func() {
+				if code := Execute(test.args); code != test.wantCode {
+					t.Fatalf("Execute(%#v) = %d, want %d", test.args, code, test.wantCode)
+				}
+			})
+			assertConfigNotCreated(t, configDir)
+		})
+	}
+}
+
+func TestStaticSkillParameterErrorsDoNotRecommendDoctor(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "retired name", args: []string{"skills", "show", "onesearch-cli", "--format", "json"}},
+		{name: "unsafe file", args: []string{"skills", "show", "onesearch", "--file", "../SKILL.md", "--format", "json"}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			configDir := filepath.Join(t.TempDir(), "missing-config")
+			t.Setenv("ONESEARCH_CONFIG_DIR", configDir)
+			stdout := captureStdout(t, func() {
+				if code := Execute(test.args); code != 2 {
+					t.Fatalf("Execute(%#v) = %d, want 2", test.args, code)
+				}
+			})
+			var got map[string]any
+			if err := json.Unmarshal([]byte(stdout), &got); err != nil {
+				t.Fatal(err)
+			}
+			hint, _ := got["hint"].(string)
+			if got["error_type"] != "parameter_error" || !strings.Contains(hint, "onesearch schema") || strings.Contains(hint, "onesearch doctor") {
+				t.Fatalf("static parameter error = %#v", got)
+			}
+			assertConfigNotCreated(t, configDir)
+		})
+	}
+}
+
+func TestSkillsShowOutputFileMatchesStdout(t *testing.T) {
+	configDir := filepath.Join(t.TempDir(), "missing-config")
+	t.Setenv("ONESEARCH_CONFIG_DIR", configDir)
+	outputPath := filepath.Join(t.TempDir(), "skill.md")
+	stdout := captureStdout(t, func() {
+		if code := Execute([]string{"skills", "show", "onesearch", "--format", "content", "--output", outputPath}); code != 0 {
+			t.Fatalf("exit code = %d, want 0", code)
+		}
+	})
+	written, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stdout != string(written) {
+		t.Fatalf("skills show stdout and --output differ\nstdout bytes: %d\nfile bytes: %d", len(stdout), len(written))
+	}
+	assertConfigNotCreated(t, configDir)
 }
 
 func TestSkillsShowProviderSkillPrintsToolCommands(t *testing.T) {
@@ -329,7 +425,7 @@ func TestSkillsListCapabilityFilterIncludesProviderSkills(t *testing.T) {
 	if found["mcp-tools"] {
 		t.Fatalf("site_crawl skills should not include mcp-tools: %#v", got["skills"])
 	}
-	if found["onesearch-cli"] {
+	if found["onesearch"] {
 		t.Fatalf("site_crawl filter should not include router-only skill: %#v", got["skills"])
 	}
 }
@@ -367,6 +463,13 @@ func TestStatusCommandReportsDirectEndpointAvailability(t *testing.T) {
 	}
 	if !containsTestString(testStrings(ddg["commands"]), "onesearch ddg fetch-content") {
 		t.Fatalf("ddg commands = %#v", ddg["commands"])
+	}
+}
+
+func assertConfigNotCreated(t *testing.T, configDir string) {
+	t.Helper()
+	if _, err := os.Stat(filepath.Join(configDir, "config.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("config was created or stat failed unexpectedly: %v", err)
 	}
 }
 

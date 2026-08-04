@@ -320,7 +320,7 @@ args = [ "freecrawl-mcp" ]
 
 5. 文档与 skill
    - 更新 `README.md` provider-direct 列表。
-   - 更新 `internal/skills/assets/onesearch-cli/references/cli-contract.md`。
+   - 更新 `internal/skills/assets/onesearch/references/agent-execution-contract.md`。
    - 新增 `onesearch-ddg`、`onesearch-freecrawl` provider skill，或先把用法收敛进 `onesearch-fetch` / `onesearch-search` 后续再拆分。
 
 ## 验证方案

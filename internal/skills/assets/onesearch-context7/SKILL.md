@@ -5,53 +5,26 @@ description: Use when an AI agent needs Context7 through Onesearch, especially w
 
 # Onesearch Context7
 
-Use Context7 for library, SDK, API, package, and framework documentation. Resolve the library first, then query focused docs.
+Use Context7 for focused library, SDK, framework, and package documentation. It is a docs provider, not a general current-news search engine.
 
-## Bridge Contract
+## Discover the Contracts
 
-This skill is the source document for agent-facing Context7 provider direct commands. When a task names Context7, current library docs, API signatures, SDK setup, package options, framework configuration, version-specific examples, or migration guidance, route through Onesearch.
-
-If command details may have changed, run:
-
-```powershell
-onesearch skills show context7 --format content
+```text
+onesearch schema context7 resolve-library-id --format json
+onesearch schema context7 query-docs --format json
 ```
 
-Use the provider command family by default:
+Run `onesearch status --format json` and require `status.direct_endpoints.context7.available == true` before a direct call.
 
-```powershell
-onesearch status --format json
-onesearch context7 resolve-library-id "library" --format json
-onesearch context7 query-docs "/org/project" "focused docs question" --format json
-```
-
-Before using Context7 direct commands, confirm `status.direct_endpoints.context7.available == true`. If Context7 is unavailable, use another available `docs_search` provider from `status.capabilities.docs_search.available`, such as Exa when available.
-
-## Commands
-
-| Purpose | Command |
-| --- | --- |
-| Resolve library | `onesearch context7 resolve-library-id "react"` |
-| Query docs | `onesearch context7 query-docs "/facebook/react" "query"` |
-
-## Usage
-
-```powershell
+```text
 onesearch context7 resolve-library-id "react" --format json
-onesearch context7 resolve-library-id "react" "hooks" --format json
-onesearch context7 query-docs "/facebook/react" "useEffect cleanup" --format json
-onesearch context7 query-docs "/vercel/next.js" "app router metadata" --format json
+onesearch context7 query-docs "/facebook/react" "useEffect cleanup behavior" --format json
 ```
 
-## Output
+Always resolve a library name before querying docs unless a canonical Context7 ID is already known from trusted context. Ask a focused, version-aware question. Verify exact signatures, defaults, and migration claims against the returned snippets and metadata.
 
-Resolve output includes library candidates with IDs, descriptions, trust scores, snippets, and stars when available.
+## Output and Recovery
 
-Docs output includes `code_snippets`, `info_snippets`, `results`, `content`, `provider: "context7"`, and `tool: "query_docs"` for provider-direct commands.
+Use compact JSON for candidate library IDs, snippets, and metadata. Use `--format content` for the complete selected docs response or `--verbose` for full structured results; do not assume default JSON always contains an unabridged `content` field.
 
-## Guardrails
-
-- Use Context7 only for documentation intent.
-- Do not assume the Context7 skill means Context7 is enabled; `status` is the provider-direct availability source of truth.
-- Keep exact API claims tied to returned docs snippets or fetched official docs.
-- Use Exa for official docs pages when Context7 coverage is missing or stale.
+On `parameter_error`, inspect the failing Context7 leaf schema. On `config_error`, run `doctor` and `status`. If Context7 is unavailable or lacks coverage, use another available `docs_search` provider such as Exa and state the change in provenance.

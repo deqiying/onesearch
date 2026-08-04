@@ -1,2 +1,4 @@
-name: onesearch-deepwiki
-description: Status-gated DeepWiki repository commands for Onesearch.
+interface:
+  display_name: "Onesearch DeepWiki Repository Research"
+  short_description: "Research public repository architecture with DeepWiki"
+  default_prompt: "Use $onesearch-deepwiki to inspect a public GitHub repository architecture, modules, or generated wiki content."

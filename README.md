@@ -17,7 +17,7 @@
 | 仓库 Wiki | `repo-wiki`、`search --repo-wiki` | `repo_wiki`: DeepWiki |
 | 垂直搜索 | `anysearch domains/search/extract/batch` | `vertical_search`: AnySearch |
 | 深度研究规划 | `deep` / `dr` | 本地离线 planner |
-| 内置技能路由 | `skills list`、`skills show` | `onesearch-cli` 主路由，`exa`、`tavily` 等 provider 技能，`search`、`docs`、`fetch` 等工作流技能 |
+| 内置技能路由 | `skills list`、`skills show` | `onesearch` 主路由，`exa`、`tavily` 等 provider 技能，`search`、`docs`、`fetch` 等工作流技能 |
 | 配置诊断 | `doctor`、`status`、`config list`、`smoke`、`regression` | 整体健康、能力/provider 实际可用状态、本地配置与公共回归检查 |
 | CLI 合同发现 | `schema` | CLI command manifest；不等同于 runtime schema |
 
@@ -128,7 +128,7 @@ onesearch schema --pretty
 onesearch schema --help
 ```
 
-`schema` 默认输出 compact JSON，使用 `--pretty` 可切换为多行排版；targeted 查询只接受 canonical path，未知 path、未知 flag、多余位置参数或非 JSON format 返回 `parameter_error`（退出码 2）。schema/help 均在加载 runtime 配置前处理，不创建 `config.json`、不读取密钥、不访问网络或 provider。`--help` 面向人类，top/group/leaf 命令均返回 0，并展示 canonical usage、位置参数和 flags。严格解析会把过去可能被静默忽略的拼写错误 flag、多余位置参数和冲突选项改为退出码 2；脚本应修正这些输入，不能依赖旧的“看似成功”行为。
+`schema` 默认输出 compact JSON，使用 `--pretty` 可切换为多行排版；targeted 查询只接受 canonical path，未知 path、未知 flag、多余位置参数或非 JSON format 返回 `parameter_error`（退出码 2）。schema/help 以及 `skills list/show` 均在加载 runtime 配置前处理，不创建 `config.json`、不读取密钥、不访问网络或 provider。`--help` 面向人类，top/group/leaf 命令均返回 0，并展示 canonical usage、位置参数和 flags。严格解析会把过去可能被静默忽略的拼写错误 flag、多余位置参数和冲突选项改为退出码 2；脚本应修正这些输入，不能依赖旧的“看似成功”行为。
 
 ## 常用命令
 
@@ -227,29 +227,30 @@ onesearch search "query" --providers "answer_search=openai_responses;source_sear
 
 错误详略：
 
-- 默认等同 `--quiet`：只输出 `ok/error_type/error`、耗时和少量命令上下文字段。
+- 默认等同 `--quiet`：只输出 `ok/error_type/error`、按 `error_type` 生成的恢复 `hint`、耗时和少量命令上下文字段；只有 `config_error`/凭据诊断才提示 `doctor`，`parameter_error` 提示读取 targeted schema。
 - `--verbose`：保留完整诊断字段，例如 `diagnostics`、`provider_attempts`、`routing_decision`。
 - 当 `defaults.log_level` 为 `DEBUG` 时默认 verbose；显式 `--quiet` 会覆盖它。
 
 ## 内置 Skill
 
-`onesearch-cli` 是主路由技能，只负责根据用户意图选择后续工作流技能或 provider 技能。每个 provider 独立维护自己的技能，例如 `exa`、`tavily`、`firecrawl`、`context7`、`deepwiki`、`anysearch`、`zhipu`、`ddg`、`freecrawl`；这些技能中描述对应工具有哪些命令、作用和使用方法。
+`onesearch` 是主路由技能，只负责根据用户意图选择后续工作流技能或 provider 技能。每个 provider 独立维护自己的技能，例如 `exa`、`tavily`、`firecrawl`、`context7`、`deepwiki`、`anysearch`、`zhipu`、`ddg`、`freecrawl`；这些技能中描述对应工具有哪些命令、作用和使用方法。
 
 查询内置 skill 清单和详情：
 
 ```powershell
 onesearch skills list --format json
 onesearch skills list --capability page_fetch --format json
-onesearch skills show onesearch-cli --format content
+onesearch skills show onesearch --format content
+onesearch skills show onesearch --file references/agent-execution-contract.md --format content
 onesearch skills show exa --format content
 onesearch skills show tavily --format content
 ```
 
-`skills show` 直接输出内置 skill 的 `SKILL.md` 内容，不联网、不写文件；需要确认 provider 或能力是否实际可用时，先运行 `onesearch status --format json`。
+`skills list/show` 是静态发现命令，不初始化配置，也不访问网络或 provider。`skills show` 默认读取 `SKILL.md`；使用 `--file <relative-path>` 可读取该 skill 内的一个内置相对路径文件。默认 JSON 为单行 compact，并包含 metadata、相对路径和 `content`；需要直接消费纯文本时使用 `--format content`。除显式 `--output` 外不会写文件。需要确认 provider 或能力是否实际可用时，先运行 `onesearch status --format json`。
 
 可用别名：
 
-- `onesearch-cli`、`base`、`onesearch`、`cli`、`router`
+- `onesearch`、`base`、`cli`、`router`
 - `search`、`web-search`、`source-search`
 - `docs`、`api-docs`、`documentation`
 - `fetch`、`page-fetch`、`evidence`

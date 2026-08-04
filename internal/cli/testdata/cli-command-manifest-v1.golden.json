@@ -6693,7 +6693,6 @@
         "preflight_level": "static"
       },
       "side_effects": [
-        "config_initialize_when_missing",
         "filesystem_read",
         "filesystem_write_when_output_is_set"
       ],
@@ -6718,7 +6717,7 @@
         "show"
       ],
       "category": "utility",
-      "summary": "Show a bundled skill and its Markdown content.",
+      "summary": "Show one file from a bundled skill.",
       "aliases": [
         [
           "skill",
@@ -6761,6 +6760,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--capability"
+            }
+          },
+          "file": {
+            "default": "SKILL.md",
+            "description": "Relative bundled file path to read.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--file"
             }
           },
           "format": {
@@ -6848,7 +6857,6 @@
         "preflight_level": "static"
       },
       "side_effects": [
-        "config_initialize_when_missing",
         "filesystem_read",
         "filesystem_write_when_output_is_set"
       ],

@@ -5,69 +5,29 @@ description: Use when an AI agent needs Firecrawl through Onesearch, especially 
 
 # Onesearch Firecrawl
 
-Use Firecrawl for web search, robust page scraping, site mapping, and crawl job submission. Prefer Firecrawl direct commands when the task names Firecrawl or needs Firecrawl-specific output.
+Use Firecrawl direct commands when the user names Firecrawl or needs robust scrape, map, or crawl-job behavior. Prefer workflow commands when provider-specific output is not required.
 
-## Bridge Contract
+## Discover the Contracts
 
-This skill is the source document for agent-facing Firecrawl provider direct commands. When a task names Firecrawl, robust scraping, markdown extraction, site mapping, or crawl job submission, route through Onesearch.
-
-If command details may have changed, run:
-
-```powershell
-onesearch skills show firecrawl --format content
+```text
+onesearch schema firecrawl search --format json
+onesearch schema firecrawl scrape --format json
+onesearch schema firecrawl map --format json
+onesearch schema firecrawl crawl --format json
 ```
 
-Use the provider command family by default:
+Run `onesearch status --format json` and require `status.direct_endpoints.firecrawl.available == true` before a direct call.
 
-```powershell
-onesearch status --format json
-onesearch firecrawl search "query" --format json
-onesearch firecrawl scrape "https://example.com" --format json
-onesearch firecrawl map "https://example.com" --format json
-onesearch firecrawl crawl "https://example.com" --format json
-```
-
-Before using Firecrawl direct commands, confirm `status.direct_endpoints.firecrawl.available == true`. If Firecrawl is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable capability.
-
-## Commands
-
-| Purpose | Command |
-| --- | --- |
-| Search | `onesearch firecrawl search "query"` |
-| Scrape page | `onesearch firecrawl scrape "https://example.com"` |
-| Site map | `onesearch firecrawl map "https://example.com"` |
-| Crawl job | `onesearch firecrawl crawl "https://example.com"` |
-
-## Usage
-
-```powershell
-onesearch firecrawl search "OpenAI API docs" --limit 5 --format json
+```text
+onesearch firecrawl search "official API docs" --limit 5 --format json
 onesearch firecrawl scrape "https://example.com/article" --format json
-onesearch firecrawl scrape "https://example.com/article" --format content
 onesearch firecrawl map "https://docs.example.com" --limit 50 --format json
-onesearch firecrawl crawl "https://docs.example.com" --max-depth 2 --limit 20 --format json
 ```
 
-## Options
+Map before a crawl when site structure is uncertain. Keep crawl depth and page limits bounded and same-domain unless the task explicitly requires broader collection. `firecrawl crawl` submits an asynchronous job; the initial result contains job identity/status rather than completed page content.
 
-- `search --limit`: maximum search results.
-- `scrape --attempts`: retry attempts for markdown extraction.
-- `map --limit`: maximum discovered links.
-- `crawl --max-depth`: crawl discovery depth.
-- `crawl --limit`: maximum crawl pages submitted.
-- `crawl --timeout`: CLI timeout around the submission request.
+## Output and Recovery
 
-## Output
+Use compact JSON for job state, URLs, previews, and provider metadata. Use `--format content` for complete scraped text or `--verbose` for full structured data.
 
-Provider-direct JSON includes `provider: "firecrawl"` and `tool` set to the original MCP tool name.
-
-`firecrawl_crawl` submits an async crawl job. Read top-level `id`, `status`, and `url`; do not expect page content in the initial response.
-
-Use `--format content` for scraped markdown body only.
-
-## Guardrails
-
-- Do not assume the Firecrawl skill means Firecrawl is enabled; `status` is the provider-direct availability source of truth.
-- Use `fetch` or `firecrawl scrape` for claim-level page evidence.
-- Keep crawl limits small unless the user explicitly asks for broad crawling.
-- Run `onesearch doctor --format json` for overall configuration health when Firecrawl returns `config_error`.
+On `parameter_error`, inspect the failing Firecrawl leaf schema. On `config_error`, run `doctor` and `status`. On an async crawl, preserve the returned job context instead of treating submission as completed evidence.

@@ -5,40 +5,29 @@ description: Use when an AI agent needs AnySearch through Onesearch for explicit
 
 # Onesearch AnySearch
 
-Use AnySearch only as an explicit vertical or experimental provider. It is not part of the default `source_search` route unless runtime configuration opts into it.
+Use AnySearch only when the user explicitly requests it or the task needs its vertical/experimental domain, search, extraction, or batch surface. It is not part of the default `source_search` route unless runtime config opts in.
 
-Before using AnySearch direct commands, run `onesearch status --format json` and confirm `status.direct_endpoints.anysearch.available == true`. If AnySearch is unavailable, do not try its direct commands; use a capability with an available provider or report the unavailable vertical search capability.
+## Discover the Contracts
 
-## Commands
-
-| Purpose | Command |
-| --- | --- |
-| Domains | `onesearch anysearch domains [domain]` |
-| Search | `onesearch anysearch search "query"` |
-| Extract | `onesearch anysearch extract "https://example.com"` |
-| Batch | `onesearch anysearch batch "query1" "query2"` |
-
-## Usage
-
-```powershell
-onesearch status --format json
-onesearch anysearch domains --format json
-onesearch anysearch domains "example.com" --format json
-onesearch anysearch search "query" --domain example.com --max-results 5 --format json
-onesearch anysearch extract "https://example.com/page" --max-length 20000 --format json
-onesearch anysearch batch "query one" "query two" --max-results 3 --format json
+```text
+onesearch schema anysearch domains --format json
+onesearch schema anysearch search --format json
+onesearch schema anysearch extract --format json
+onesearch schema anysearch batch --format json
 ```
 
-## Options
+Run `onesearch status --format json` and require `status.direct_endpoints.anysearch.available == true` before a direct call.
 
-- `search --domain`
-- `search --sub-domain`
-- `search --max-results`
-- `extract --max-length`
-- `batch --max-results`
+```text
+onesearch anysearch domains --format json
+onesearch anysearch search "vertical query" --domain example.com --max-results 5 --format json
+onesearch anysearch extract "https://example.com/page" --max-length 20000 --format json
+```
 
-## Guardrails
+Domain/search results are discovery candidates. Extract important pages before claim-level use. Inspect targeted schema before a batch call or provider-specific optional flags, and keep batch size bounded.
 
-- Do not use AnySearch as default broad web search.
-- Use `onesearch search` or provider-specific Exa/Tavily/Firecrawl commands for normal web research.
-- Run `onesearch doctor --format json` for overall configuration health and `onesearch status --format json` for actual AnySearch availability.
+## Output and Recovery
+
+Use compact JSON for domain records, candidates, previews, and provider metadata. Use `--format content` for complete extracted text or `--verbose` for full structured data.
+
+On `parameter_error`, inspect the failing AnySearch leaf schema. On `config_error`, run `doctor` and `status`. If AnySearch is unavailable, use a normal available workflow only when it preserves the user's intent; otherwise report the unavailable experimental provider.

@@ -79,8 +79,29 @@ func compactError(command string, data map[string]any) map[string]any {
 		}
 		return out
 	}
-	out["hint"] = "Retry with --verbose for diagnostics, or run `onesearch doctor`."
+	out["hint"] = compactErrorHint(stringValue(data["error_type"]))
 	return out
+}
+
+func compactErrorHint(errorType string) string {
+	switch strings.ToLower(strings.TrimSpace(errorType)) {
+	case "parameter_error":
+		return "Inspect the failing command with `onesearch schema <canonical-path...> --format json`, correct argv, and retry."
+	case "config_error":
+		return "Run `onesearch doctor --format json` and `onesearch status --format json` before retrying."
+	case "evidence_error", "empty_result":
+		return "Fetch or select better sources, narrow the claim, or report the evidence gap."
+	case "auth_error":
+		return "Inspect credential metadata with `onesearch doctor --format json` and `onesearch status --format json`; do not expose secrets."
+	case "rate_limited":
+		return "Honor upstream retry timing, reduce request volume, or use an available equivalent provider."
+	case "network_error", "timeout":
+		return "Retry once only when safe, then use an available equivalent provider or report the failure."
+	case "local_error":
+		return "Correct the local path, input, or permissions before retrying."
+	default:
+		return "Retry once with --verbose for diagnostics, then use an available equivalent provider or report the failure."
+	}
 }
 
 func compactSearchResult(data map[string]any) map[string]any {

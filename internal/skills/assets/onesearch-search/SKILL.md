@@ -3,43 +3,38 @@ name: onesearch-search
 description: Use when an AI agent needs Onesearch for answer search, source discovery, current/latest/today information, news, prices, rankings, hot searches, trending topics, social-media hot lists such as Weibo 热搜/微博热搜前十, Chinese or domain-filtered web search, or search-result triage before fetching evidence.
 ---
 
-# Onesearch Search Skill
+# Onesearch Search
 
-Use this skill for broad answer search and source discovery. Run `onesearch doctor --format json` when overall readiness is uncertain. Run `onesearch status --format json` before choosing `--source-providers`, `--fetch-providers`, scoped `--providers`, or provider-direct commands; use only providers listed as available for the target capability or direct endpoint.
+Use this workflow for current facts, answer synthesis, source discovery, rankings, news, prices, and hot lists. Search results are candidates; fetch source pages before using them as claim evidence.
 
-Prefer these commands:
+## Discover the Contract
 
-```powershell
-onesearch status --format json
-onesearch search "query" --validation balanced --extra-sources 3 --format json
-onesearch search "query" --validation strict --source-providers tavily --fetch-providers tavily --fetch-sources 1 --format json
-onesearch search "微博热搜前十 当前榜单" --validation strict --extra-sources 3 --format json
-onesearch search "query" --repo-wiki owner/repo --validation strict --format json
-onesearch tavily search "query" --max-results 5 --format json
-onesearch exa web-search "query" --include-highlights --format json
-# Only after status.direct_endpoints.zhipu.available is true:
-onesearch zhipu search "query" --count 10 --format json
+```text
+onesearch schema search --format json
 ```
 
-Routing guidance:
+Inspect the targeted schema before using optional provider filters, validation levels, streaming, or repository enrichment.
 
-- `search` is the normal first pass for broad answers. For real-time or fast-changing information, prefer `search --extra-sources 2` or `search --extra-sources 3` as the first pass so the agent can compare source candidates instead of relying on one synthesized answer.
-- Treat user wording such as "today", "latest", "current", "实时", "今天", "最新", "热搜", "热榜", "榜单", "排名", "top", or "前十" as a strong signal to use Onesearch instead of answering from memory.
-- For current, hot-list, ranking, or provider-filtered tasks, inspect `status.capabilities.source_search.available` before selecting a source provider. If `zhipu` is disabled or absent, do not force `--source-providers zhipu`; choose another available `source_search` provider such as `exa`, `tavily`, or `firecrawl`.
-- Use `ddg` or `freecrawl` direct commands only when `status.direct_endpoints.ddg.available` or `status.direct_endpoints.freecrawl.available` is true. They are direct-only by default and are not normal workflow routes unless explicitly configured.
-- Default `search --format json` returns `ok`, `query`, `used`, and `meta`; inspect `used.answer_search.providers.<provider>.result.content_preview` for the compact answer preview and `used.<capability>.providers.<provider>.result.sources` for provider-owned source candidates. Use `--format content` or `--verbose` when complete answer text is required.
-- Add `--extra-sources 2` or `--extra-sources 3` when the task needs source coverage instead of only one synthesized answer. Good cases include volatile current information, rankings or lists, market/public-opinion snapshots, comparison research, and any question where different sources may disagree or update at different speeds.
-- For rankings, lists, schedules, prices, leaderboards, and other structured current results, treat `answer_search` as synthesis only. Prefer list/table content from `source_search` results or fetched pages as the final basis.
-- When the agent has narrowed a task to a likely official or high-confidence page, use `--fetch-sources 1` to fetch the best `source_search` candidate in the same run. Inspect `used.page_fetch` with role `source_evidence`.
-- Use capability-level provider filters when a task needs different providers for answer synthesis, source discovery, and page fetch. Prefer explicit flags such as `--source-providers tavily --fetch-providers firecrawl`, or use `--providers "answer_search=openai_responses;source_search=tavily;page_fetch=firecrawl"`.
-- Do not expect `onesearch` to infer vertical tasks such as a specific social-media ranking. The calling agent should identify the vertical intent, then choose the right command flags and provider filters.
-- Do not bind `--extra-sources` to fixed keywords. The calling agent should decide from user intent, required confidence, freshness risk, and whether multi-source evidence is needed.
-- Keep `--extra-sources` small by default. Use `2` or `3` for normal multi-source checks; increase it only when the user explicitly asks for broad coverage or deep comparison.
-- Add `--repo-wiki owner/repo` when the agent knows repository architecture context is needed; results appear under `used.repo_wiki`.
-- `tavily search` is the preferred direct Tavily command when the user explicitly names Tavily.
-- `exa web-search` is the preferred direct Exa command for low-noise source discovery, official docs pages, papers, product pages, and known-domain searches.
-- `zhipu search` is useful for Chinese, China-specific, current, or domain-filtered source discovery only when `status.direct_endpoints.zhipu.available` is true.
-- Search results are discovery candidates. Fetch key URLs before making high-risk or claim-level statements.
-- Do not use AnySearch as the default `source_search` route; keep it to explicit experimental commands unless the runtime route is explicitly configured.
+## Workflow
 
-Provider keys and routes are owned by local config. `doctor` reports overall health; `status` is the source of truth for actual capability and provider-direct availability. This skill does not imply any provider is available.
+1. Run `onesearch status --format json` and inspect the needed capability and provider availability.
+2. Start with the routed workflow unless the user explicitly requires a provider.
+3. Use `answer_search` for synthesis, `source_search` for candidates, and `page_fetch` for evidence. Do not substitute the answer preview for a source page.
+4. For lists, rankings, schedules, and prices, base the result on source-search records or fetched pages rather than synthesis alone.
+5. Fetch a small number of authoritative candidates with `--fetch-sources` or the `onesearch-fetch` skill.
+
+```text
+onesearch search "current question" --format json
+onesearch search "current ranked list" --source-providers tavily --fetch-sources 2 --format json
+onesearch search "question" --providers "answer_search=openai_responses;source_search=tavily;page_fetch=firecrawl" --format json
+```
+
+Provider filters are capability-specific. Use only providers shown as available for that capability. AnySearch is explicit/experimental rather than a default `source_search` route. DDG and Freecrawl are direct-only unless runtime config explicitly routes them.
+
+For Chinese current or hot-list discovery, use Zhipu only when `status.direct_endpoints.zhipu.available` is true; otherwise use an available routed source provider.
+
+## Output and Recovery
+
+Use compact `--format json` to inspect `used.<capability>`, provider results, source candidates, previews, and `meta`. Use `--format content` for complete answer text or `--verbose` for the full structured payload.
+
+On `parameter_error`, inspect only `schema search`. On `config_error`, run `doctor` then `status`. On network/provider failure, use a semantically equivalent available route or report the gap. On `evidence_error`, fetch better pages or narrow the claim.

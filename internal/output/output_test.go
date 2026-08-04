@@ -159,6 +159,40 @@ func TestQuietProviderToolOutputKeepsJobEnvelopeWithoutRawResult(t *testing.T) {
 	}
 }
 
+func TestCompactErrorHintUsesTypedRecovery(t *testing.T) {
+	tests := []struct {
+		errorType  string
+		want       string
+		rejectText string
+	}{
+		{errorType: "parameter_error", want: "onesearch schema", rejectText: "onesearch doctor"},
+		{errorType: "config_error", want: "onesearch doctor"},
+		{errorType: "evidence_error", want: "evidence gap", rejectText: "onesearch doctor"},
+		{errorType: "local_error", want: "local path", rejectText: "onesearch doctor"},
+		{errorType: "provider_error", want: "--verbose", rejectText: "onesearch doctor"},
+	}
+	for _, test := range tests {
+		t.Run(test.errorType, func(t *testing.T) {
+			rendered := RenderWithOptions("skills", map[string]any{
+				"ok":         false,
+				"error_type": test.errorType,
+				"error":      "failure",
+			}, Options{Format: "json", Verbosity: "quiet"})
+			var got map[string]any
+			if err := json.Unmarshal([]byte(rendered), &got); err != nil {
+				t.Fatal(err)
+			}
+			hint, _ := got["hint"].(string)
+			if !strings.Contains(hint, test.want) {
+				t.Fatalf("%s hint = %q, want %q", test.errorType, hint, test.want)
+			}
+			if test.rejectText != "" && strings.Contains(hint, test.rejectText) {
+				t.Fatalf("%s hint = %q, must not contain %q", test.errorType, hint, test.rejectText)
+			}
+		})
+	}
+}
+
 func TestRenderWithOptionsRedactsEveryFormatAndVerbosity(t *testing.T) {
 	for _, format := range []string{"json", "content", "markdown"} {
 		for _, verbosity := range []string{"quiet", "verbose"} {

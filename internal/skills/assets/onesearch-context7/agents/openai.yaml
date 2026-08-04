@@ -1,2 +1,4 @@
-name: onesearch-context7
-description: Status-gated Context7 documentation commands for Onesearch.
+interface:
+  display_name: "Onesearch Context7 Documentation"
+  short_description: "Find current library documentation through Context7"
+  default_prompt: "Use $onesearch-context7 to resolve libraries and retrieve current, version-specific API or framework documentation."

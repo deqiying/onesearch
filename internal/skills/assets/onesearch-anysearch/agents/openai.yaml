@@ -1,2 +1,4 @@
-name: onesearch-anysearch
-description: Status-gated AnySearch explicit provider commands for Onesearch.
+interface:
+  display_name: "Onesearch AnySearch Provider"
+  short_description: "Run status-gated AnySearch provider commands"
+  default_prompt: "Use $onesearch-anysearch to run status-gated AnySearch vertical, extraction, or batch queries."

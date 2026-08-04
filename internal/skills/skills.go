@@ -2,8 +2,10 @@ package skills
 
 import (
 	"embed"
+	"errors"
 	"fmt"
 	"io/fs"
+	"path"
 	"sort"
 	"strings"
 )
@@ -20,7 +22,7 @@ type Definition struct {
 }
 
 var definitions = []Definition{
-	{ID: "onesearch-cli", Folder: "onesearch-cli", Aliases: []string{"base", "onesearch", "cli", "router"}, Capabilities: []string{"routing"}, Description: "Use for web search, current/latest public information, online claim checks, URL reading, website map/crawl, official docs lookup, public GitHub repo docs, and research planning."},
+	{ID: "onesearch", Folder: "onesearch", Aliases: []string{"base", "cli", "router"}, Capabilities: []string{"routing"}, Description: "Use for web search, current/latest public information, online claim checks, URL reading, website map/crawl, official docs lookup, public GitHub repo docs, and research planning."},
 	{ID: "exa", Folder: "onesearch-exa", Aliases: []string{"exa-tools", "exa-web", "exa-fetch", "exa-similar-pages"}, Capabilities: []string{"source_search", "docs_search", "page_fetch"}, Description: "Status-gated Exa provider-direct guidance through Onesearch for web search, web fetch, similar-page discovery, official docs, papers, and product pages."},
 	{ID: "tavily", Folder: "onesearch-tavily", Aliases: []string{"tavily-tools", "tavily-search", "tavily-extract", "tavily-map", "tavily-crawl"}, Capabilities: []string{"source_search", "page_fetch", "site_map", "site_crawl"}, Description: "Status-gated Tavily provider-direct guidance through Onesearch for current search, extraction, site maps, and crawls."},
 	{ID: "firecrawl", Folder: "onesearch-firecrawl", Aliases: []string{"firecrawl-tools", "firecrawl-search", "firecrawl-scrape", "firecrawl-map", "firecrawl-crawl"}, Capabilities: []string{"source_search", "page_fetch", "site_map", "site_crawl"}, Description: "Status-gated Firecrawl provider-direct guidance through Onesearch for robust scraping, mapping, search, and crawl jobs."},
@@ -42,15 +44,32 @@ type File struct {
 }
 
 func ReadMarkdown(name string) (string, error) {
-	def, ok := resolve(name)
-	if !ok {
-		return "", fmt.Errorf("Unknown skill: %s. Available skills: %s", name, strings.Join(Names(), ", "))
-	}
-	data, err := assets.ReadFile("assets/" + def.Folder + "/SKILL.md")
+	file, err := ReadFile(name, "SKILL.md")
 	if err != nil {
 		return "", err
 	}
-	return string(data), nil
+	return string(file.Data), nil
+}
+
+// ReadFile reads one normalized relative file from a bundled skill. Paths use
+// forward slashes and may not escape the selected skill's embedded asset root.
+func ReadFile(name, relativePath string) (File, error) {
+	def, ok := resolve(name)
+	if !ok {
+		return File{}, fmt.Errorf("Unknown skill: %s. Available skills: %s", name, strings.Join(Names(), ", "))
+	}
+	relativePath, err := normalizeRelativePath(relativePath)
+	if err != nil {
+		return File{}, err
+	}
+	data, err := assets.ReadFile("assets/" + def.Folder + "/" + relativePath)
+	if errors.Is(err, fs.ErrNotExist) {
+		return File{}, fmt.Errorf("Unknown skill file: %s", relativePath)
+	}
+	if err != nil {
+		return File{}, err
+	}
+	return File{Path: relativePath, Data: normalizeNewlines(data)}, nil
 }
 
 func LoadFiles(name string) ([]File, error) {
@@ -129,6 +148,25 @@ func resolve(name string) (Definition, bool) {
 
 func normalize(value string) string {
 	return strings.ReplaceAll(strings.ToLower(strings.TrimSpace(value)), "_", "-")
+}
+
+func normalizeRelativePath(value string) (string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return "SKILL.md", nil
+	}
+	if strings.Contains(value, "\\") || strings.ContainsRune(value, '\x00') || strings.HasPrefix(value, "/") || (len(value) >= 2 && value[1] == ':') {
+		return "", fmt.Errorf("Invalid skill file path: %s", value)
+	}
+	for _, segment := range strings.Split(value, "/") {
+		if segment == "" || segment == "." || segment == ".." {
+			return "", fmt.Errorf("Invalid skill file path: %s", value)
+		}
+	}
+	if cleaned := path.Clean(value); cleaned != value || cleaned == "." || strings.HasPrefix(cleaned, "../") {
+		return "", fmt.Errorf("Invalid skill file path: %s", value)
+	}
+	return value, nil
 }
 
 func normalizeNewlines(data []byte) []byte {

@@ -5,85 +5,29 @@ description: Use when an AI agent needs Tavily through Onesearch, especially whe
 
 # Onesearch Tavily
 
-Use Tavily for current web search, page extraction, site maps, and bounded site crawls. Prefer Tavily direct commands when the task names Tavily or needs Tavily-specific flags.
+Use Tavily direct commands when the user names Tavily or needs its search, extraction, map, or bounded crawl behavior. Prefer workflow commands when the upstream provider is not material.
 
-## Bridge Contract
+## Discover the Contracts
 
-This skill is the source document for agent-facing Tavily provider direct commands. When a task names Tavily, current web search, recency-sensitive research, page extraction, site mapping, or bounded crawling, route through Onesearch.
-
-If command details may have changed, run:
-
-```powershell
-onesearch skills show tavily --format content
+```text
+onesearch schema tavily search --format json
+onesearch schema tavily extract --format json
+onesearch schema tavily map --format json
+onesearch schema tavily crawl --format json
 ```
 
-Use the provider command family by default:
+Run `onesearch status --format json` and require `status.direct_endpoints.tavily.available == true` before a direct call.
 
-```powershell
-onesearch status --format json
-onesearch tavily search "query" --format json
-onesearch tavily extract "https://example.com" --format json
-onesearch tavily map "https://example.com" --format json
-onesearch tavily crawl "https://example.com" --format json
-```
-
-Before using Tavily direct commands, confirm `status.direct_endpoints.tavily.available == true`. If Tavily is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable capability.
-
-## Commands
-
-| Purpose | Command |
-| --- | --- |
-| Search | `onesearch tavily search "query"` |
-| Extract pages | `onesearch tavily extract "https://example.com"` |
-| Site map | `onesearch tavily map "https://example.com"` |
-| Site crawl | `onesearch tavily crawl "https://example.com"` |
-
-## Usage
-
-```powershell
-onesearch tavily search "latest AI policy news" --max-results 5 --search-depth advanced --format json
-onesearch tavily search "official changelog" --include-domains example.com --include-raw-content --format json
+```text
+onesearch tavily search "latest policy update" --max-results 5 --format json
 onesearch tavily extract "https://example.com/article" --extract-format markdown --format json
-onesearch tavily extract "https://example.com/a" "https://example.com/b" --query "pricing" --format json
-onesearch tavily map "https://docs.example.com" --instructions "find API reference pages" --limit 50 --format json
 onesearch tavily crawl "https://docs.example.com" --max-depth 2 --limit 20 --format json
 ```
 
-## Options
+Use search results as candidates and extract authoritative pages before citing them. Map before crawling when site structure is unclear. Keep map/crawl limits small, restrict scope to the relevant domain, and inspect targeted schema before using advanced filters.
 
-Search:
+## Output and Recovery
 
-- `--max-results`
-- `--search-depth basic|advanced`
-- `--topic`, `--time-range`, `--start-date`, `--end-date`, `--country`
-- `--include-domains`, `--exclude-domains`
-- `--include-raw-content`, `--include-images`, `--include-favicon`
+Use compact JSON for URLs, scores, crawl state, and provider metadata. Use `--format content` for complete extracted text or `--verbose` for full structured data.
 
-Extract:
-
-- Multiple URL positionals or `--urls`.
-- `--extract-format markdown|text`
-- `--extract-depth basic|advanced`
-- `--query`
-- `--include-images`, `--include-favicon`
-
-Map and crawl:
-
-- `--instructions`
-- `--max-depth`, `--max-breadth`, `--limit`, `--timeout`
-- `--allow-external`
-- `--select-domains`, `--select-paths`
-- `--exclude-domains`, `--exclude-paths`
-
-## Output
-
-Provider-direct JSON includes `provider: "tavily"` and `tool` set to the original MCP tool name such as `tavily_search` or `tavily_extract`.
-
-Use `--format content` for extracted page body only. Use JSON for route-safe metadata and result lists.
-
-## Guardrails
-
-- Do not assume the Tavily skill means Tavily is enabled; `status` is the provider-direct availability source of truth.
-- Default map/crawl behavior keeps same-domain results unless `--allow-external` is set.
-- Keep crawl `--limit` bounded to avoid huge outputs.
-- Fetch or extract primary URLs before making high-risk claims.
+On `parameter_error`, inspect the failing Tavily leaf schema. On `config_error`, run `doctor` and `status`. If Tavily is unavailable, choose another provider listed for the same capability or report the explicit Tavily requirement.

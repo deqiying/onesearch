@@ -89,7 +89,7 @@
 
 当前实现已经出现适合由 registry 消除的漂移：
 
-- 顶层 help 会展示 `regression`，但 `onesearch-cli` 的公共 CLI contract utility 列表没有列出该命令。
+- 顶层 help 会展示 `regression`，但 `onesearch` Skill 的公共 CLI contract utility 列表没有列出该命令。
 - `fetch`、`map`、`crawl`、`repo-wiki` 的叶子级 `--help` 返回 0；`search`、`deep`、`status`、`skills` 和多数 provider 叶子命令会把 `--help` 当作参数错误。
 - `doctor --help` 会实际执行 doctor；`regression --help` 会实际运行 mock regression。
 - provider group help 只列子命令名，不包含具体位置参数、flag 类型和默认值。
@@ -591,8 +591,8 @@ schema 只表达静态能力关系，不混入本机动态状态：
 | `README.md` | 增加 `schema` 定位、agent 使用流程和与 runtime schema 的区别。 |
 | `npm/onesearch/README.md` | 增加 npm 安装后的 schema 发现示例。 |
 | `npm/deqiying-onesearch/README.md` | 同步 scoped entry 的 schema 发现示例。 |
-| `internal/skills/assets/onesearch-cli/SKILL.md` | 将 schema 纳入 agent 首次发现流程，但保留 status/skill 路由职责。 |
-| `internal/skills/assets/onesearch-cli/references/cli-contract.md` | 更新 public command surface、schema envelope、输入约束、退出码和回归命令。 |
+| `internal/skills/assets/onesearch/SKILL.md` | 将 schema 纳入 agent 首次发现流程，但保留 status/skill 路由职责。 |
+| `internal/skills/assets/onesearch/references/agent-execution-contract.md` | 更新 public command surface、schema envelope、输入约束、退出码和回归命令。 |
 
 第一阶段不需要修改：
 
@@ -635,7 +635,7 @@ schema 只表达静态能力关系，不混入本机动态状态：
 
 ### 阶段四：同步公共文档
 
-1. 更新 README、两个 npm README、`onesearch-cli` Skill 和 CLI contract。
+1. 更新 README、两个 npm README、`onesearch` Skill 和 CLI contract。
 2. 明确 help、schema、Skill、status、runtime schema 各自职责。
 3. 把 `regression` 与其他 public utility 的合同统一到 registry 和 Markdown。
 4. 增加 schema/full/target/help 回归命令，不复制整份 generated JSON 到文档。

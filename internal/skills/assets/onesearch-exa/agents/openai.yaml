@@ -1,2 +1,4 @@
-name: onesearch-exa
-description: Status-gated Exa provider commands for Onesearch.
+interface:
+  display_name: "Onesearch Exa Search Provider"
+  short_description: "Discover focused semantic web sources through Exa"
+  default_prompt: "Use $onesearch-exa to discover focused semantic sources, official documentation, product pages, or papers."

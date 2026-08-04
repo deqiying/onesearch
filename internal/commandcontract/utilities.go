@@ -34,12 +34,19 @@ func utilityDefinitions() []CommandDefinition {
 			}},
 			Availability: localAvailability(), SideEffects: runtimeSideEffects("config_read", "config_write", "stdin_read"), Output: normalOutput("config_result"),
 		},
-		utilityCommand("skills.list", []string{"skills", "list"}, [][]string{{"skills", "ls"}, {"skills", "l"}, {"skill", "list"}, {"skill", "ls"}, {"skill", "l"}}, "List bundled Onesearch skills.", nil, []OptionDefinition{
-			optionDefault("capability", "capability", TypeString, "", "Filter skills by capability."),
-		}, "skill_result", []string{"filesystem_read", "filesystem_write_when_output_is_set"}),
-		utilityCommand("skills.show", []string{"skills", "show"}, [][]string{{"skills", "get"}, {"skills", "read"}, {"skills", "load"}, {"skill", "show"}, {"skill", "get"}, {"skill", "read"}, {"skill", "load"}}, "Show a bundled skill and its Markdown content.", []PositionalDefinition{positional("name", "Skill ID or alias.", true)}, []OptionDefinition{
-			optionDefault("capability", "capability", TypeString, "", "Accepted for compatibility; it does not filter a single skill."),
-		}, "skill_result", []string{"filesystem_read", "filesystem_write_when_output_is_set"}),
+		{
+			ID: "skills.list", Path: []string{"skills", "list"}, Aliases: [][]string{{"skills", "ls"}, {"skills", "l"}, {"skill", "list"}, {"skill", "ls"}, {"skill", "l"}}, Category: CategoryUtility, Visibility: VisibilityPublic,
+			Summary: "List bundled Onesearch skills.", Options: withOutput(
+				optionDefault("capability", "capability", TypeString, "", "Filter skills by capability."),
+			), Constraints: normalConstraints(), Availability: localAvailability(), SideEffects: []string{"filesystem_read", "filesystem_write_when_output_is_set"}, Output: normalOutput("skill_result"),
+		},
+		{
+			ID: "skills.show", Path: []string{"skills", "show"}, Aliases: [][]string{{"skills", "get"}, {"skills", "read"}, {"skills", "load"}, {"skill", "show"}, {"skill", "get"}, {"skill", "read"}, {"skill", "load"}}, Category: CategoryUtility, Visibility: VisibilityPublic,
+			Summary: "Show one file from a bundled skill.", Positionals: []PositionalDefinition{positional("name", "Skill ID or alias.", true)}, Options: withOutput(
+				optionDefault("capability", "capability", TypeString, "", "Accepted for compatibility; it does not filter a single skill."),
+				optionDefault("file", "file", TypeString, "SKILL.md", "Relative bundled file path to read."),
+			), Constraints: normalConstraints(), Availability: localAvailability(), SideEffects: []string{"filesystem_read", "filesystem_write_when_output_is_set"}, Output: normalOutput("skill_result"),
+		},
 		{
 			ID: "regression", Path: []string{"regression"}, Aliases: [][]string{{"reg"}}, Category: CategoryUtility, Visibility: VisibilityPublic,
 			Summary: "Run the fixed mock regression suite.", Options: []OptionDefinition{

@@ -436,8 +436,8 @@ CLI/package 版本是否升级由实施后的发布流程统一决定，不在�
 | `README.md` | 区分字段精简与空白压缩，说明默认 compact、`--pretty`、非 TTY 策略和迁移方式 |
 | `npm/onesearch/README.md` | 补充 npm CLI 的 compact/pretty 公共合同 |
 | `npm/deqiying-onesearch/README.md` | 与 unscoped npm README 保持一致 |
-| `internal/skills/assets/onesearch-cli/SKILL.md` | 明确 agent 默认不传 `--pretty`，人工检查时才使用 |
-| `internal/skills/assets/onesearch-cli/references/cli-contract.md` | 记录运行时排版、错误、schema、regression、stdout/file 合同，并同步现有 regression/golden 维护说明 |
+| `internal/skills/assets/onesearch/SKILL.md` | 明确 agent 默认不传 `--pretty`，人工检查时才使用 |
+| `internal/skills/assets/onesearch/references/agent-execution-contract.md` | 记录运行时排版、错误、schema、regression、stdout/file 合同，并同步现有 regression/golden 维护说明 |
 | `docs/cli-command-schema-technical-design.md` | 更新已实施 schema 的默认排版、pretty option、golden 和测试说明 |
 | `docs/cli-provider-setup-technical-design.md` | 补充 pretty 不改变脱敏边界和 stdout/文件一致性 |
 

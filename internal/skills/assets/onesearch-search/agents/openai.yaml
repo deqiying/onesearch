@@ -1,2 +1,4 @@
-name: onesearch-search
-description: Status-aware current search, hot/trending lists, and source discovery workflows for Onesearch.
+interface:
+  display_name: "Onesearch Current Search Workflows"
+  short_description: "Find current facts, trends, and credible web sources"
+  default_prompt: "Use $onesearch-search to find current facts, news, rankings, trends, or credible sources before evidence fetching."

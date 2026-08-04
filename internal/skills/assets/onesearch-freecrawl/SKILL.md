@@ -5,60 +5,32 @@ description: Use when an AI agent needs Freecrawl through Onesearch, especially 
 
 # Onesearch Freecrawl
 
-Use Freecrawl for local MCP stdio-backed search, page scraping, site crawling, and provider-specific deep research. Prefer Freecrawl direct commands when the task names Freecrawl or requires its local MCP tool surface.
+Use Freecrawl for local MCP stdio-backed search, scrape, bounded crawl, or provider-specific deep research. It is direct-only by default. It supports crawl, not the workflow `site_map` capability.
 
-## Bridge Contract
+## Discover the Contracts
 
-This provider is direct-only by default. It is not automatically added to normal `search`, `fetch`, or `crawl` workflow routes unless the user explicitly adds it to runtime `routes`.
-
-If command details may have changed, run:
-
-```powershell
-onesearch skills show freecrawl --format content
+```text
+onesearch schema freecrawl search --format json
+onesearch schema freecrawl scrape --format json
+onesearch schema freecrawl crawl --format json
+onesearch schema freecrawl deep-research --format json
 ```
 
-Use the provider command family by default:
+Run `onesearch status --format json` and require `status.direct_endpoints.freecrawl.available == true` before a direct call. This local preflight does not start the MCP process, install browser assets, or prove network behavior.
 
-```powershell
-onesearch status --format json
+```text
 onesearch freecrawl search "query" --num-results 5 --format json
 onesearch freecrawl scrape "https://example.com" --formats markdown --format json
 onesearch freecrawl crawl "https://docs.example.com" --max-depth 2 --max-pages 20 --format json
 onesearch freecrawl deep-research "topic" --num-sources 8 --max-depth 3 --format json
 ```
 
-Before using Freecrawl direct commands, confirm `status.direct_endpoints.freecrawl.available == true`. If Freecrawl is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable local provider.
+Keep crawl and deep-research limits small and restrict crawling to the relevant domain. Treat search output as discovery and scrape key pages before citing claims.
 
-## Commands
+Freecrawl may require Playwright browser binaries. If startup reports missing browser/runtime assets, report the exact prerequisite and ask the user to authorize installation; do not run an installer or `--install-browsers` automatically.
 
-| Purpose | Command |
-| --- | --- |
-| Search | `onesearch freecrawl search "query"` |
-| Scrape page | `onesearch freecrawl scrape "https://example.com"` |
-| Crawl site | `onesearch freecrawl crawl "https://example.com"` |
-| Deep research | `onesearch freecrawl deep-research "topic"` |
+## Output and Recovery
 
-## Options
+Use compact JSON for candidates, crawl state, previews, and provider/tool context. Use `--format content` for complete scraped text or `--verbose` for full structured output.
 
-- `search --num-results`: maximum search results.
-- `search --search-engine`: upstream search engine.
-- `search --scrape-results`: ask Freecrawl to scrape discovered results when supported.
-- `scrape --formats`: comma-separated output formats such as `markdown,text`.
-- `scrape --javascript`, `--anti-bot`, `--cache`: provider-specific scrape toggles.
-- `scrape --timeout`: scrape timeout in milliseconds.
-- `scrape --wait-for`: page wait time in milliseconds.
-- `crawl --max-depth`: crawl depth.
-- `crawl --max-pages`: maximum pages.
-- `crawl --same-domain-only`: restrict crawl to the start URL domain.
-- `crawl --include-patterns`, `--exclude-patterns`: crawl URL filters.
-- `deep-research --num-sources`: maximum sources.
-- `deep-research --max-depth`: research depth.
-- `deep-research --include-academic`: include academic sources when supported.
-- `deep-research --search-queries`: explicit supporting queries.
-
-## Guardrails
-
-- Do not assume Freecrawl is enabled just because the skill exists; `status.direct_endpoints.freecrawl.available` is the source of truth.
-- Freecrawl may need Playwright browsers installed first; if startup fails with browser or Playwright errors, run the upstream install command for the configured package, such as `uvx freecrawl-mcp --install-browsers`.
-- Keep crawl and deep research limits small unless the user explicitly asks for broad collection.
-- `status` only validates configuration shape and local command lookup; it does not start `uvx`, install browser dependencies, or prove the upstream MCP package can fetch the web.
+On `parameter_error`, inspect the failing Freecrawl leaf schema. On `config_error`, run `doctor` and `status`. If local dependencies are missing, stop at the prerequisite boundary rather than silently switching or installing software.

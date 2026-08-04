@@ -1,2 +1,4 @@
-name: onesearch-fetch
-description: Status-aware URL fetching and evidence workflows for Onesearch.
+interface:
+  display_name: "Onesearch URL Fetch Workflows"
+  short_description: "Fetch source pages and verify evidence with Onesearch"
+  default_prompt: "Use $onesearch-fetch to fetch source pages, inspect evidence, map a site, or verify an online claim."

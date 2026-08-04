@@ -1,2 +1,4 @@
-name: onesearch-ddg
-description: Status-gated DuckDuckGo MCP stdio provider commands for Onesearch.
+interface:
+  display_name: "Onesearch DuckDuckGo Search"
+  short_description: "Run lightweight DuckDuckGo search and page fetching"
+  default_prompt: "Use $onesearch-ddg to run status-gated DuckDuckGo searches or lightweight page content fetching."

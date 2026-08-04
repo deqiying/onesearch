@@ -5,73 +5,28 @@ description: Use when an AI agent needs Exa through Onesearch, especially when t
 
 # Onesearch Exa
 
-Use Exa for low-noise web discovery, official documentation, papers, product pages, known-domain searches, and Exa contents fetches.
+Use Exa direct commands when the user names Exa or needs semantic discovery, similar pages, known-domain search, papers, product/docs pages, or clean page text. For provider-agnostic synthesis, prefer the `search` workflow.
 
-## Bridge Contract
+## Discover the Contracts
 
-This skill is the source document for agent-facing Exa provider direct commands. When a task names Exa, semantic web discovery, best-page lookup, official docs discovery, papers, product pages, similar pages, or clean markdown/content fetch, route through Onesearch.
-
-If command details may have changed, run:
-
-```powershell
-onesearch skills show exa --format content
+```text
+onesearch schema exa web-search --format json
+onesearch schema exa similar --format json
+onesearch schema exa web-fetch --format json
 ```
 
-Use the provider command family by default:
+Run `onesearch status --format json` and require `status.direct_endpoints.exa.available == true` before a direct call.
 
-```powershell
-onesearch status --format json
-onesearch exa web-search "query" --format json
-onesearch exa web-fetch "https://example.com" --format json
-onesearch exa similar "https://example.com" --format json
-```
-
-Before using Exa direct commands, confirm `status.direct_endpoints.exa.available == true`. If Exa is unavailable, choose another provider from the relevant `status.capabilities.<capability>.available` list or report the unavailable capability.
-
-## Commands
-
-| Purpose | Command |
-| --- | --- |
-| Web search | `onesearch exa web-search "query"` |
-| Page fetch | `onesearch exa web-fetch "https://example.com"` |
-| Similar pages | `onesearch exa similar "https://example.com"` |
-
-## Usage
-
-```powershell
-onesearch exa web-search "OpenAI Responses API documentation" --max-results 5 --include-highlights --format json
-onesearch exa web-search "vector database benchmark" --include-domains docs.example.com arxiv.org --format json
-onesearch exa web-fetch "https://example.com/article" --max-characters 12000 --format json
-onesearch exa web-fetch "https://example.com/article" --format content
+```text
+onesearch exa web-search "official API documentation" --max-results 5 --format json
 onesearch exa similar "https://example.com/article" --num-results 5 --format json
+onesearch exa web-fetch "https://example.com/article" --max-characters 12000 --format json
 ```
 
-## Options
+Use search/similar results for discovery, then fetch key URLs before claim-level use. Restrict to known official domains when provenance matters; inspect the targeted schema before adding domain, date, or content flags.
 
-- `--max-results` or `--num-results`: number of search results.
-- `--search-type`: Exa search type, default `neural`.
-- `--include-text`: include Exa text snippets in search results.
-- `--include-highlights`: include highlights in search results.
-- `--include-domains`: restrict search to domains; accepts comma-separated or space-separated values.
-- `--exclude-domains`: exclude domains; accepts comma-separated or space-separated values.
-- `--start-published-date`: lower bound for published date.
-- `--category`: Exa category when needed.
-- `--max-characters`: maximum fetched text length for `web-fetch`.
+## Output and Recovery
 
-## Output
+Compact JSON may expose `content_preview` and `content_length` for long text. Use `--format content` for complete fetched text or `--verbose` for the full structured payload.
 
-Provider-direct JSON includes:
-
-- `provider: "exa"`
-- `tool: "web_search_exa"` or `tool: "web_fetch_exa"`
-- `results`, `total`, `elapsed_ms`
-- `content_preview` and `content_length` in quiet JSON when fetched content is long
-
-Use `--verbose` for full provider fields. Use `--format content` for fetched page body only.
-
-## Guardrails
-
-- Use `onesearch search` instead of Exa direct commands when answer synthesis or multi-provider routing is needed.
-- Do not assume the Exa skill means Exa is enabled; `status` is the provider-direct availability source of truth.
-- Fetch key URLs before claim-level conclusions; search results are discovery candidates.
-- Run `onesearch doctor --format json` for overall configuration health when Exa returns `config_error`.
+On `parameter_error`, inspect the failing Exa leaf schema. On `config_error`, run `doctor` and `status`. If Exa is unavailable, use an available provider for the same capability or report the provider-specific requirement.

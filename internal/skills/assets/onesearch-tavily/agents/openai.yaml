@@ -1,2 +1,4 @@
-name: onesearch-tavily
-description: Status-gated Tavily provider commands for Onesearch.
+interface:
+  display_name: "Onesearch Tavily Search Provider"
+  short_description: "Search, extract, map, and crawl current web sources"
+  default_prompt: "Use $onesearch-tavily to search current web sources, extract pages, map a site, or run a bounded crawl."
