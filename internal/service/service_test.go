@@ -560,7 +560,27 @@ func TestAnswerSearchUsesConfiguredCapabilityProviderViaAdapterRegistry(t *testi
 	}
 }
 
-func TestOpenAIResponsesRunnerUsesStreamSettingAndOverride(t *testing.T) {
+func TestOpenAIResponsesRunnerIgnoresLegacySettingsAndStreamOverride(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/alpha/search" {
+			t.Fatalf("path = %q, want /v1/alpha/search", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload["model"] != "gpt-test" {
+			t.Fatalf("model = %#v", payload["model"])
+		}
+		for _, field := range []string{"stream", "tools", "tool_choice", "instructions", "input"} {
+			if _, ok := payload[field]; ok {
+				t.Fatalf("legacy field %q found in Alpha request: %#v", field, payload)
+			}
+		}
+		_, _ = w.Write([]byte(`{"output":"answer"}`))
+	}))
+	defer server.Close()
+
 	clearProviderEnv(t)
 	cfg := testConfig(t)
 	if err := cfg.SetFile(map[string]any{
@@ -578,6 +598,7 @@ func TestOpenAIResponsesRunnerUsesStreamSettingAndOverride(t *testing.T) {
 				"enabled":      true,
 				"adapter":      "openai_responses",
 				"capabilities": []any{"answer_search"},
+				"base_url":     server.URL,
 				"api_key":      "test-key",
 				"settings": map[string]any{
 					"model":       "gpt-test",
@@ -591,26 +612,167 @@ func TestOpenAIResponsesRunnerUsesStreamSettingAndOverride(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	runners, err := New(cfg).mainProviderConfigs("", "auto", nil)
+	override := true
+	runners, err := New(cfg).mainProviderConfigs("", "auto", &override)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(runners) != 1 || !runners[0].Stream {
-		t.Fatalf("runner stream = %#v, want true", runners)
+	if len(runners) != 1 {
+		t.Fatalf("runners = %#v", runners)
 	}
-	if !reflect.DeepEqual(runners[0].Tools, []map[string]any{{"type": "web_search"}}) {
-		t.Fatalf("runner tools = %#v, want default web_search", runners[0].Tools)
+	if runners[0].Stream || len(runners[0].Tools) != 0 || runners[0].ToolChoice != nil {
+		t.Fatalf("legacy settings affected runner = %#v", runners[0])
 	}
-	if runners[0].ToolChoice != "required" {
-		t.Fatalf("runner tool_choice = %#v, want required", runners[0].ToolChoice)
-	}
-	override := false
-	runners, err = New(cfg).mainProviderConfigs("", "auto", &override)
+	got, err := runners[0].Search(t.Context(), "query", "")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(runners) != 1 || runners[0].Stream {
-		t.Fatalf("override stream = %#v, want false", runners)
+	if got != "answer" {
+		t.Fatalf("answer = %q", got)
+	}
+}
+
+func TestSearchUsesOpenAIAlphaOutputSourcesAndModelOverride(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/alpha/search" {
+			t.Fatalf("path = %q, want /v1/alpha/search", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatal(err)
+		}
+		if payload["model"] != "gpt-override" {
+			t.Fatalf("model = %#v, want gpt-override", payload["model"])
+		}
+		if _, ok := payload["stream"]; ok {
+			t.Fatalf("stream must not be sent: %#v", payload)
+		}
+		_, _ = w.Write([]byte(`{"output":"alpha answer","results":[{"url":"https://example.com/source","title":"Example"}]}`))
+	}))
+	defer server.Close()
+
+	clearProviderEnv(t)
+	cfg := testConfig(t)
+	if err := cfg.SetFile(map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"answer_search": []any{"openai_responses"},
+		},
+		"profiles": map[string]any{
+			"standard": map[string]any{
+				"required_capabilities": []any{"answer_search"},
+			},
+		},
+		"providers": map[string]any{
+			"openai_responses": map[string]any{
+				"enabled":      true,
+				"adapter":      "openai_responses",
+				"capabilities": []any{"answer_search"},
+				"base_url":     server.URL,
+				"api_key":      "test-key",
+				"settings": map[string]any{
+					"model":       "gpt-config",
+					"stream":      true,
+					"tools":       []any{"web_search"},
+					"tool_choice": "required",
+				},
+			},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	stream := true
+	got := New(cfg).Search(t.Context(), "plain question", SearchOptions{Model: "gpt-override", Stream: &stream})
+	if got["ok"] != true || got["content"] != "alpha answer" || got["model"] != "gpt-override" {
+		t.Fatalf("search result = %#v", got)
+	}
+	wantSources := []map[string]any{{"url": "https://example.com/source", "title": "Example"}}
+	if !reflect.DeepEqual(got["sources"], wantSources) {
+		t.Fatalf("sources = %#v, want %#v", got["sources"], wantSources)
+	}
+}
+
+func TestOpenAIAlphaHTTPFailureUsesServiceFallbackWithoutResponsesRetry(t *testing.T) {
+	tests := []struct {
+		name         string
+		status       int
+		fallback     string
+		wantOK       bool
+		wantChatCall int
+	}{
+		{name: "404_auto", status: http.StatusNotFound, fallback: "auto", wantOK: true, wantChatCall: 1},
+		{name: "405_auto", status: http.StatusMethodNotAllowed, fallback: "auto", wantOK: true, wantChatCall: 1},
+		{name: "404_off", status: http.StatusNotFound, fallback: "off", wantOK: false, wantChatCall: 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			alphaCalls := 0
+			alpha := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				alphaCalls++
+				if r.URL.Path != "/v1/alpha/search" {
+					t.Fatalf("unexpected OpenAI path %q", r.URL.Path)
+				}
+				w.WriteHeader(tt.status)
+				_, _ = w.Write([]byte(`{"error":{"message":"alpha unavailable"}}`))
+			}))
+			defer alpha.Close()
+
+			chatCalls := 0
+			chat := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				chatCalls++
+				if r.URL.Path != "/v1/chat/completions" {
+					t.Fatalf("chat path = %q", r.URL.Path)
+				}
+				_, _ = w.Write([]byte(`{"choices":[{"message":{"content":"fallback answer"}}]}`))
+			}))
+			defer chat.Close()
+
+			clearProviderEnv(t)
+			cfg := testConfig(t)
+			if err := cfg.SetFile(map[string]any{
+				"schema_version": 1,
+				"routes": map[string]any{
+					"answer_search": []any{"openai_responses", "openai_compatible"},
+				},
+				"profiles": map[string]any{
+					"standard": map[string]any{
+						"required_capabilities": []any{"answer_search"},
+					},
+				},
+				"providers": map[string]any{
+					"openai_responses": map[string]any{
+						"enabled":      true,
+						"adapter":      "openai_responses",
+						"capabilities": []any{"answer_search"},
+						"base_url":     alpha.URL,
+						"api_key":      "alpha-key",
+						"settings":     map[string]any{"model": "gpt-alpha"},
+					},
+					"openai_compatible": map[string]any{
+						"enabled":      true,
+						"adapter":      "openai_chat_completions",
+						"capabilities": []any{"answer_search"},
+						"base_url":     chat.URL,
+						"api_key":      "chat-key",
+						"settings":     map[string]any{"model": "gpt-chat"},
+					},
+				},
+			}); err != nil {
+				t.Fatal(err)
+			}
+
+			got := New(cfg).Search(t.Context(), "plain question", SearchOptions{Fallback: tt.fallback})
+			if got["ok"] != tt.wantOK {
+				t.Fatalf("ok = %#v, want %v; result=%#v", got["ok"], tt.wantOK, got)
+			}
+			if tt.wantOK && (got["content"] != "fallback answer" || got["fallback_used"] != true) {
+				t.Fatalf("fallback result = %#v", got)
+			}
+			if alphaCalls != 1 || chatCalls != tt.wantChatCall {
+				t.Fatalf("calls: alpha=%d chat=%d; want alpha=1 chat=%d", alphaCalls, chatCalls, tt.wantChatCall)
+			}
+		})
 	}
 }
 
@@ -720,7 +882,10 @@ func TestSearchCanForceRepoWiki(t *testing.T) {
 	}))
 	defer deepwiki.Close()
 	openai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}]}`))
+		if r.URL.Path != "/v1/alpha/search" {
+			t.Fatalf("path = %q, want /v1/alpha/search", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"output":"answer","results":[]}`))
 	}))
 	defer openai.Close()
 
@@ -781,7 +946,10 @@ func TestSearchForcedRepoWikiIgnoresAnswerProviderFilter(t *testing.T) {
 	}))
 	defer deepwiki.Close()
 	openai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}]}`))
+		if r.URL.Path != "/v1/alpha/search" {
+			t.Fatalf("path = %q, want /v1/alpha/search", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"output":"answer","results":[]}`))
 	}))
 	defer openai.Close()
 
@@ -852,7 +1020,10 @@ func TestSearchCapabilityProviderFilterUsesSourceProviderOnly(t *testing.T) {
 	}))
 	defer tavily.Close()
 	openai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}]}`))
+		if r.URL.Path != "/v1/alpha/search" {
+			t.Fatalf("path = %q, want /v1/alpha/search", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"output":"answer","results":[]}`))
 	}))
 	defer openai.Close()
 
@@ -935,7 +1106,10 @@ func TestSearchFetchSourcesAddsPageEvidence(t *testing.T) {
 	}))
 	defer tavily.Close()
 	openai := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"output":[{"type":"message","content":[{"type":"output_text","text":"answer"}]}]}`))
+		if r.URL.Path != "/v1/alpha/search" {
+			t.Fatalf("path = %q, want /v1/alpha/search", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"output":"answer","results":[]}`))
 	}))
 	defer openai.Close()
 
@@ -1443,7 +1617,7 @@ func TestPageFetchIncludesAutoRegisteredAnySearch(t *testing.T) {
 }
 
 func TestQuietErrorOutputOmitsDiagnostics(t *testing.T) {
-	longError := `openai_responses Post "http://127.0.0.1:1/responses": dial tcp 127.0.0.1:1: connectex: No connection could be made because the target machine actively refused it.`
+	longError := `openai_responses Post "http://127.0.0.1:1/v1/alpha/search": dial tcp 127.0.0.1:1: connectex: No connection could be made because the target machine actively refused it.`
 	data := map[string]any{
 		"ok":         false,
 		"error_type": "config_error",
@@ -1472,7 +1646,7 @@ func TestQuietErrorOutputOmitsDiagnostics(t *testing.T) {
 }
 
 func TestVerboseErrorOutputKeepsDiagnostics(t *testing.T) {
-	longError := `openai_responses Post "http://127.0.0.1:1/responses": dial tcp 127.0.0.1:1: connectex: No connection could be made because the target machine actively refused it.`
+	longError := `openai_responses Post "http://127.0.0.1:1/v1/alpha/search": dial tcp 127.0.0.1:1: connectex: No connection could be made because the target machine actively refused it.`
 	data := map[string]any{
 		"ok":          false,
 		"error_type":  "config_error",

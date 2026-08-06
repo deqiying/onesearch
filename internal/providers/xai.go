@@ -19,29 +19,12 @@ type XAIResponses struct {
 	ToolChoice any
 }
 
-type OpenAIResponses struct {
-	APIURL     string
-	APIKey     string
-	Model      string
-	Tools      []map[string]any
-	ToolChoice any
-	Stream     bool
-}
-
 func (p XAIResponses) Name() string {
 	return "xAI Responses"
 }
 
-func (p OpenAIResponses) Name() string {
-	return "OpenAI Responses"
-}
-
 func (p XAIResponses) Search(ctx context.Context, query, platform string) (string, error) {
 	return responsesSearch(ctx, p.APIURL, p.APIKey, p.Model, p.Tools, p.ToolChoice, false, query, platform)
-}
-
-func (p OpenAIResponses) Search(ctx context.Context, query, platform string) (string, error) {
-	return responsesSearch(ctx, p.APIURL, p.APIKey, p.Model, p.Tools, p.ToolChoice, p.Stream, query, platform)
 }
 
 func responsesSearch(ctx context.Context, apiURL, apiKey, model string, tools []map[string]any, toolChoice any, stream bool, query, platform string) (string, error) {

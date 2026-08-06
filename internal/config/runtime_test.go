@@ -188,13 +188,60 @@ func TestOpenAIResponsesAdapterIsSupported(t *testing.T) {
 		},
 	})
 
-	provider := LoadRuntime(cfg).ResolveProviders(cfg, "answer_search", "auto", true)[0]
+	runtime := LoadRuntime(cfg)
+	definition := runtime.Providers["openai_responses"]
+	if !reflect.DeepEqual(definition.Settings, map[string]any{"model": "gpt-4.1"}) {
+		t.Fatalf("openai_responses default settings = %#v", definition.Settings)
+	}
+	if !reflect.DeepEqual(definition.Aliases, []string{"openai-responses", "responses"}) {
+		t.Fatalf("openai_responses aliases = %#v", definition.Aliases)
+	}
+	resolved := runtime.ResolveProviders(cfg, "answer_search", "responses", true)
+	if len(resolved) != 1 || resolved[0].ID != "openai_responses" {
+		t.Fatalf("alias resolution = %#v", resolved)
+	}
+	provider := runtime.ResolveProviders(cfg, "answer_search", "auto", true)[0]
 	if !provider.Available || provider.UnavailableReason == "unsupported_adapter" {
 		t.Fatalf("openai_responses provider = %#v", provider)
 	}
 }
 
 func TestProviderSettingsEmptyValuesKeepDefaults(t *testing.T) {
+	clearProviderEnv(t)
+	t.Setenv("OPENAI_COMPATIBLE_API_KEY", "openai-secret")
+	cfg := testConfig(t, map[string]any{
+		"schema_version": 1,
+		"routes": map[string]any{
+			"answer_search": []any{"openai_compatible"},
+		},
+		"providers": map[string]any{
+			"openai_compatible": map[string]any{
+				"enabled":      true,
+				"adapter":      "openai_chat_completions",
+				"capabilities": []any{"answer_search"},
+				"api_key_env":  "OPENAI_COMPATIBLE_API_KEY",
+				"settings": map[string]any{
+					"stream":      "",
+					"tools":       []any{},
+					"tool_choice": "",
+				},
+			},
+		},
+	})
+
+	provider := LoadRuntime(cfg).ResolveProviders(cfg, "answer_search", "auto", true)[0]
+	if provider.Settings["stream"] != false {
+		t.Fatalf("stream setting = %#v, want default false", provider.Settings["stream"])
+	}
+	if !reflect.DeepEqual(provider.Settings["tools"], []string{}) {
+		t.Fatalf("tools setting = %#v, want empty default", provider.Settings["tools"])
+	}
+	if provider.Settings["tool_choice"] != "" {
+		t.Fatalf("tool_choice setting = %#v, want empty default", provider.Settings["tool_choice"])
+	}
+}
+
+func TestOpenAIResponsesLegacySettingsRemainObservable(t *testing.T) {
 	clearProviderEnv(t)
 	t.Setenv("OPENAI_API_KEY", "openai-secret")
 	cfg := testConfig(t, map[string]any{
@@ -209,23 +256,24 @@ func TestProviderSettingsEmptyValuesKeepDefaults(t *testing.T) {
 				"capabilities": []any{"answer_search"},
 				"api_key_env":  "OPENAI_API_KEY",
 				"settings": map[string]any{
-					"stream":      "",
-					"tools":       []any{},
-					"tool_choice": "",
+					"stream":      true,
+					"tools":       []any{"web_search"},
+					"tool_choice": "required",
 				},
 			},
 		},
 	})
 
-	provider := LoadRuntime(cfg).ResolveProviders(cfg, "answer_search", "auto", true)[0]
-	if provider.Settings["stream"] != false {
-		t.Fatalf("stream setting = %#v, want default false", provider.Settings["stream"])
+	runtime := LoadRuntime(cfg)
+	provider := runtime.ResolveProviders(cfg, "answer_search", "auto", true)[0]
+	if provider.Settings["stream"] != true || provider.Settings["tool_choice"] != "required" {
+		t.Fatalf("legacy settings = %#v", provider.Settings)
 	}
-	if !reflect.DeepEqual(provider.Settings["tools"], []string{"web_search"}) {
-		t.Fatalf("tools setting = %#v, want default web_search", provider.Settings["tools"])
-	}
-	if provider.Settings["tool_choice"] != "required" {
-		t.Fatalf("tool_choice setting = %#v, want required", provider.Settings["tool_choice"])
+	providersOutput := runtime.ProvidersForOutput(cfg)
+	output := providersOutput["openai_responses"].(map[string]any)
+	settings := output["settings"].(map[string]any)
+	if settings["stream"] != true || settings["tool_choice"] != "required" || !reflect.DeepEqual(settings["tools"], []any{"web_search"}) {
+		t.Fatalf("output settings = %#v", settings)
 	}
 }
 

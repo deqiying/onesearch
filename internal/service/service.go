@@ -892,14 +892,8 @@ func buildOpenAICompatibleRunner(provider config.ResolvedProvider, modelOverride
 	}
 }
 
-func buildOpenAIResponsesRunner(provider config.ResolvedProvider, modelOverride string, streamOverride *bool) mainProviderConfig {
+func buildOpenAIResponsesRunner(provider config.ResolvedProvider, modelOverride string, _ *bool) mainProviderConfig {
 	model := valueOr(modelOverride, provider.SettingString("model", "gpt-4.1"))
-	tools := toolsFromSetting(provider.Settings["tools"], toolPayloads("web_search"))
-	toolChoice := toolChoiceFromSetting(provider.Settings["tool_choice"], "required")
-	stream := provider.SettingBool("stream", false)
-	if streamOverride != nil {
-		stream = *streamOverride
-	}
 	return mainProviderConfig{
 		Provider:    provider.ID,
 		DisplayName: provider.ID,
@@ -907,11 +901,8 @@ func buildOpenAIResponsesRunner(provider config.ResolvedProvider, modelOverride 
 		APIURL:      provider.BaseURL,
 		APIKey:      provider.APIKey,
 		Model:       model,
-		Stream:      stream,
-		Tools:       tools,
-		ToolChoice:  toolChoice,
 		Search: func(ctx context.Context, query, platform string) (string, error) {
-			return providers.OpenAIResponses{APIURL: provider.BaseURL, APIKey: provider.APIKey, Model: model, Tools: tools, ToolChoice: toolChoice, Stream: stream}.Search(ctx, query, platform)
+			return providers.OpenAIResponses{APIURL: provider.BaseURL, APIKey: provider.APIKey, Model: model}.Search(ctx, query, platform)
 		},
 	}
 }

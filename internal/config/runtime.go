@@ -477,7 +477,7 @@ func defaultProviders() map[string]ProviderDefinition {
 			BaseURL:      "https://api.openai.com/v1",
 			APIKeyEnv:    "OPENAI_API_KEY",
 			Enabled:      false,
-			Settings:     map[string]any{"model": "gpt-4.1", "stream": false, "tools": []string{"web_search"}, "tool_choice": "required"},
+			Settings:     map[string]any{"model": "gpt-4.1"},
 			Aliases:      []string{"openai-responses", "responses"},
 		},
 		"exa": {
