@@ -1,6 +1,6 @@
 {
   "name": "@deqiying/onesearch-win32-x64",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Windows x64 binary for onesearch.",
   "license": "UNLICENSED",
   "os": [
