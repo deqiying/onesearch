@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1200" height="400" viewBox="0 0 1200 400"
+     role="img" aria-labelledby="title desc">
+  <title id="title">onesearch — multi-source web research from one CLI</title>
+  <desc id="desc">A terminal command flows through capability routing and provider adapters into normalized evidence.</desc>
+
+  <defs>
+    <linearGradient id="flow" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5eead4"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="400" rx="28" fill="#08111f"/>
+  <path d="M744 28V372" stroke="#16263a"/>
+
+  <g id="title-block" transform="translate(56 46)">
+    <text x="0" y="0" fill="#5eead4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700" letter-spacing="2">CLI-FIRST · MULTI-SOURCE · EVIDENCE-ORIENTED</text>
+    <text x="0" y="84" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="72" font-weight="750">onesearch</text>
+    <text x="2" y="132" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="27">Multi-source web research for agents,</text>
+    <text x="2" y="168" fill="#cbd5e1" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="27">scripts, and terminals.</text>
+  </g>
+
+  <g id="terminal" transform="translate(56 256)">
+    <rect width="638" height="98" rx="16" fill="#0c1a2b" stroke="#24405b"/>
+    <circle cx="22" cy="22" r="5" fill="#fb7185"/>
+    <circle cx="40" cy="22" r="5" fill="#fbbf24"/>
+    <circle cx="58" cy="22" r="5" fill="#5eead4"/>
+    <text x="22" y="62" fill="#5eead4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20" font-weight="700">$</text>
+    <text x="46" y="62" fill="#f8fafc" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="20">onesearch search "query" --format json</text>
+    <text x="22" y="84" fill="#7890aa" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">ok · query · used · meta</text>
+  </g>
+
+  <g id="research-pipeline" transform="translate(786 44)">
+    <text x="0" y="0" fill="#94a3b8" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" font-weight="700" letter-spacing="2">RESEARCH PIPELINE</text>
+    <path d="M22 47V247" stroke="url(#flow)" stroke-width="3" stroke-linecap="round"/>
+
+    <g transform="translate(0 38)">
+      <circle cx="22" cy="18" r="15" fill="#102c38" stroke="#5eead4" stroke-width="2"/>
+      <text x="22" y="24" text-anchor="middle" fill="#5eead4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">1</text>
+      <text x="58" y="16" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="700">Query</text>
+      <text x="58" y="39" fill="#8da3bb" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">search · fetch · docs</text>
+    </g>
+
+    <g transform="translate(0 105)">
+      <circle cx="22" cy="18" r="15" fill="#102c38" stroke="#5eead4" stroke-width="2"/>
+      <text x="22" y="24" text-anchor="middle" fill="#5eead4" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">2</text>
+      <text x="58" y="16" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="700">Capability route</text>
+      <text x="58" y="39" fill="#8da3bb" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">selection · fallback</text>
+    </g>
+
+    <g transform="translate(0 172)">
+      <circle cx="22" cy="18" r="15" fill="#10243b" stroke="#60a5fa" stroke-width="2"/>
+      <text x="22" y="24" text-anchor="middle" fill="#60a5fa" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">3</text>
+      <text x="58" y="16" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="700">Provider adapters</text>
+      <text x="58" y="39" fill="#8da3bb" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">Exa · Tavily · Context7</text>
+    </g>
+
+    <g transform="translate(0 239)">
+      <circle cx="22" cy="18" r="15" fill="#10243b" stroke="#60a5fa" stroke-width="2"/>
+      <text x="22" y="24" text-anchor="middle" fill="#60a5fa" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16" font-weight="700">4</text>
+      <text x="58" y="16" fill="#f8fafc" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif" font-size="21" font-weight="700">Normalized evidence</text>
+      <text x="58" y="39" fill="#8da3bb" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17">JSON · Markdown · content</text>
+    </g>
+  </g>
+</svg>

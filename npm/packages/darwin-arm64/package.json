@@ -2,7 +2,7 @@
   "name": "@deqiying/onesearch-darwin-arm64",
   "version": "1.0.1",
   "description": "macOS arm64 binary for onesearch.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "os": [
     "darwin"
   ],

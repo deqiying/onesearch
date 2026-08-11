@@ -2,7 +2,7 @@
   "name": "onesearch",
   "version": "1.0.1",
   "description": "CLI-first multi-source web research for AI agents and terminal users.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "bin": {
     "onesearch": "bin/onesearch.js"
   },
