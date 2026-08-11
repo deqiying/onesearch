@@ -1,6 +1,6 @@
 {
   "name": "@deqiying/onesearch-linux-x64",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Linux x64 binary for onesearch.",
   "license": "Apache-2.0",
   "os": [
