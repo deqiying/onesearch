@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="106" height="20" viewBox="0 0 106 20"
+     role="img" aria-labelledby="title desc">
+  <title id="title">LINUX DO</title>
+  <desc id="desc">LinuxDO community badge using the official dark, light, and orange logo colors.</desc>
+
+  <defs>
+    <clipPath id="badge-clip">
+      <rect width="106" height="20" rx="3"/>
+    </clipPath>
+    <clipPath id="logo-clip">
+      <circle cx="11" cy="10" r="7.5"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#badge-clip)">
+    <rect width="106" height="20" fill="#1c1c1e"/>
+    <rect x="102" width="4" height="20" fill="#ffb003"/>
+  </g>
+
+  <g clip-path="url(#logo-clip)">
+    <circle cx="11" cy="10" r="7.5" fill="#f0f0f0"/>
+    <rect x="3.5" y="2.5" width="15" height="4.5" fill="#1c1c1e"/>
+    <rect x="3.5" y="13" width="15" height="4.5" fill="#ffb003"/>
+  </g>
+  <circle cx="11" cy="10" r="7.5" fill="none" stroke="#f0f0f0" stroke-width="1"/>
+
+  <text x="23" y="14.2" fill="#f0f0f0"
+        font-family="Verdana, Geneva, DejaVu Sans, sans-serif"
+        font-size="11" font-weight="700">LINUX DO</text>
+</svg>

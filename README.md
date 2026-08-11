@@ -11,6 +11,7 @@
   <a href="https://www.npmjs.com/package/onesearch"><img src="https://img.shields.io/npm/v/onesearch?style=flat-square&label=npm" alt="onesearch npm version"></a>
   <img src="https://img.shields.io/badge/Go-1.26-00ADD8?style=flat-square&logo=go&logoColor=white" alt="Go 1.26">
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-Apache--2.0-D22128?style=flat-square" alt="Apache License 2.0"></a>
+  <a href="https://linux.do/"><img src="./assets/readme/linuxdo-badge.svg" alt="LINUX DO"></a>
 </p>
 
 `onesearch` is a CLI-first research and evidence tool for AI agents, scripts, and terminal users. It puts answer search, source discovery, documentation lookup, page fetching, site mapping and crawling, repository wiki access, offline research planning, configuration diagnostics, and built-in Skill distribution behind one reproducible command layer.
