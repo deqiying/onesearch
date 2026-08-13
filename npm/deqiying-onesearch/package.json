@@ -1,6 +1,6 @@
 {
   "name": "@deqiying/onesearch",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Scoped entry point for the onesearch CLI.",
   "license": "Apache-2.0",
   "bin": {
@@ -21,7 +21,7 @@
     "url": "https://github.com/deqiying/onesearch/issues"
   },
   "dependencies": {
-    "onesearch": "1.0.3"
+    "onesearch": "1.0.4"
   },
   "publishConfig": {
     "access": "public"
