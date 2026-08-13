@@ -228,7 +228,7 @@ jobs:
           binary="dist/npm-bin-linux-x64/onesearch"
 
           schema_json="$("${binary}" schema skills show --format json)"
-          if [[ "${schema_json}" != *'"ok":true'* || "${schema_json}" != *'"id":"skills.show"'* ]]; then
+          if [[ "${schema_json}" != *'"ok":true'* || "${schema_json}" != *'"manifest_version":2'* || "${schema_json}" != *'"name":"skills.show"'* || "${schema_json}" != *'"description":'* || "${schema_json}" != *'"input_schema":'* ]]; then
             echo "Targeted skills.show schema is missing the expected contract" >&2
             exit 1
           fi
@@ -341,7 +341,7 @@ jobs:
           binary="npm/packages/linux-x64/bin/onesearch"
 
           schema_json="$("${binary}" schema skills show --format json)"
-          if [[ "${schema_json}" != *'"ok":true'* || "${schema_json}" != *'"id":"skills.show"'* ]]; then
+          if [[ "${schema_json}" != *'"ok":true'* || "${schema_json}" != *'"manifest_version":2'* || "${schema_json}" != *'"name":"skills.show"'* || "${schema_json}" != *'"description":'* || "${schema_json}" != *'"input_schema":'* ]]; then
             echo "Targeted skills.show schema is missing the expected contract" >&2
             exit 1
           fi
