@@ -1,7 +1,7 @@
 {
   "ok": true,
   "kind": "onesearch_cli_command_manifest",
-  "manifest_version": 1,
+  "manifest_version": 2,
   "cli": {
     "name": "onesearch",
     "version": "<runtime-version>"
@@ -12,23 +12,8 @@
   },
   "commands": [
     {
-      "id": "crawl",
-      "path": [
-        "crawl"
-      ],
-      "category": "workflow",
-      "summary": "Crawl pages from a website.",
-      "capabilities": [
-        "site_crawl"
-      ],
-      "preferred_for": [
-        "site_crawl"
-      ],
-      "aliases": [
-        [
-          "cr"
-        ]
-      ],
+      "name": "crawl",
+      "description": "Crawl pages from a website.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -144,6 +129,21 @@
         ],
         "type": "object"
       },
+      "path": [
+        "crawl"
+      ],
+      "category": "workflow",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "preferred_for": [
+        "site_crawl"
+      ],
+      "aliases": [
+        [
+          "cr"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -185,17 +185,8 @@
       }
     },
     {
-      "id": "deep",
-      "path": [
-        "deep"
-      ],
-      "category": "workflow",
-      "summary": "Create an offline deep-research execution plan.",
-      "aliases": [
-        [
-          "dr"
-        ]
-      ],
+      "name": "deep",
+      "description": "Create an offline deep-research execution plan.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -296,6 +287,15 @@
         ],
         "type": "object"
       },
+      "path": [
+        "deep"
+      ],
+      "category": "workflow",
+      "aliases": [
+        [
+          "dr"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -328,23 +328,8 @@
       }
     },
     {
-      "id": "fetch",
-      "path": [
-        "fetch"
-      ],
-      "category": "workflow",
-      "summary": "Fetch a URL through the page-fetch route.",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "preferred_for": [
-        "page_fetch"
-      ],
-      "aliases": [
-        [
-          "f"
-        ]
-      ],
+      "name": "fetch",
+      "description": "Fetch a URL through the page-fetch route.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -430,6 +415,21 @@
         ],
         "type": "object"
       },
+      "path": [
+        "fetch"
+      ],
+      "category": "workflow",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "preferred_for": [
+        "page_fetch"
+      ],
+      "aliases": [
+        [
+          "f"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -471,23 +471,8 @@
       }
     },
     {
-      "id": "map",
-      "path": [
-        "map"
-      ],
-      "category": "workflow",
-      "summary": "Map links from a website.",
-      "capabilities": [
-        "site_map"
-      ],
-      "preferred_for": [
-        "site_map"
-      ],
-      "aliases": [
-        [
-          "m"
-        ]
-      ],
+      "name": "map",
+      "description": "Map links from a website.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -623,6 +608,21 @@
         ],
         "type": "object"
       },
+      "path": [
+        "map"
+      ],
+      "category": "workflow",
+      "capabilities": [
+        "site_map"
+      ],
+      "preferred_for": [
+        "site_map"
+      ],
+      "aliases": [
+        [
+          "m"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -664,23 +664,8 @@
       }
     },
     {
-      "id": "repo-wiki",
-      "path": [
-        "repo-wiki"
-      ],
-      "category": "workflow",
-      "summary": "Read or query a repository wiki.",
-      "capabilities": [
-        "repo_wiki"
-      ],
-      "preferred_for": [
-        "repo_wiki"
-      ],
-      "aliases": [
-        [
-          "rw"
-        ]
-      ],
+      "name": "repo-wiki",
+      "description": "Read or query a repository wiki.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -801,6 +786,21 @@
         ],
         "type": "object"
       },
+      "path": [
+        "repo-wiki"
+      ],
+      "category": "workflow",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "preferred_for": [
+        "repo_wiki"
+      ],
+      "aliases": [
+        [
+          "rw"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -842,27 +842,8 @@
       }
     },
     {
-      "id": "search",
-      "path": [
-        "search"
-      ],
-      "category": "workflow",
-      "summary": "Search the web through configured capability routes.",
-      "capabilities": [
-        "answer_search",
-        "docs_search",
-        "source_search"
-      ],
-      "preferred_for": [
-        "answer_search",
-        "docs_search",
-        "source_search"
-      ],
-      "aliases": [
-        [
-          "s"
-        ]
-      ],
+      "name": "search",
+      "description": "Search the web through configured capability routes.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1129,6 +1110,25 @@
         ],
         "type": "object"
       },
+      "path": [
+        "search"
+      ],
+      "category": "workflow",
+      "capabilities": [
+        "answer_search",
+        "docs_search",
+        "source_search"
+      ],
+      "preferred_for": [
+        "answer_search",
+        "docs_search",
+        "source_search"
+      ],
+      "aliases": [
+        [
+          "s"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -1177,18 +1177,8 @@
       }
     },
     {
-      "id": "anysearch.batch",
-      "path": [
-        "anysearch",
-        "batch"
-      ],
-      "category": "provider",
-      "summary": "Run multiple AnySearch queries.",
-      "provider": "anysearch",
-      "capabilities": [
-        "vertical_search"
-      ],
-      "aliases": [],
+      "name": "anysearch.batch",
+      "description": "Run multiple AnySearch queries.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1278,6 +1268,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "anysearch",
+        "batch"
+      ],
+      "category": "provider",
+      "provider": "anysearch",
+      "capabilities": [
+        "vertical_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -1321,18 +1321,8 @@
       }
     },
     {
-      "id": "anysearch.domains",
-      "path": [
-        "anysearch",
-        "domains"
-      ],
-      "category": "provider",
-      "summary": "List or inspect AnySearch domains.",
-      "provider": "anysearch",
-      "capabilities": [
-        "vertical_search"
-      ],
-      "aliases": [],
+      "name": "anysearch.domains",
+      "description": "List or inspect AnySearch domains.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1404,6 +1394,16 @@
         },
         "type": "object"
       },
+      "path": [
+        "anysearch",
+        "domains"
+      ],
+      "category": "provider",
+      "provider": "anysearch",
+      "capabilities": [
+        "vertical_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -1447,18 +1447,8 @@
       }
     },
     {
-      "id": "anysearch.extract",
-      "path": [
-        "anysearch",
-        "extract"
-      ],
-      "category": "provider",
-      "summary": "Extract content from a URL with AnySearch.",
-      "provider": "anysearch",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "aliases": [],
+      "name": "anysearch.extract",
+      "description": "Extract content from a URL with AnySearch.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1544,6 +1534,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "anysearch",
+        "extract"
+      ],
+      "category": "provider",
+      "provider": "anysearch",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -1587,21 +1587,8 @@
       }
     },
     {
-      "id": "anysearch.search",
-      "path": [
-        "anysearch",
-        "search"
-      ],
-      "category": "provider",
-      "summary": "Search an AnySearch vertical domain.",
-      "provider": "anysearch",
-      "capabilities": [
-        "vertical_search"
-      ],
-      "preferred_for": [
-        "vertical_search"
-      ],
-      "aliases": [],
+      "name": "anysearch.search",
+      "description": "Search an AnySearch vertical domain.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1707,6 +1694,19 @@
         ],
         "type": "object"
       },
+      "path": [
+        "anysearch",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "anysearch",
+      "capabilities": [
+        "vertical_search"
+      ],
+      "preferred_for": [
+        "vertical_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -1750,18 +1750,8 @@
       }
     },
     {
-      "id": "context7.query-docs",
-      "path": [
-        "context7",
-        "query-docs"
-      ],
-      "category": "provider",
-      "summary": "Query documentation from a Context7 library.",
-      "provider": "context7",
-      "capabilities": [
-        "docs_search"
-      ],
-      "aliases": [],
+      "name": "context7.query-docs",
+      "description": "Query documentation from a Context7 library.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1848,6 +1838,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "context7",
+        "query-docs"
+      ],
+      "category": "provider",
+      "provider": "context7",
+      "capabilities": [
+        "docs_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -1891,18 +1891,8 @@
       }
     },
     {
-      "id": "context7.resolve-library-id",
-      "path": [
-        "context7",
-        "resolve-library-id"
-      ],
-      "category": "provider",
-      "summary": "Resolve a Context7 library identifier.",
-      "provider": "context7",
-      "capabilities": [
-        "docs_search"
-      ],
-      "aliases": [],
+      "name": "context7.resolve-library-id",
+      "description": "Resolve a Context7 library identifier.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -1987,6 +1977,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "context7",
+        "resolve-library-id"
+      ],
+      "category": "provider",
+      "provider": "context7",
+      "capabilities": [
+        "docs_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -2030,18 +2030,8 @@
       }
     },
     {
-      "id": "ddg.fetch-content",
-      "path": [
-        "ddg",
-        "fetch-content"
-      ],
-      "category": "provider",
-      "summary": "Fetch page content with DuckDuckGo.",
-      "provider": "ddg",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "aliases": [],
+      "name": "ddg.fetch-content",
+      "description": "Fetch page content with DuckDuckGo.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -2147,6 +2137,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "ddg",
+        "fetch-content"
+      ],
+      "category": "provider",
+      "provider": "ddg",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -2190,18 +2190,8 @@
       }
     },
     {
-      "id": "ddg.search",
-      "path": [
-        "ddg",
-        "search"
-      ],
-      "category": "provider",
-      "summary": "Search the web with DuckDuckGo.",
-      "provider": "ddg",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "ddg.search",
+      "description": "Search the web with DuckDuckGo.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -2297,6 +2287,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "ddg",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "ddg",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -2340,18 +2340,8 @@
       }
     },
     {
-      "id": "deepwiki.ask-question",
-      "path": [
-        "deepwiki",
-        "ask-question"
-      ],
-      "category": "provider",
-      "summary": "Ask a question about a repository wiki.",
-      "provider": "deepwiki",
-      "capabilities": [
-        "repo_wiki"
-      ],
-      "aliases": [],
+      "name": "deepwiki.ask-question",
+      "description": "Ask a question about a repository wiki.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -2438,6 +2428,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "deepwiki",
+        "ask-question"
+      ],
+      "category": "provider",
+      "provider": "deepwiki",
+      "capabilities": [
+        "repo_wiki"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -2481,18 +2481,138 @@
       }
     },
     {
-      "id": "deepwiki.read-wiki-contents",
+      "name": "deepwiki.read-wiki-contents",
+      "description": "Read repository wiki contents.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "repo": {
+            "description": "Repository in owner/name form.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "repo"
+        ],
+        "type": "object"
+      },
       "path": [
         "deepwiki",
         "read-wiki-contents"
       ],
       "category": "provider",
-      "summary": "Read repository wiki contents.",
       "provider": "deepwiki",
       "capabilities": [
         "repo_wiki"
       ],
       "aliases": [],
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/deepwiki/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "name": "deepwiki.read-wiki-structure",
+      "description": "Read a repository wiki structure.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -2568,136 +2688,16 @@
         ],
         "type": "object"
       },
-      "constraints": [
-        {
-          "kind": "mutually_exclusive",
-          "members": [
-            "quiet",
-            "verbose"
-          ]
-        }
-      ],
-      "availability": {
-        "dynamic": true,
-        "check_command": [
-          "status"
-        ],
-        "json_pointer": "/direct_endpoints/deepwiki/available",
-        "preflight_level": "local_configuration",
-        "does_not_prove": [
-          "credential_validity",
-          "network_reachability",
-          "remote_tool_presence"
-        ]
-      },
-      "side_effects": [
-        "config_initialize_when_missing",
-        "filesystem_write_when_output_is_set",
-        "network"
-      ],
-      "output": {
-        "default_format": "json",
-        "formats": [
-          "content",
-          "json",
-          "markdown"
-        ],
-        "variants": [
-          "quiet",
-          "verbose"
-        ],
-        "contract": "provider_result",
-        "provider_payload": "opaque"
-      }
-    },
-    {
-      "id": "deepwiki.read-wiki-structure",
       "path": [
         "deepwiki",
         "read-wiki-structure"
       ],
       "category": "provider",
-      "summary": "Read a repository wiki structure.",
       "provider": "deepwiki",
       "capabilities": [
         "repo_wiki"
       ],
       "aliases": [],
-      "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "additionalProperties": false,
-        "properties": {
-          "format": {
-            "default": "json",
-            "description": "Output format.",
-            "enum": [
-              "json",
-              "markdown",
-              "content"
-            ],
-            "type": "string",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--format"
-            }
-          },
-          "output": {
-            "default": "",
-            "description": "Also write the rendered output to this path.",
-            "type": "string",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--output"
-            }
-          },
-          "pretty": {
-            "default": false,
-            "description": "Indent JSON output; ignored for non-JSON formats.",
-            "type": "boolean",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--pretty"
-            }
-          },
-          "quiet": {
-            "default": false,
-            "description": "Return the compact result variant.",
-            "type": "boolean",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--quiet"
-            }
-          },
-          "repo": {
-            "description": "Repository in owner/name form.",
-            "minLength": 1,
-            "type": "string",
-            "x-cli-binding": {
-              "index": 0,
-              "kind": "positional",
-              "variadic": false
-            }
-          },
-          "verbose": {
-            "default": false,
-            "description": "Include verbose diagnostics.",
-            "type": "boolean",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--verbose"
-            }
-          }
-        },
-        "required": [
-          "repo"
-        ],
-        "type": "object"
-      },
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -2741,18 +2741,8 @@
       }
     },
     {
-      "id": "exa.similar",
-      "path": [
-        "exa",
-        "similar"
-      ],
-      "category": "provider",
-      "summary": "Find pages similar to a URL with Exa.",
-      "provider": "exa",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "exa.similar",
+      "description": "Find pages similar to a URL with Exa.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -2838,6 +2828,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "exa",
+        "similar"
+      ],
+      "category": "provider",
+      "provider": "exa",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -2881,18 +2881,8 @@
       }
     },
     {
-      "id": "exa.web-fetch",
-      "path": [
-        "exa",
-        "web-fetch"
-      ],
-      "category": "provider",
-      "summary": "Fetch one or more URLs with Exa.",
-      "provider": "exa",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "aliases": [],
+      "name": "exa.web-fetch",
+      "description": "Fetch one or more URLs with Exa.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -2993,6 +2983,16 @@
         },
         "type": "object"
       },
+      "path": [
+        "exa",
+        "web-fetch"
+      ],
+      "category": "provider",
+      "provider": "exa",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "at_least_one",
@@ -3043,19 +3043,8 @@
       }
     },
     {
-      "id": "exa.web-search",
-      "path": [
-        "exa",
-        "web-search"
-      ],
-      "category": "provider",
-      "summary": "Search the web with Exa.",
-      "provider": "exa",
-      "capabilities": [
-        "docs_search",
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "exa.web-search",
+      "description": "Search the web with Exa.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -3234,6 +3223,17 @@
         ],
         "type": "object"
       },
+      "path": [
+        "exa",
+        "web-search"
+      ],
+      "category": "provider",
+      "provider": "exa",
+      "capabilities": [
+        "docs_search",
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -3277,18 +3277,8 @@
       }
     },
     {
-      "id": "firecrawl.crawl",
-      "path": [
-        "firecrawl",
-        "crawl"
-      ],
-      "category": "provider",
-      "summary": "Crawl a website with Firecrawl.",
-      "provider": "firecrawl",
-      "capabilities": [
-        "site_crawl"
-      ],
-      "aliases": [],
+      "name": "firecrawl.crawl",
+      "description": "Crawl a website with Firecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -3394,6 +3384,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "firecrawl",
+        "crawl"
+      ],
+      "category": "provider",
+      "provider": "firecrawl",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -3437,18 +3437,8 @@
       }
     },
     {
-      "id": "firecrawl.map",
-      "path": [
-        "firecrawl",
-        "map"
-      ],
-      "category": "provider",
-      "summary": "Map links from a website with Firecrawl.",
-      "provider": "firecrawl",
-      "capabilities": [
-        "site_map"
-      ],
-      "aliases": [],
+      "name": "firecrawl.map",
+      "description": "Map links from a website with Firecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -3534,6 +3524,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "firecrawl",
+        "map"
+      ],
+      "category": "provider",
+      "provider": "firecrawl",
+      "capabilities": [
+        "site_map"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -3577,18 +3577,8 @@
       }
     },
     {
-      "id": "firecrawl.scrape",
-      "path": [
-        "firecrawl",
-        "scrape"
-      ],
-      "category": "provider",
-      "summary": "Scrape a URL with Firecrawl.",
-      "provider": "firecrawl",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "aliases": [],
+      "name": "firecrawl.scrape",
+      "description": "Scrape a URL with Firecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -3674,6 +3664,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "firecrawl",
+        "scrape"
+      ],
+      "category": "provider",
+      "provider": "firecrawl",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -3717,18 +3717,8 @@
       }
     },
     {
-      "id": "firecrawl.search",
-      "path": [
-        "firecrawl",
-        "search"
-      ],
-      "category": "provider",
-      "summary": "Search the web with Firecrawl.",
-      "provider": "firecrawl",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "firecrawl.search",
+      "description": "Search the web with Firecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -3814,6 +3804,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "firecrawl",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "firecrawl",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -3857,18 +3857,8 @@
       }
     },
     {
-      "id": "freecrawl.crawl",
-      "path": [
-        "freecrawl",
-        "crawl"
-      ],
-      "category": "provider",
-      "summary": "Crawl a website with Freecrawl.",
-      "provider": "freecrawl",
-      "capabilities": [
-        "site_crawl"
-      ],
-      "aliases": [],
+      "name": "freecrawl.crawl",
+      "description": "Crawl a website with Freecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -4004,6 +3994,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "freecrawl",
+        "crawl"
+      ],
+      "category": "provider",
+      "provider": "freecrawl",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -4047,18 +4047,8 @@
       }
     },
     {
-      "id": "freecrawl.deep-research",
-      "path": [
-        "freecrawl",
-        "deep-research"
-      ],
-      "category": "provider",
-      "summary": "Run Freecrawl deep research.",
-      "provider": "freecrawl",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "freecrawl.deep-research",
+      "description": "Run Freecrawl deep research.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -4179,6 +4169,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "freecrawl",
+        "deep-research"
+      ],
+      "category": "provider",
+      "provider": "freecrawl",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -4222,18 +4222,8 @@
       }
     },
     {
-      "id": "freecrawl.scrape",
-      "path": [
-        "freecrawl",
-        "scrape"
-      ],
-      "category": "provider",
-      "summary": "Scrape a URL with Freecrawl.",
-      "provider": "freecrawl",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "aliases": [],
+      "name": "freecrawl.scrape",
+      "description": "Scrape a URL with Freecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -4369,6 +4359,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "freecrawl",
+        "scrape"
+      ],
+      "category": "provider",
+      "provider": "freecrawl",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -4412,18 +4412,8 @@
       }
     },
     {
-      "id": "freecrawl.search",
-      "path": [
-        "freecrawl",
-        "search"
-      ],
-      "category": "provider",
-      "summary": "Search the web with Freecrawl.",
-      "provider": "freecrawl",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "freecrawl.search",
+      "description": "Search the web with Freecrawl.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -4529,6 +4519,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "freecrawl",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "freecrawl",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -4572,18 +4572,8 @@
       }
     },
     {
-      "id": "tavily.crawl",
-      "path": [
-        "tavily",
-        "crawl"
-      ],
-      "category": "provider",
-      "summary": "Run Tavily crawl on a website.",
-      "provider": "tavily",
-      "capabilities": [
-        "site_crawl"
-      ],
-      "aliases": [],
+      "name": "tavily.crawl",
+      "description": "Run Tavily crawl on a website.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -4819,6 +4809,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "tavily",
+        "crawl"
+      ],
+      "category": "provider",
+      "provider": "tavily",
+      "capabilities": [
+        "site_crawl"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -4862,18 +4862,8 @@
       }
     },
     {
-      "id": "tavily.extract",
-      "path": [
-        "tavily",
-        "extract"
-      ],
-      "category": "provider",
-      "summary": "Extract content from one or more URLs with Tavily.",
-      "provider": "tavily",
-      "capabilities": [
-        "page_fetch"
-      ],
-      "aliases": [],
+      "name": "tavily.extract",
+      "description": "Extract content from one or more URLs with Tavily.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -5024,6 +5014,16 @@
         },
         "type": "object"
       },
+      "path": [
+        "tavily",
+        "extract"
+      ],
+      "category": "provider",
+      "provider": "tavily",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "at_least_one",
@@ -5074,18 +5074,8 @@
       }
     },
     {
-      "id": "tavily.map",
-      "path": [
-        "tavily",
-        "map"
-      ],
-      "category": "provider",
-      "summary": "Run Tavily map on a website.",
-      "provider": "tavily",
-      "capabilities": [
-        "site_map"
-      ],
-      "aliases": [],
+      "name": "tavily.map",
+      "description": "Run Tavily map on a website.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -5325,6 +5315,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "tavily",
+        "map"
+      ],
+      "category": "provider",
+      "provider": "tavily",
+      "capabilities": [
+        "site_map"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -5368,18 +5368,8 @@
       }
     },
     {
-      "id": "tavily.search",
-      "path": [
-        "tavily",
-        "search"
-      ],
-      "category": "provider",
-      "summary": "Search the web with Tavily.",
-      "provider": "tavily",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "tavily.search",
+      "description": "Search the web with Tavily.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -5585,6 +5575,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "tavily",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "tavily",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -5628,18 +5628,8 @@
       }
     },
     {
-      "id": "zhipu.search",
-      "path": [
-        "zhipu",
-        "search"
-      ],
-      "category": "provider",
-      "summary": "Search the web with Zhipu.",
-      "provider": "zhipu",
-      "capabilities": [
-        "source_search"
-      ],
-      "aliases": [],
+      "name": "zhipu.search",
+      "description": "Search the web with Zhipu.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -5765,6 +5755,16 @@
         ],
         "type": "object"
       },
+      "path": [
+        "zhipu",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "zhipu",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -5808,13 +5808,75 @@
       }
     },
     {
-      "id": "config.list",
+      "name": "config.list",
+      "description": "Show the redacted runtime configuration schema and provider status.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "type": "object"
+      },
       "path": [
         "config",
         "list"
       ],
       "category": "utility",
-      "summary": "Show the redacted runtime configuration schema and provider status.",
       "aliases": [
         [
           "cfg",
@@ -5837,6 +5899,41 @@
           "ls"
         ]
       ],
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "config_read",
+        "filesystem_write_when_output_is_set"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "config_result"
+      }
+    },
+    {
+      "name": "config.path",
+      "description": "Show the active configuration path.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -5899,46 +5996,11 @@
         },
         "type": "object"
       },
-      "constraints": [
-        {
-          "kind": "mutually_exclusive",
-          "members": [
-            "quiet",
-            "verbose"
-          ]
-        }
-      ],
-      "availability": {
-        "dynamic": false,
-        "preflight_level": "static"
-      },
-      "side_effects": [
-        "config_initialize_when_missing",
-        "config_read",
-        "filesystem_write_when_output_is_set"
-      ],
-      "output": {
-        "default_format": "json",
-        "formats": [
-          "content",
-          "json",
-          "markdown"
-        ],
-        "variants": [
-          "quiet",
-          "verbose"
-        ],
-        "contract": "config_result"
-      }
-    },
-    {
-      "id": "config.path",
       "path": [
         "config",
         "path"
       ],
       "category": "utility",
-      "summary": "Show the active configuration path.",
       "aliases": [
         [
           "cfg",
@@ -5953,68 +6015,6 @@
           "p"
         ]
       ],
-      "input_schema": {
-        "$schema": "https://json-schema.org/draft/2020-12/schema",
-        "additionalProperties": false,
-        "properties": {
-          "format": {
-            "default": "json",
-            "description": "Output format.",
-            "enum": [
-              "json",
-              "markdown",
-              "content"
-            ],
-            "type": "string",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--format"
-            }
-          },
-          "output": {
-            "default": "",
-            "description": "Also write the rendered output to this path.",
-            "type": "string",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--output"
-            }
-          },
-          "pretty": {
-            "default": false,
-            "description": "Indent JSON output; ignored for non-JSON formats.",
-            "type": "boolean",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--pretty"
-            }
-          },
-          "quiet": {
-            "default": false,
-            "description": "Return the compact result variant.",
-            "type": "boolean",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--quiet"
-            }
-          },
-          "verbose": {
-            "default": false,
-            "description": "Include verbose diagnostics.",
-            "type": "boolean",
-            "x-cli-binding": {
-              "kind": "flag",
-              "repeatable": false,
-              "token": "--verbose"
-            }
-          }
-        },
-        "type": "object"
-      },
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -6048,19 +6048,8 @@
       }
     },
     {
-      "id": "config.setup",
-      "path": [
-        "config",
-        "setup"
-      ],
-      "category": "utility",
-      "summary": "Configure one provider using hidden TTY or stdin input.",
-      "aliases": [
-        [
-          "cfg",
-          "setup"
-        ]
-      ],
+      "name": "config.setup",
+      "description": "Configure one provider using hidden TTY or stdin input.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6155,6 +6144,17 @@
         ],
         "type": "object"
       },
+      "path": [
+        "config",
+        "setup"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "cfg",
+          "setup"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -6212,17 +6212,8 @@
       }
     },
     {
-      "id": "doctor",
-      "path": [
-        "doctor"
-      ],
-      "category": "utility",
-      "summary": "Diagnose configuration and capability readiness.",
-      "aliases": [
-        [
-          "d"
-        ]
-      ],
+      "name": "doctor",
+      "description": "Diagnose configuration and capability readiness.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6285,6 +6276,15 @@
         },
         "type": "object"
       },
+      "path": [
+        "doctor"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "d"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -6318,35 +6318,8 @@
       }
     },
     {
-      "id": "model.current",
-      "path": [
-        "model",
-        "current"
-      ],
-      "category": "utility",
-      "summary": "Show the effective model configuration.",
-      "aliases": [
-        [
-          "mdl",
-          "c"
-        ],
-        [
-          "mdl",
-          "cur"
-        ],
-        [
-          "mdl",
-          "current"
-        ],
-        [
-          "model",
-          "c"
-        ],
-        [
-          "model",
-          "cur"
-        ]
-      ],
+      "name": "model.current",
+      "description": "Show the effective model configuration.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6409,6 +6382,33 @@
         },
         "type": "object"
       },
+      "path": [
+        "model",
+        "current"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "mdl",
+          "c"
+        ],
+        [
+          "mdl",
+          "cur"
+        ],
+        [
+          "mdl",
+          "current"
+        ],
+        [
+          "model",
+          "c"
+        ],
+        [
+          "model",
+          "cur"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -6442,17 +6442,8 @@
       }
     },
     {
-      "id": "regression",
-      "path": [
-        "regression"
-      ],
-      "category": "utility",
-      "summary": "Run the fixed mock regression suite.",
-      "aliases": [
-        [
-          "reg"
-        ]
-      ],
+      "name": "regression",
+      "description": "Run the fixed mock regression suite.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6483,6 +6474,15 @@
         },
         "type": "object"
       },
+      "path": [
+        "regression"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "reg"
+        ]
+      ],
       "availability": {
         "dynamic": false,
         "preflight_level": "static"
@@ -6502,13 +6502,8 @@
       }
     },
     {
-      "id": "schema",
-      "path": [
-        "schema"
-      ],
-      "category": "utility",
-      "summary": "Return the versioned CLI command manifest for agents and tooling.",
-      "aliases": [],
+      "name": "schema",
+      "description": "Return the versioned CLI command manifest for agents and tooling.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6528,7 +6523,7 @@
           },
           "format": {
             "default": "json",
-            "description": "Manifest format; V1 supports JSON only.",
+            "description": "Manifest format; JSON only.",
             "enum": [
               "json"
             ],
@@ -6562,6 +6557,11 @@
         },
         "type": "object"
       },
+      "path": [
+        "schema"
+      ],
+      "category": "utility",
+      "aliases": [],
       "availability": {
         "dynamic": false,
         "preflight_level": "static"
@@ -6578,35 +6578,8 @@
       }
     },
     {
-      "id": "skills.list",
-      "path": [
-        "skills",
-        "list"
-      ],
-      "category": "utility",
-      "summary": "List bundled Onesearch skills.",
-      "aliases": [
-        [
-          "skill",
-          "l"
-        ],
-        [
-          "skill",
-          "list"
-        ],
-        [
-          "skill",
-          "ls"
-        ],
-        [
-          "skills",
-          "l"
-        ],
-        [
-          "skills",
-          "ls"
-        ]
-      ],
+      "name": "skills.list",
+      "description": "List bundled Onesearch skills.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6679,6 +6652,33 @@
         },
         "type": "object"
       },
+      "path": [
+        "skills",
+        "list"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "skill",
+          "l"
+        ],
+        [
+          "skill",
+          "list"
+        ],
+        [
+          "skill",
+          "ls"
+        ],
+        [
+          "skills",
+          "l"
+        ],
+        [
+          "skills",
+          "ls"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -6711,43 +6711,8 @@
       }
     },
     {
-      "id": "skills.show",
-      "path": [
-        "skills",
-        "show"
-      ],
-      "category": "utility",
-      "summary": "Show one file from a bundled skill.",
-      "aliases": [
-        [
-          "skill",
-          "get"
-        ],
-        [
-          "skill",
-          "load"
-        ],
-        [
-          "skill",
-          "read"
-        ],
-        [
-          "skill",
-          "show"
-        ],
-        [
-          "skills",
-          "get"
-        ],
-        [
-          "skills",
-          "load"
-        ],
-        [
-          "skills",
-          "read"
-        ]
-      ],
+      "name": "skills.show",
+      "description": "Show one file from a bundled skill.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6843,6 +6808,41 @@
         ],
         "type": "object"
       },
+      "path": [
+        "skills",
+        "show"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "skill",
+          "get"
+        ],
+        [
+          "skill",
+          "load"
+        ],
+        [
+          "skill",
+          "read"
+        ],
+        [
+          "skill",
+          "show"
+        ],
+        [
+          "skills",
+          "get"
+        ],
+        [
+          "skills",
+          "load"
+        ],
+        [
+          "skills",
+          "read"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -6875,17 +6875,8 @@
       }
     },
     {
-      "id": "smoke",
-      "path": [
-        "smoke"
-      ],
-      "category": "utility",
-      "summary": "Run mock or live smoke checks.",
-      "aliases": [
-        [
-          "sm"
-        ]
-      ],
+      "name": "smoke",
+      "description": "Run mock or live smoke checks.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -6982,6 +6973,15 @@
         },
         "type": "object"
       },
+      "path": [
+        "smoke"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "sm"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",
@@ -7022,17 +7022,8 @@
       }
     },
     {
-      "id": "status",
-      "path": [
-        "status"
-      ],
-      "category": "utility",
-      "summary": "Report runtime capability and provider status.",
-      "aliases": [
-        [
-          "st"
-        ]
-      ],
+      "name": "status",
+      "description": "Report runtime capability and provider status.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "additionalProperties": false,
@@ -7095,6 +7086,15 @@
         },
         "type": "object"
       },
+      "path": [
+        "status"
+      ],
+      "category": "utility",
+      "aliases": [
+        [
+          "st"
+        ]
+      ],
       "constraints": [
         {
           "kind": "mutually_exclusive",

@@ -4,6 +4,8 @@
 
 状态：已按方案实施。主 Skill 的 canonical ID、asset folder、frontmatter name 与 metadata prompt 已统一为 `onesearch`，未保留旧名称作为 CLI alias。
 
+后续 command manifest 已升级到 V2；targeted schema 的 command entry 使用 `name`、`description` 和 `input_schema`，并继续以 `path` 与 `x-cli-binding` 作为 argv 真源。详见 [CLI Command Manifest 与 Agent Tool 声明字段对齐技术方案](cli-command-manifest-tool-declaration-alignment-technical-design.md)。
+
 已落地静态 `skills list/show`、`skills show --file`、targeted schema 驱动的 14 个 Skill、共享 agent execution reference、统一 metadata/drift tests、README/manifest 同步与发布后二进制 asset smoke。下文的问题分析与分阶段方案保留为实施前决策依据。
 
 实施后已通过 `mise exec -- go test -count=1 ./...`、`mise exec -- go vet ./...`、`smoke --mock`、14 个 `quick_validate.py`、隔离配置的静态 discovery 测试，以及独立构建二进制的 targeted schema、Skill inventory、主 Skill、reference 和旧名称拒绝 smoke。真实 provider、网络、凭据、远端 MCP tool 与 npm registry 发布仍不在本次验证范围内。
@@ -483,7 +485,7 @@ onesearch skills show onesearch --file references/agent-execution-contract.md --
 | `internal/cli/command_bindings.go` | 移除 list/show 的 runtime binding，避免静态命令回落到 service/config 路径 |
 | `internal/commandcontract/utilities.go` | 更新 skills show input schema；修正 list/show side effects |
 | `internal/cli/cli_test.go` | 覆盖静态发现无 config、file 读取、compact/pretty/content/error |
-| `internal/cli/testdata/cli-command-manifest-v1.golden.json` | 通过显式 update gate 更新 skills show option 与 side effects |
+| `internal/cli/testdata/cli-command-manifest-v2.golden.json` | 通过显式 update gate 维护当前 skills show option、side effects 与 V2 command fields |
 | `internal/output/output.go`、`internal/output/output_test.go` | 按 `error_type` 输出恢复 hint，确保 parameter error 不误导 agent 运行 doctor |
 | `README.md` | 更新 agent 最小调用链、Skill 静态发现、reference 读取和输出/恢复规则 |
 | `npm/onesearch/README.md` | 同步 npm 用户需要的最小 agent contract |

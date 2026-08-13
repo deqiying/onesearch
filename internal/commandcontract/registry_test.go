@@ -30,6 +30,33 @@ func TestDefaultRegistryIndexesCanonicalAliasesAndCapabilities(t *testing.T) {
 	}
 }
 
+func TestManifestV2PublishesAgentToolCoreFields(t *testing.T) {
+	if ManifestVersion != 2 {
+		t.Fatalf("ManifestVersion = %d, want 2", ManifestVersion)
+	}
+
+	seen := map[string]bool{}
+	for _, command := range MustDefaultRegistry().Commands() {
+		if command.Description == "" {
+			t.Fatalf("command %q has an empty description", command.ID)
+		}
+		manifest := command.Manifest()
+		if manifest.Name != command.ID {
+			t.Fatalf("command %q manifest name = %q", command.ID, manifest.Name)
+		}
+		if manifest.Description != command.Description {
+			t.Fatalf("command %q manifest description = %q, want %q", command.ID, manifest.Description, command.Description)
+		}
+		if manifest.InputSchema == nil {
+			t.Fatalf("command %q has a nil input schema", command.ID)
+		}
+		if seen[manifest.Name] {
+			t.Fatalf("duplicate manifest name %q", manifest.Name)
+		}
+		seen[manifest.Name] = true
+	}
+}
+
 func TestEveryPublicCommandExposesPrettyPresentationOption(t *testing.T) {
 	for _, command := range MustDefaultRegistry().Commands() {
 		var pretty OptionDefinition
@@ -63,19 +90,25 @@ func TestEveryPublicCommandExposesPrettyPresentationOption(t *testing.T) {
 func TestRegistryRejectsConflictingDefinitions(t *testing.T) {
 	base := CommandDefinition{
 		ID: "demo", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic,
-		Summary: "demo", Output: OutputDefinition{DefaultFormat: "json"},
+		Description: "demo", Output: OutputDefinition{DefaultFormat: "json"},
 	}
 	if _, err := NewRegistry([]CommandDefinition{base, base}, nil); err == nil {
 		t.Fatal("duplicate command ID should fail")
 	}
 	base.ID = "other"
-	if _, err := NewRegistry([]CommandDefinition{{ID: "", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic, Summary: "demo", Output: OutputDefinition{DefaultFormat: "json"}}}, nil); err == nil {
+	if _, err := NewRegistry([]CommandDefinition{{ID: "", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic, Description: "demo", Output: OutputDefinition{DefaultFormat: "json"}}}, nil); err == nil {
 		t.Fatal("empty command ID should fail")
+	}
+	if _, err := NewRegistry([]CommandDefinition{{ID: "demo", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic, Output: OutputDefinition{DefaultFormat: "json"}}}, nil); err == nil {
+		t.Fatal("empty command description should fail")
+	}
+	if _, err := NewRegistry(nil, []NamespaceDefinition{{Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic}}); err == nil {
+		t.Fatal("empty namespace description should fail")
 	}
 }
 
 func TestRegistryReturnsCopies(t *testing.T) {
-	command := CommandDefinition{ID: "demo", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic, Summary: "demo", Output: OutputDefinition{DefaultFormat: "json"}}
+	command := CommandDefinition{ID: "demo", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic, Description: "demo", Output: OutputDefinition{DefaultFormat: "json"}}
 	registry, err := NewRegistry([]CommandDefinition{command}, nil)
 	if err != nil {
 		t.Fatal(err)

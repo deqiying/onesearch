@@ -8,7 +8,7 @@ import (
 
 const (
 	ManifestKind    = "onesearch_cli_command_manifest"
-	ManifestVersion = 1
+	ManifestVersion = 2
 )
 
 type Category string
@@ -108,7 +108,7 @@ type CommandDefinition struct {
 	Aliases       [][]string
 	Category      Category
 	Visibility    Visibility
-	Summary       string
+	Description   string
 	Capabilities  []string
 	PreferredFor  []string
 	Provider      string
@@ -126,7 +126,7 @@ type NamespaceDefinition struct {
 	Aliases          [][]string
 	Category         Category
 	Visibility       Visibility
-	Summary          string
+	Description      string
 	DefaultCommandID string
 }
 
@@ -150,15 +150,15 @@ type Manifest struct {
 }
 
 type ManifestCommand struct {
-	ID            string                   `json:"id"`
+	Name          string                   `json:"name"`
+	Description   string                   `json:"description"`
+	InputSchema   map[string]any           `json:"input_schema"`
 	Path          []string                 `json:"path"`
 	Category      Category                 `json:"category"`
-	Summary       string                   `json:"summary"`
 	Provider      string                   `json:"provider,omitempty"`
 	Capabilities  []string                 `json:"capabilities,omitempty"`
 	PreferredFor  []string                 `json:"preferred_for,omitempty"`
 	Aliases       [][]string               `json:"aliases"`
-	InputSchema   map[string]any           `json:"input_schema"`
 	Constraints   []ConstraintDefinition   `json:"constraints,omitempty"`
 	InputChannels []InputChannelDefinition `json:"input_channels,omitempty"`
 	Availability  AvailabilityDefinition   `json:"availability"`
@@ -195,15 +195,15 @@ func (d CommandDefinition) Manifest() ManifestCommand {
 	sort.Strings(output.Formats)
 	sort.Strings(output.Variants)
 	return ManifestCommand{
-		ID:            d.ID,
+		Name:          d.ID,
+		Description:   d.Description,
+		InputSchema:   d.inputSchema(),
 		Path:          append([]string{}, d.Path...),
 		Category:      d.Category,
-		Summary:       d.Summary,
 		Provider:      d.Provider,
 		Capabilities:  capabilities,
 		PreferredFor:  preferredFor,
 		Aliases:       aliases,
-		InputSchema:   d.inputSchema(),
 		Constraints:   constraints,
 		InputChannels: channels,
 		Availability:  availability,

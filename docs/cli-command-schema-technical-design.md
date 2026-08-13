@@ -2,7 +2,9 @@
 
 ## 实施状态
 
-状态：已实施（2026-08-04）。
+状态：V1 已实施（2026-08-04），其公开 command entry 字段已于 2026-08-13 由 V2 合同取代。
+
+当前 `manifest_version: 2` 使用 `name`、`description` 和 `input_schema` 作为 Agent tool 核心字段；迁移原因、兼容策略和当前实现方案参见 [CLI Command Manifest 与 Agent Tool 声明字段对齐技术方案](cli-command-manifest-tool-declaration-alignment-technical-design.md)。本文其余内容保留为 V1 原始设计与实施记录。
 
 本文档先基于实施前代码和本机 CLI 行为制定方案，现已按本文合同完成实现。`onesearch schema`、targeted canonical path 查询、registry-backed help、严格 parser、status command 收敛和 Deep `command_argv` 均已可用。
 
@@ -14,7 +16,7 @@
 - schema 成功与错误使用独立静态 JSON encoder，不进入动态结果的字段精简/redaction；JSON 默认单行 compact，显式 `--pretty` 使用两空格缩进，除显式 `--output` 外不写文件。
 - `status.capabilities.vertical_search.command` 已由 `PreferredFor` 生成 `onesearch anysearch search`；provider-direct command 清单也由 registry/binding 生成。
 - Deep planner 的 allowlist、preflight 和 steps 已由 contract ID 与 `BuildArgv()` 生成；`command_argv` 是机器合同，`command` 保留为 PowerShell 展示字符串。
-- 完整 manifest golden 位于 `internal/cli/testdata/cli-command-manifest-v1.golden.json`，通过显式 `schema --pretty` 和环境变量更新流程生成；其中随发布变化的 `cli.version` 归一化为 `<runtime-version>`，真实输出另行断言等于当前 `app.Version`。
+- 完整 manifest golden 当前位于 `internal/cli/testdata/cli-command-manifest-v2.golden.json`，通过显式 `schema --pretty` 和环境变量更新流程生成；其中随发布变化的 `cli.version` 归一化为 `<runtime-version>`，真实输出另行断言等于当前 `app.Version`。V1 实施时使用的同名 V1 golden 已随 V2 迁移删除。
 - 44 个 public commands 均暴露 `--pretty`；schema 默认输出单行 compact JSON，显式 `--pretty` 使用两空格缩进，二者保留结尾 LF 且数据语义一致。
 
 实施阶段采用了一个不改变合同目标的细化：`internal/cli/command_parser.go` 直接解释 typed definitions，而不是再构造 `flag.FlagSet`，从而保证 active path 只有一次 argv 解析。

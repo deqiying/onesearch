@@ -4,6 +4,8 @@
 
 状态：已实施并完成验证（2026-08-04）。
 
+后续 `onesearch schema` 已升级到 `manifest_version: 2`，command entry 使用 `name`、`description` 和 `input_schema`；当前 golden 为 `internal/cli/testdata/cli-command-manifest-v2.golden.json`。该升级只改变 manifest 数据合同，不改变本文确定的 compact/pretty 排版语义。详见 [CLI Command Manifest 与 Agent Tool 声明字段对齐技术方案](cli-command-manifest-tool-declaration-alignment-technical-design.md)。
+
 本文档先基于 `main` 分支实施前源码制定方案，现已按本文合同完成代码、测试、golden 和公共文档同步。
 
 实施前基线已确认：
@@ -201,7 +203,7 @@ TTY 自动策略虽然适合传统人类 CLI，但不适合本项目的稳定 ag
 
 ### Manifest golden 保持 pretty
 
-默认 schema 改为 compact 后，如果 golden 继续比较默认输出，`internal/cli/testdata/cli-command-manifest-v1.golden.json` 将退化为不可审阅的单行文件。
+默认 schema 改为 compact 后，如果 golden 继续比较默认输出，当前 `internal/cli/testdata/cli-command-manifest-v2.golden.json` 将退化为不可审阅的单行文件。
 
 本方案让 golden 测试显式执行：
 
@@ -405,7 +407,7 @@ onesearch regression --pretty
 
 ### Manifest 版本
 
-`manifest_version` 保持 1：
+本功能实施时 `manifest_version` 保持 1；后续 Agent tool 字段对齐已将其提升为 2：
 
 - manifest envelope 和 input schema 表达方式未变；
 - `pretty` 是新增的可选 boolean command option；
@@ -432,7 +434,7 @@ CLI/package 版本是否升级由实施后的发布流程统一决定，不在�
 | `internal/cli/schema_commands_test.go` | 覆盖默认 compact、显式 pretty、错误、确定性、文件一致性和 pretty golden |
 | `internal/cli/config_commands_test.go` | 在现有动态 stdout/`--output` 一致性与脱敏测试中加入 pretty case |
 | `internal/cli/cli_test.go` | 覆盖 regression 与普通 public command 的 CLI 级 compact/pretty 行为 |
-| `internal/cli/testdata/cli-command-manifest-v1.golden.json` | 通过显式 update gate 更新新增的 `pretty` properties，文件继续保存为 pretty JSON |
+| `internal/cli/testdata/cli-command-manifest-v2.golden.json` | 通过显式 update gate 维护当前完整 manifest，文件继续保存为 pretty JSON |
 | `README.md` | 区分字段精简与空白压缩，说明默认 compact、`--pretty`、非 TTY 策略和迁移方式 |
 | `npm/onesearch/README.md` | 补充 npm CLI 的 compact/pretty 公共合同 |
 | `npm/deqiying-onesearch/README.md` | 与 unscoped npm README 保持一致 |
@@ -615,7 +617,7 @@ git diff --check
 11. schema 继续在配置加载前静态执行，不创建配置、不读取凭据、不访问网络。
 12. stdout 与 `--output` 在 compact/pretty 两种模式下分别逐字节一致，成功和错误路径均覆盖。
 13. manifest golden 继续是可审阅的 pretty JSON，并只通过显式 update gate 更新。
-14. `manifest_version`、runtime schema、provider wire format 和配置持久化格式保持不变。
+14. compact/pretty 本身不决定 `manifest_version`；当前 V2、runtime schema、provider wire format 和配置持久化格式不因排版逻辑改变。
 15. README、npm README、主 Skill、CLI contract 和直接受影响的技术设计已同步。
 16. 文档中不存在开发机、用户目录或工作区绝对文件系统路径。
 17. 定向测试、全量测试、vet、mock smoke、文档检查和 `git diff --check` 全部通过。

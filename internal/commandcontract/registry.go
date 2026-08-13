@@ -252,8 +252,8 @@ func validateCommand(command CommandDefinition) error {
 	if command.Visibility != VisibilityPublic && command.Visibility != VisibilityHidden {
 		return fmt.Errorf("invalid visibility %q", command.Visibility)
 	}
-	if strings.TrimSpace(command.Summary) == "" {
-		return fmt.Errorf("summary is required")
+	if strings.TrimSpace(command.Description) == "" {
+		return fmt.Errorf("description is required")
 	}
 	if command.Category == CategoryProvider && strings.TrimSpace(command.Provider) == "" {
 		return fmt.Errorf("provider is required for provider command")
@@ -440,8 +440,8 @@ func validateNamespace(namespace NamespaceDefinition) error {
 	if namespace.Visibility != VisibilityPublic && namespace.Visibility != VisibilityHidden {
 		return fmt.Errorf("invalid visibility %q", namespace.Visibility)
 	}
-	if strings.TrimSpace(namespace.Summary) == "" {
-		return fmt.Errorf("summary is required")
+	if strings.TrimSpace(namespace.Description) == "" {
+		return fmt.Errorf("description is required")
 	}
 	return nil
 }

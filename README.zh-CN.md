@@ -283,7 +283,9 @@ If the CLI is missing or the canonical `skills show` command fails, report the r
 
 ## 面向 agent 的命令合同
 
-`onesearch schema` 返回版本化 CLI command manifest，描述 canonical path、输入约束、argv 绑定、side effects 和 status preflight；它不是 runtime 配置 schema。
+`onesearch schema` 返回 V2 CLI command manifest。每个 command 先公开便于 Agent 理解的 `name`、`description` 和 `input_schema`，随后描述 canonical CLI `path`、argv 绑定、约束、side effects、output contract 和 status preflight。它既不是 native tool 注册，也不是 runtime 配置 schema；上层适配器仍需把 `input_schema` 映射为目标平台的 tool parameters，并执行 canonical `path`。
+
+V2 明确将 V1 的 `commands[].id` 替换为 `commands[].name`，将 `commands[].summary` 替换为 `commands[].description`；`commands[].input_schema` 保持不变。
 
 ```powershell
 onesearch schema --format json

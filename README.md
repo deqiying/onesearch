@@ -283,7 +283,9 @@ If the CLI is missing or the canonical `skills show` command fails, report the r
 
 ## Agent-facing contracts
 
-`onesearch schema` returns a versioned CLI command manifest with canonical paths, input constraints, argv bindings, side effects, and status preflight. It is not the runtime configuration schema.
+`onesearch schema` returns the V2 CLI command manifest. Each command exposes the Agent-friendly core fields `name`, `description`, and `input_schema`, followed by its canonical CLI `path`, argv bindings, constraints, side effects, output contract, and status preflight. It is not a native tool registration or the runtime configuration schema; adapters still map `input_schema` to a platform's tool parameters and execute the canonical `path`.
+
+V2 intentionally replaces V1 `commands[].id` with `commands[].name` and `commands[].summary` with `commands[].description`. `commands[].input_schema` is unchanged.
 
 ```powershell
 onesearch schema --format json

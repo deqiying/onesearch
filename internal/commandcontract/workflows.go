@@ -4,7 +4,7 @@ func workflowDefinitions() []CommandDefinition {
 	return []CommandDefinition{
 		{
 			ID: "search", Path: []string{"search"}, Aliases: [][]string{{"s"}}, Category: CategoryWorkflow, Visibility: VisibilityPublic,
-			Summary:      "Search the web through configured capability routes.",
+			Description:  "Search the web through configured capability routes.",
 			Capabilities: []string{"answer_search", "docs_search", "source_search"}, PreferredFor: []string{"answer_search", "docs_search", "source_search"},
 			Positionals: []PositionalDefinition{positional("query", "Search query.", true)},
 			Options: withOutput(
@@ -33,7 +33,7 @@ func workflowDefinitions() []CommandDefinition {
 		workflowSingleURL("fetch", "f", "Fetch a URL through the page-fetch route.", "page_fetch", []OptionDefinition{optionDefault("provider", "provider", TypeString, "auto", "Provider filter.")}, "fetch_result"),
 		{
 			ID: "map", Path: []string{"map"}, Aliases: [][]string{{"m"}}, Category: CategoryWorkflow, Visibility: VisibilityPublic,
-			Summary: "Map links from a website.", Capabilities: []string{"site_map"}, PreferredFor: []string{"site_map"},
+			Description: "Map links from a website.", Capabilities: []string{"site_map"}, PreferredFor: []string{"site_map"},
 			Positionals: []PositionalDefinition{positional("url", "Website URL.", true)},
 			Options: withOutput(
 				optionDefault("instructions", "instructions", TypeString, "", "Mapping instructions."),
@@ -47,7 +47,7 @@ func workflowDefinitions() []CommandDefinition {
 		},
 		{
 			ID: "crawl", Path: []string{"crawl"}, Aliases: [][]string{{"cr"}}, Category: CategoryWorkflow, Visibility: VisibilityPublic,
-			Summary: "Crawl pages from a website.", Capabilities: []string{"site_crawl"}, PreferredFor: []string{"site_crawl"},
+			Description: "Crawl pages from a website.", Capabilities: []string{"site_crawl"}, PreferredFor: []string{"site_crawl"},
 			Positionals: []PositionalDefinition{positional("url", "Website URL.", true)},
 			Options: withOutput(
 				optionDefault("max_depth", "max-depth", TypeInteger, 2, "Maximum traversal depth."),
@@ -59,7 +59,7 @@ func workflowDefinitions() []CommandDefinition {
 		},
 		{
 			ID: "repo-wiki", Path: []string{"repo-wiki"}, Aliases: [][]string{{"rw"}}, Category: CategoryWorkflow, Visibility: VisibilityPublic,
-			Summary: "Read or query a repository wiki.", Capabilities: []string{"repo_wiki"}, PreferredFor: []string{"repo_wiki"},
+			Description: "Read or query a repository wiki.", Capabilities: []string{"repo_wiki"}, PreferredFor: []string{"repo_wiki"},
 			Positionals: []PositionalDefinition{positional("repo", "Repository in owner/name form.", true), positional("question", "Optional repository question.", false)},
 			Options: withOutput(
 				enumOption("mode", "mode", "", []string{"", "ask", "structure", "contents"}, "Repository-wiki operation."),
@@ -70,7 +70,7 @@ func workflowDefinitions() []CommandDefinition {
 		},
 		{
 			ID: "deep", Path: []string{"deep"}, Aliases: [][]string{{"dr"}}, Category: CategoryWorkflow, Visibility: VisibilityPublic,
-			Summary:     "Create an offline deep-research execution plan.",
+			Description: "Create an offline deep-research execution plan.",
 			Positionals: []PositionalDefinition{positional("query", "Research question.", true)},
 			Options: withOutput(
 				enumOption("budget", "budget", "standard", []string{"quick", "standard", "deep"}, "Research breadth and depth budget."),
@@ -81,10 +81,10 @@ func workflowDefinitions() []CommandDefinition {
 	}
 }
 
-func workflowSingleURL(id, alias, summary, capability string, options []OptionDefinition, contract string) CommandDefinition {
+func workflowSingleURL(id, alias, description, capability string, options []OptionDefinition, contract string) CommandDefinition {
 	return CommandDefinition{
 		ID: id, Path: []string{id}, Aliases: [][]string{{alias}}, Category: CategoryWorkflow, Visibility: VisibilityPublic,
-		Summary: summary, Capabilities: []string{capability}, PreferredFor: []string{capability},
+		Description: description, Capabilities: []string{capability}, PreferredFor: []string{capability},
 		Positionals: []PositionalDefinition{positional("url", "Target URL.", true)}, Options: withOutput(options...), Constraints: normalConstraints(),
 		Availability: capabilityAvailability(capability), SideEffects: runtimeSideEffects("filesystem_write_when_output_is_set", "network"), Output: normalOutput(contract),
 	}

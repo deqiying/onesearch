@@ -9,7 +9,7 @@ func testArgvRegistry(t *testing.T) *Registry {
 	t.Helper()
 	command := CommandDefinition{
 		ID: "demo", Path: []string{"demo"}, Category: CategoryUtility, Visibility: VisibilityPublic,
-		Summary: "demo", Positionals: []PositionalDefinition{variadicPositional("queries", "queries", 1)},
+		Description: "demo", Positionals: []PositionalDefinition{variadicPositional("queries", "queries", 1)},
 		Options: []OptionDefinition{
 			{Name: "mode", Flag: "mode", Type: TypeString, Enum: []string{"fast", "deep"}, HasDefault: true, Default: "fast"},
 			{Name: "enabled", Flag: "enabled", Type: TypeBoolean, HasDefault: true, Default: false},
@@ -94,7 +94,7 @@ func TestBuildArgvValidatesRequiredEnumAndMutualExclusion(t *testing.T) {
 func TestBuildArgvAcceptsFlagNamesAndDoesNotMutateInput(t *testing.T) {
 	command := CommandDefinition{
 		ID: "override", Path: []string{"override"}, Category: CategoryUtility, Visibility: VisibilityPublic,
-		Summary: "override", Options: []OptionDefinition{
+		Description: "override", Options: []OptionDefinition{
 			{Name: "old", Flag: "old", Type: TypeString},
 			{Name: "new", Flag: "new", Type: TypeString, Overrides: "old"},
 		}, Output: OutputDefinition{DefaultFormat: "json"},

@@ -26,8 +26,34 @@ func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	if full.CLI.Name != app.Name || full.CLI.Version != app.Version {
 		t.Fatalf("schema CLI identity = %#v, want name %q and version %q", full.CLI, app.Name, app.Version)
 	}
+	if full.ManifestVersion != 2 {
+		t.Fatalf("schema manifest version = %d, want 2", full.ManifestVersion)
+	}
 	if got := len(full.Commands); got != 44 {
 		t.Fatalf("full schema command count = %d, want 44", got)
+	}
+	var raw map[string]any
+	if err := json.Unmarshal([]byte(fullBytes), &raw); err != nil {
+		t.Fatal(err)
+	}
+	rawCommands, ok := raw["commands"].([]any)
+	if !ok || len(rawCommands) != len(full.Commands) {
+		t.Fatalf("raw schema commands = %#v", raw["commands"])
+	}
+	for index, rawCommand := range rawCommands {
+		entry, ok := rawCommand.(map[string]any)
+		if !ok {
+			t.Fatalf("raw command[%d] = %#v", index, rawCommand)
+		}
+		if entry["name"] == "" || entry["description"] == "" || entry["input_schema"] == nil {
+			t.Fatalf("raw command[%d] is missing Agent tool core fields: %#v", index, entry)
+		}
+		if _, exists := entry["id"]; exists {
+			t.Fatalf("raw command[%d] still exposes legacy id: %#v", index, entry)
+		}
+		if _, exists := entry["summary"]; exists {
+			t.Fatalf("raw command[%d] still exposes legacy summary: %#v", index, entry)
+		}
 	}
 
 	targetBytes := runSchemaForTest(t, []string{"schema", "exa", "web-search"}, 0)
@@ -43,12 +69,12 @@ func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	}
 	var fullEntry commandcontract.ManifestCommand
 	for _, command := range full.Commands {
-		if command.ID == "exa.web-search" {
+		if command.Name == "exa.web-search" {
 			fullEntry = command
 			break
 		}
 	}
-	if fullEntry.ID == "" || !reflect.DeepEqual(target.Commands[0], fullEntry) {
+	if fullEntry.Name == "" || !reflect.DeepEqual(target.Commands[0], fullEntry) {
 		t.Fatalf("target entry differs from full schema entry\ntarget: %#v\nfull: %#v", target.Commands[0], fullEntry)
 	}
 }
@@ -129,7 +155,7 @@ func TestSchemaOutputIsDeterministicAndPreservesStaticBindings(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, command := range manifest.Commands {
-		if command.ID != "search" {
+		if command.Name != "search" {
 			continue
 		}
 		properties := command.InputSchema["properties"].(map[string]any)
@@ -291,7 +317,7 @@ func TestEveryPublicHelpPathIsStaticAndRegistryBacked(t *testing.T) {
 					t.Fatalf("Execute(%#v) = %d, want 0", args, code)
 				}
 			})
-			if !strings.Contains(stdout, definition.Summary) || !strings.Contains(stdout, "onesearch "+strings.Join(definition.Path, " ")) {
+			if !strings.Contains(stdout, definition.Description) || !strings.Contains(stdout, "onesearch "+strings.Join(definition.Path, " ")) {
 				t.Fatalf("help for %#v is not registry-backed:\n%s", args, stdout)
 			}
 		}
@@ -305,7 +331,7 @@ func TestEveryPublicHelpPathIsStaticAndRegistryBacked(t *testing.T) {
 					t.Fatalf("Execute(%#v) = %d, want 0", args, code)
 				}
 			})
-			if !strings.Contains(stdout, namespace.Summary) {
+			if !strings.Contains(stdout, namespace.Description) {
 				t.Fatalf("namespace help for %#v is not registry-backed:\n%s", args, stdout)
 			}
 		}
@@ -317,7 +343,7 @@ func TestEveryPublicHelpPathIsStaticAndRegistryBacked(t *testing.T) {
 
 func TestSchemaMatchesGolden(t *testing.T) {
 	got := normalizeSchemaGolden(t, runSchemaForTest(t, []string{"schema", "--pretty"}, 0))
-	path := filepath.Join("testdata", "cli-command-manifest-v1.golden.json")
+	path := filepath.Join("testdata", "cli-command-manifest-v2.golden.json")
 	if os.Getenv("UPDATE_CLI_COMMAND_MANIFEST_GOLDEN") == "1" {
 		if err := os.WriteFile(path, []byte(got), 0o644); err != nil {
 			t.Fatal(err)

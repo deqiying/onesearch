@@ -33,7 +33,7 @@ onesearch schema search --format json
 onesearch schema firecrawl crawl --format json
 ```
 
-The manifest reports canonical path, aliases, input JSON Schema, `x-cli-binding`, constraints, availability, side effects, and output variants. A full unscoped schema dump is a development/review tool, not a normal agent step.
+The V2 manifest exposes the Agent-friendly core fields `name`, `description`, and `input_schema`, followed by canonical `path`, aliases, `x-cli-binding`, constraints, availability, side effects, and output variants. V1 `id` and `summary` are no longer emitted. This is a CLI contract, not a native tool registration: execute `path` and use `x-cli-binding` to construct argv tokens; never split `name` into CLI arguments. A full unscoped schema dump is a development/review tool, not a normal agent step.
 
 ## Routing and Preflight
 

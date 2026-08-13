@@ -70,7 +70,7 @@ func printTopNamespaces(title string, category commandcontract.Category) {
 }
 
 func printNamespaceHelp(namespace commandcontract.NamespaceDefinition) {
-	fmt.Printf("%s\n\n", namespace.Summary)
+	fmt.Printf("%s\n\n", namespace.Description)
 	fmt.Printf("Usage:\n  onesearch %s <command> [args] [flags]\n", strings.Join(namespace.Path, " "))
 	if namespace.DefaultCommandID != "" {
 		fmt.Printf("  onesearch %s [flags]\n", strings.Join(namespace.Path, " "))
@@ -80,7 +80,7 @@ func printNamespaceHelp(namespace commandcontract.NamespaceDefinition) {
 	commands := namespaceCommands(namespace)
 	for _, command := range commands {
 		name := strings.Join(command.Path[len(namespace.Path):], " ")
-		fmt.Printf("  %-24s %s\n", name, command.Summary)
+		fmt.Printf("  %-24s %s\n", name, command.Description)
 	}
 }
 
@@ -95,7 +95,7 @@ func namespaceCommands(namespace commandcontract.NamespaceDefinition) []commandc
 }
 
 func printCommandHelp(definition commandcontract.CommandDefinition) {
-	fmt.Println(definition.Summary)
+	fmt.Println(definition.Description)
 	fmt.Println()
 	fmt.Println("Usage:")
 	fmt.Printf("  onesearch %s", strings.Join(definition.Path, " "))

@@ -186,7 +186,7 @@ func providerNamespaces() []NamespaceDefinition {
 	providers := []string{"exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"}
 	out := make([]NamespaceDefinition, 0, len(providers))
 	for _, provider := range providers {
-		out = append(out, NamespaceDefinition{Path: []string{provider}, Category: CategoryProvider, Visibility: VisibilityPublic, Summary: "Direct " + provider + " provider commands."})
+		out = append(out, NamespaceDefinition{Path: []string{provider}, Category: CategoryProvider, Visibility: VisibilityPublic, Description: "Direct " + provider + " provider commands."})
 	}
 	return out
 }

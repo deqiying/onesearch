@@ -87,13 +87,13 @@ func providerAvailability(provider string) AvailabilityDefinition {
 	}
 }
 
-func providerCommand(id, provider string, path []string, summary string, capabilities []string, positionals []PositionalDefinition, options []OptionDefinition) CommandDefinition {
+func providerCommand(id, provider string, path []string, description string, capabilities []string, positionals []PositionalDefinition, options []OptionDefinition) CommandDefinition {
 	return CommandDefinition{
 		ID:           id,
 		Path:         path,
 		Category:     CategoryProvider,
 		Visibility:   VisibilityPublic,
-		Summary:      summary,
+		Description:  description,
 		Capabilities: capabilities,
 		Provider:     provider,
 		Positionals:  positionals,

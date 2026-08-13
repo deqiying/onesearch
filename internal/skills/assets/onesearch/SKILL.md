@@ -24,6 +24,8 @@ Use this router to choose the smallest Onesearch workflow or provider skill that
 
 `skills list`, `skills show`, and targeted `schema` are static discovery commands: they do not initialize config or access the network.
 
+Schema V2 command entries use `name`, `description`, and `input_schema`. The manifest is a CLI contract, not a native tool registration: use `path` plus `x-cli-binding` to build argv tokens, and do not derive CLI tokens by splitting `name`.
+
 ```text
 onesearch skills list --capability source_search --format json
 onesearch skills show search --format content
@@ -35,7 +37,7 @@ Load a child skill only after routing. Do not call `skills show` again from an a
 ## Agent Execution Loop
 
 1. Classify the intent and load the most specific skill.
-2. If a command's exact path, required fields, flags, defaults, or side effects are uncertain, inspect only its targeted schema. Do not dump the full schema during normal agent work.
+2. If a command's exact path, description, required fields, flags, defaults, or side effects are uncertain, inspect only its targeted schema. Do not dump the full schema during normal agent work.
 3. Before a dynamic workflow or provider-direct call, run `onesearch status --format json`. A workflow is locally ready only when `capabilities.<capability>.ok == true`; choose from its `available` provider IDs. A direct endpoint is locally ready when `direct_endpoints.<provider>.available == true`. Neither check proves network or credential validity.
 4. Execute the narrowest command with compact JSON.
 5. Treat search results as discovery candidates. Fetch the few pages that support material claims.
