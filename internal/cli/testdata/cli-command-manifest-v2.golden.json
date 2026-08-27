@@ -1234,12 +1234,21 @@
               "minLength": 1,
               "type": "string"
             },
-            "minItems": 1,
             "type": "array",
             "x-cli-binding": {
               "index": 0,
               "kind": "positional",
               "variadic": true
+            }
+          },
+          "queries_json": {
+            "default": "",
+            "description": "JSON array of query objects (mutually exclusive with positional queries).",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--queries-json"
             }
           },
           "quiet": {
@@ -1263,9 +1272,6 @@
             }
           }
         },
-        "required": [
-          "queries"
-        ],
         "type": "object"
       },
       "path": [
@@ -1280,10 +1286,17 @@
       "aliases": [],
       "constraints": [
         {
+          "kind": "at_least_one",
+          "members": [
+            "queries",
+            "queries_json"
+          ]
+        },
+        {
           "kind": "mutually_exclusive",
           "members": [
-            "quiet",
-            "verbose"
+            "queries",
+            "queries_json"
           ]
         }
       ],
@@ -1334,6 +1347,16 @@
               "index": 0,
               "kind": "positional",
               "variadic": false
+            }
+          },
+          "domains": {
+            "default": "",
+            "description": "Domain identifier list (comma-separated or JSON array).",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--domains"
             }
           },
           "format": {
@@ -1408,8 +1431,8 @@
         {
           "kind": "mutually_exclusive",
           "members": [
-            "quiet",
-            "verbose"
+            "domain",
+            "domains"
           ]
         }
       ],
@@ -1676,6 +1699,16 @@
               "kind": "flag",
               "repeatable": false,
               "token": "--sub-domain"
+            }
+          },
+          "sub_domain_params": {
+            "default": "",
+            "description": "JSON parameters for the selected sub-domain.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--sub-domain-params"
             }
           },
           "verbose": {
@@ -3188,8 +3221,17 @@
             }
           },
           "search_type": {
-            "default": "neural",
-            "description": "Exa search type.",
+            "default": "auto",
+            "description": "Exa search type; neural is a deprecated alias for auto.",
+            "enum": [
+              "auto",
+              "fast",
+              "instant",
+              "deep-lite",
+              "deep",
+              "deep-reasoning",
+              "neural"
+            ],
             "type": "string",
             "x-cli-binding": {
               "kind": "flag",
@@ -4344,9 +4386,9 @@
             }
           },
           "wait_for": {
-            "default": 0,
-            "description": "Wait time in milliseconds.",
-            "type": "integer",
+            "default": "",
+            "description": "CSS selector or wait time in milliseconds.",
+            "type": "string",
             "x-cli-binding": {
               "kind": "flag",
               "repeatable": false,

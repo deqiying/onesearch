@@ -2,12 +2,14 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/deqiying/onesearch/internal/commandcontract"
 	"github.com/deqiying/onesearch/internal/providers"
 	"github.com/deqiying/onesearch/internal/redact"
 	"github.com/deqiying/onesearch/internal/service"
@@ -231,13 +233,29 @@ func runParsedProvider(ctx context.Context, svc *service.Service, parsed *parsed
 	case "deepwiki.read-wiki-contents":
 		data = svc.RepoWiki(ctx, parsed.String("repo"), "", service.RepoWikiOptions{Mode: "contents", Provider: "deepwiki"})
 	case "anysearch.domains":
-		data = svc.AnySearch().Domains(ctx, parsed.String("domain"))
+		domains := splitDomainList(parsed.String("domains"), parsed.String("domain"))
+		if len(domains) == 0 {
+			return printParsedParameterError(parsed, "anysearch domains requires domain or --domains", svc)
+		}
+		data = svc.AnySearch().DomainsList(ctx, domains)
 	case "anysearch.search":
-		data = svc.AnySearch().Search(ctx, parsed.String("query"), parsed.String("domain"), parsed.String("sub_domain"), parsed.Int("max_results"))
+		params, err := parseJSONMapOption(parsed.String("sub_domain_params"), "sub-domain-params")
+		if err != nil {
+			return printParsedParameterError(parsed, err.Error(), svc)
+		}
+		data = svc.AnySearch().SearchWithParams(ctx, parsed.String("query"), parsed.String("domain"), parsed.String("sub_domain"), params, parsed.Int("max_results"))
 	case "anysearch.extract":
 		data = svc.AnySearch().Extract(ctx, parsed.String("url"), parsed.Int("max_length"))
 	case "anysearch.batch":
-		data = svc.AnySearch().Batch(ctx, parsed.Strings("queries"), parsed.Int("max_results"))
+		if strings.TrimSpace(parsed.String("queries_json")) != "" {
+			items, err := parseJSONQueryObjects(parsed.String("queries_json"))
+			if err != nil {
+				return printParsedParameterError(parsed, err.Error(), svc)
+			}
+			data = svc.AnySearch().BatchObjects(ctx, items, parsed.Int("max_results"))
+		} else {
+			data = svc.AnySearch().Batch(ctx, parsed.Strings("queries"), parsed.Int("max_results"))
+		}
 	case "zhipu.search":
 		data = svc.ZhipuSearch(ctx, parsed.String("query"), providers.ZhipuOptions{Count: parsed.Int("count"), SearchEngine: parsed.String("search_engine"), SearchRecencyFilter: parsed.String("search_recency_filter"), SearchDomainFilter: parsed.String("search_domain_filter"), ContentSize: parsed.String("content_size")})
 	case "ddg.search":
@@ -247,7 +265,7 @@ func runParsedProvider(ctx context.Context, svc *service.Service, parsed *parsed
 	case "freecrawl.search":
 		data = svc.FreecrawlSearch(ctx, parsed.String("query"), providers.FreecrawlSearchOptions{NumResults: parsed.Int("num_results"), SearchEngine: parsed.String("search_engine"), ScrapeResults: parsed.Bool("scrape_results")})
 	case "freecrawl.scrape":
-		data = svc.FreecrawlScrape(ctx, parsed.String("url"), providers.FreecrawlScrapeOptions{Formats: splitCSV(parsed.String("formats")), Javascript: parsed.Bool("javascript"), AntiBot: parsed.Bool("anti_bot"), Cache: parsed.Bool("cache"), Timeout: parsed.Int("timeout"), WaitFor: parsed.Int("wait_for")})
+		data = svc.FreecrawlScrape(ctx, parsed.String("url"), providers.FreecrawlScrapeOptions{Formats: splitCSV(parsed.String("formats")), Javascript: parsed.Bool("javascript"), AntiBot: parsed.Bool("anti_bot"), Cache: parsed.Bool("cache"), Timeout: parsed.Int("timeout"), WaitFor: parsed.String("wait_for")})
 	case "freecrawl.crawl":
 		data = svc.FreecrawlCrawl(ctx, parsed.String("url"), providers.FreecrawlCrawlOptions{MaxDepth: parsed.Int("max_depth"), MaxPages: parsed.Int("max_pages"), SameDomainOnly: parsed.Bool("same_domain_only"), IncludePatterns: parsed.Strings("include_patterns"), ExcludePatterns: parsed.Strings("exclude_patterns")})
 	case "freecrawl.deep-research":
@@ -338,6 +356,56 @@ func printProviderToolParameterErrorParsed(parsed *parsedCommand, message string
 	binding := commandBindings[parsed.Definition.ID]
 	data := map[string]any{"ok": false, "provider": parsed.Definition.Provider, "tool": binding.HandlerKey, "error_type": "parameter_error", "error": message}
 	return printCommand(svc, parsed.Definition.Provider, data, formatOutputFromParsed(parsed, svc))
+}
+
+func parseJSONMapOption(raw, flag string) (map[string]any, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	if len(raw) > 64*1024 {
+		return nil, fmt.Errorf("--%s exceeds the 64 KiB limit", flag)
+	}
+	var out map[string]any
+	if err := json.Unmarshal([]byte(raw), &out); err != nil || out == nil {
+		return nil, fmt.Errorf("--%s must be a JSON object", flag)
+	}
+	return out, nil
+}
+
+func parseJSONQueryObjects(raw string) ([]map[string]any, error) {
+	raw = strings.TrimSpace(raw)
+	if len(raw) > 256*1024 {
+		return nil, fmt.Errorf("--queries-json exceeds the 256 KiB limit")
+	}
+	var out []map[string]any
+	if err := json.Unmarshal([]byte(raw), &out); err != nil || len(out) == 0 || len(out) > 5 {
+		return nil, fmt.Errorf("--queries-json must be a JSON array of 1 to 5 objects")
+	}
+	for _, item := range out {
+		if item["query"] == nil || strings.TrimSpace(fmt.Sprint(item["query"])) == "" {
+			return nil, fmt.Errorf("each --queries-json item requires a non-empty query")
+		}
+	}
+	return out, nil
+}
+
+func splitDomainList(raw, positional string) []string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		if strings.TrimSpace(positional) == "" {
+			return nil
+		}
+		return []string{strings.TrimSpace(positional)}
+	}
+	if strings.HasPrefix(raw, "[") {
+		var values []string
+		if json.Unmarshal([]byte(raw), &values) != nil {
+			return nil
+		}
+		return values
+	}
+	return commandcontract.DecodeListValues(raw)
 }
 
 func outputCommand(id string) string {

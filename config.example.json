@@ -191,7 +191,9 @@
       "api_key": "",
       "api_key_env": "ZHIPU_API_KEY",
       "settings": {
+        "protocol_profile": "bigmodel_cn",
         "search_engine": "search_std",
+        "search_intent": false,
         "timeout_seconds": 30
       }
     },
@@ -279,10 +281,11 @@
       "settings": {
         "direct_only": true,
         "anonymous_allowed": true,
+        "upstream_ref": "pypi:freecrawl-mcp==0.1.2",
         "timeout_seconds": 160,
         "command": "uvx",
         "args": [
-          "freecrawl-mcp"
+          "freecrawl-mcp==0.1.2"
         ],
         "env": {
           "FREECRAWL_TRANSPORT": "stdio",
@@ -291,10 +294,7 @@
           "PYTHONIOENCODING": "utf-8"
         },
         "tools": {
-          "search": "mcp__freecrawl__search",
-          "scrape": "mcp__freecrawl__scrape",
-          "crawl": "mcp__freecrawl__crawl",
-          "deep_research": "mcp__freecrawl__deep_research"
+          "scrape": "freecrawl_scrape"
         }
       }
     },

@@ -101,8 +101,8 @@ func TestTavilyCrawlSendsLimitAndSelectionPayload(t *testing.T) {
 
 func TestFirecrawlCrawlExposesSubmittedJobEnvelope(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/crawl" {
-			t.Fatalf("path = %q, want /crawl", r.URL.Path)
+		if r.URL.Path != "/v2/crawl" {
+			t.Fatalf("path = %q, want /v2/crawl", r.URL.Path)
 		}
 		var payload map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {

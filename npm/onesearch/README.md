@@ -44,6 +44,8 @@ onesearch skills show onesearch --file references/agent-execution-contract.md --
 onesearch skills show tavily --format content
 ```
 
+Exa uses the current `auto` wire search type, Firecrawl crawl reports an asynchronous job, and AnySearch domain discovery requires an explicit domain or `--domains`.
+
 ## Agent integration
 
 Create a custom Skill folder named `onesearch` in the Skills directory supported by your agent host and save the following content as `SKILL.md`:

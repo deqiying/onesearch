@@ -21,6 +21,8 @@ const (
 	DefaultContext7BaseURL   = "https://context7.com"
 	DefaultZhipuAPIURL       = "https://open.bigmodel.cn/api"
 	DefaultZhipuSearchEngine = "search_std"
+	DefaultZAIAPIURL         = "https://api.z.ai/api"
+	DefaultZAISearchEngine   = "search-prime"
 	DefaultTavilyAPIURL      = "https://api.tavily.com"
 	DefaultFirecrawlAPIURL   = "https://api.firecrawl.dev/v2"
 	DefaultAnySearchAPIURL   = "https://api.anysearch.com/mcp"

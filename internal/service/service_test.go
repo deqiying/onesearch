@@ -1216,8 +1216,8 @@ func TestMapFallsBackToFirecrawl(t *testing.T) {
 	}))
 	defer tavily.Close()
 	firecrawl := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/map" {
-			t.Fatalf("firecrawl path = %s, want /map", r.URL.Path)
+		if r.URL.Path != "/v2/map" {
+			t.Fatalf("firecrawl path = %s, want /v2/map", r.URL.Path)
 		}
 		_, _ = w.Write([]byte(`{"links":["https://example.com/docs"]}`))
 	}))
@@ -1343,8 +1343,8 @@ func TestMapFiltersExternalResultsAndFallsBack(t *testing.T) {
 
 func TestCrawlUsesFirecrawlProvider(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/crawl" {
-			t.Fatalf("firecrawl path = %s, want /crawl", r.URL.Path)
+		if r.URL.Path != "/v2/crawl" {
+			t.Fatalf("firecrawl path = %s, want /v2/crawl", r.URL.Path)
 		}
 		var payload map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {

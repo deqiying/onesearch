@@ -32,14 +32,23 @@ func (p Exa) Search(ctx context.Context, query string, options ExaOptions) map[s
 	if options.NumResults <= 0 {
 		options.NumResults = 5
 	}
+	if options.NumResults > 100 {
+		return map[string]any{"ok": false, "provider": "exa", "query": query, "error_type": "parameter_error", "error": "Exa num_results must be between 1 and 100", "elapsed_ms": Elapsed(start)}
+	}
 	if options.SearchType == "" {
-		options.SearchType = "neural"
+		options.SearchType = "auto"
+	}
+	if strings.EqualFold(options.SearchType, "neural") {
+		options.SearchType = "auto"
+	}
+	options.SearchType = strings.ToLower(strings.TrimSpace(options.SearchType))
+	if !containsExaSearchType(options.SearchType) {
+		return map[string]any{"ok": false, "provider": "exa", "query": query, "error_type": "parameter_error", "error": "unsupported Exa search type: " + options.SearchType, "elapsed_ms": Elapsed(start)}
 	}
 	payload := map[string]any{
-		"query":         query,
-		"numResults":    options.NumResults,
-		"type":          options.SearchType,
-		"useAutoprompt": true,
+		"query":      query,
+		"numResults": options.NumResults,
+		"type":       options.SearchType,
 	}
 	if options.IncludeText || options.IncludeHighlights {
 		payload["contents"] = map[string]any{
@@ -63,16 +72,32 @@ func (p Exa) Search(ctx context.Context, query string, options ExaOptions) map[s
 	err := PostJSON(ctx, Client(p.Timeout), strings.TrimRight(p.APIURL, "/")+"/search", map[string]string{"x-api-key": p.APIKey}, payload, &data)
 	if err != nil {
 		errorType, message := ErrorPayload(err)
-		return map[string]any{"ok": false, "query": query, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
+		return map[string]any{"ok": false, "provider": "exa", "query": query, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
 	}
 	results := normalizeExaResults(asMaps(data["results"]), options.IncludeText, options.IncludeHighlights)
-	return map[string]any{
+	out := map[string]any{
 		"ok":          true,
+		"provider":    "exa",
 		"query":       query,
-		"search_type": options.SearchType,
+		"search_type": firstNonEmpty(stringValue(data["searchType"]), options.SearchType),
 		"results":     results,
 		"total":       len(results),
 		"elapsed_ms":  Elapsed(start),
+	}
+	for source, target := range map[string]string{"requestId": "request_id", "costDollars": "cost_dollars", "output": "output", "grounding": "grounding"} {
+		if value := data[source]; value != nil {
+			out[target] = value
+		}
+	}
+	return out
+}
+
+func containsExaSearchType(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "auto", "fast", "instant", "deep-lite", "deep", "deep-reasoning":
+		return true
+	default:
+		return false
 	}
 }
 
@@ -111,9 +136,30 @@ func (p Exa) Fetch(ctx context.Context, urls []string, options ExaFetchOptions) 
 	if len(urls) == 1 {
 		out["url"] = urls[0]
 	}
-	for _, key := range []string{"statuses", "requestId", "costDollars"} {
-		if data[key] != nil {
-			out[key] = data[key]
+	if data["statuses"] != nil {
+		out["statuses"] = data["statuses"]
+	}
+	for source, target := range map[string]string{"requestId": "request_id", "costDollars": "cost_dollars"} {
+		if data[source] != nil {
+			out[target] = data[source]
+		}
+	}
+	if statuses := asMaps(data["statuses"]); len(statuses) > 0 {
+		out["statuses"] = statuses
+		failed := 0
+		for _, status := range statuses {
+			state := strings.ToLower(firstNonEmpty(stringValue(status["status"]), stringValue(status["state"])))
+			if state != "" && state != "success" && state != "ok" && state != "completed" {
+				failed++
+			}
+		}
+		if failed > 0 {
+			out["partial"] = failed < len(statuses) || len(results) > 0
+			if len(results) == 0 {
+				out["ok"] = false
+				out["error_type"] = "partial"
+				out["error"] = "Exa contents returned no successful results"
+			}
 		}
 	}
 	return out
@@ -132,7 +178,7 @@ func (p Exa) Similar(ctx context.Context, url string, numResults int) map[string
 		return map[string]any{"ok": false, "url": url, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
 	}
 	results := normalizeExaResults(asMaps(data["results"]), false, false)
-	return map[string]any{"ok": true, "url": url, "results": results, "total": len(results), "elapsed_ms": Elapsed(start)}
+	return map[string]any{"ok": true, "provider": "exa", "tool": "exa_similar", "deprecated": true, "url": url, "results": results, "total": len(results), "elapsed_ms": Elapsed(start)}
 }
 
 func normalizeExaFetchResults(items []map[string]any) []map[string]any {

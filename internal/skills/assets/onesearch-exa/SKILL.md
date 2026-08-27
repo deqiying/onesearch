@@ -23,6 +23,8 @@ onesearch exa similar "https://example.com/article" --num-results 5 --format jso
 onesearch exa web-fetch "https://example.com/article" --max-characters 12000 --format json
 ```
 
+Exa `--search-type neural` is a deprecated compatibility alias and is sent upstream as `auto`; current wire types are `auto`, `fast`, `instant`, `deep-lite`, `deep`, and `deep-reasoning`. `exa similar` remains a deprecated compatibility surface.
+
 Use search/similar results for discovery, then fetch key URLs before claim-level use. Restrict to known official domains when provenance matters; inspect the targeted schema before adding domain, date, or content flags.
 
 ## Output and Recovery

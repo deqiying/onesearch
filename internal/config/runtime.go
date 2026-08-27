@@ -298,6 +298,12 @@ func (r RuntimeConfig) providerAvailability(provider ProviderDefinition, capabil
 		}
 		return true, "", false
 	}
+	if provider.Adapter == AdapterZhipuWebSearch {
+		profile := strings.ToLower(strings.TrimSpace(fmt.Sprint(provider.Settings["protocol_profile"])))
+		if profile != "" && profile != "bigmodel_cn" && profile != "zai_global" {
+			return false, "invalid_protocol_profile", true
+		}
+	}
 	if strings.TrimSpace(apiKey) == "" && !boolSetting(provider.Settings, "anonymous_allowed", false) {
 		return false, "missing_api_key", enabled == true
 	}
@@ -506,8 +512,8 @@ func defaultProviders() map[string]ProviderDefinition {
 			BaseURL:      DefaultZhipuAPIURL,
 			APIKeyEnv:    "ZHIPU_API_KEY",
 			Enabled:      false,
-			Settings:     map[string]any{"search_engine": DefaultZhipuSearchEngine, "timeout_seconds": 30},
-			Aliases:      []string{"zp"},
+			Settings:     map[string]any{"protocol_profile": "bigmodel_cn", "search_engine": DefaultZhipuSearchEngine, "search_intent": false, "timeout_seconds": 30},
+			Aliases:      []string{"zp", "zai"},
 		},
 		"tavily": {
 			ID:           "tavily",
@@ -557,9 +563,10 @@ func defaultProviders() map[string]ProviderDefinition {
 			Settings: map[string]any{
 				"direct_only":       true,
 				"anonymous_allowed": true,
+				"upstream_ref":      "pypi:freecrawl-mcp==0.1.2",
 				"timeout_seconds":   160,
 				"command":           "uvx",
-				"args":              []string{"freecrawl-mcp"},
+				"args":              []string{"freecrawl-mcp==0.1.2"},
 				"env": map[string]string{
 					"FREECRAWL_TRANSPORT": "stdio",
 					"FREECRAWL_HEADLESS":  "true",
@@ -567,10 +574,7 @@ func defaultProviders() map[string]ProviderDefinition {
 					"PYTHONIOENCODING":    "utf-8",
 				},
 				"tools": map[string]string{
-					"search":        "mcp__freecrawl__search",
-					"scrape":        "mcp__freecrawl__scrape",
-					"crawl":         "mcp__freecrawl__crawl",
-					"deep_research": "mcp__freecrawl__deep_research",
+					"scrape": "freecrawl_scrape",
 				},
 			},
 			Aliases: []string{"freecrawl-mcp"},

@@ -81,7 +81,7 @@ func (s *Service) FirecrawlSearch(ctx context.Context, query string, limit int) 
 	if !ok || provider.APIKey == "" {
 		return s.providerToolConfigError("firecrawl", "firecrawl_search")
 	}
-	return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.SearchResult(ctx, query, limit)
+	return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 90))}.SearchResult(ctx, query, limit)
 }
 
 func (s *Service) FirecrawlScrape(ctx context.Context, targetURL string, attempts int) map[string]any {
@@ -89,7 +89,7 @@ func (s *Service) FirecrawlScrape(ctx context.Context, targetURL string, attempt
 	if !ok || provider.APIKey == "" {
 		return s.providerToolConfigError("firecrawl", "firecrawl_scrape")
 	}
-	return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.ScrapeResult(ctx, targetURL, attempts)
+	return providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 90))}.ScrapeResult(ctx, targetURL, attempts)
 }
 
 func (s *Service) FirecrawlMap(ctx context.Context, targetURL string, limit int) map[string]any {
@@ -97,7 +97,7 @@ func (s *Service) FirecrawlMap(ctx context.Context, targetURL string, limit int)
 	if !ok || provider.APIKey == "" {
 		return s.providerToolConfigError("firecrawl", "firecrawl_map")
 	}
-	data := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Map(ctx, targetURL, limit)
+	data := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 90))}.Map(ctx, targetURL, limit)
 	data["tool"] = "firecrawl_map"
 	return data
 }
@@ -107,7 +107,7 @@ func (s *Service) FirecrawlCrawl(ctx context.Context, targetURL string, options 
 	if !ok || provider.APIKey == "" {
 		return s.providerToolConfigError("firecrawl", "firecrawl_crawl")
 	}
-	data := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey}.Crawl(ctx, targetURL, options.MaxDepth, options.Limit)
+	data := providers.Firecrawl{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 120))}.Crawl(ctx, targetURL, options.MaxDepth, options.Limit)
 	data["tool"] = "firecrawl_crawl"
 	return data
 }

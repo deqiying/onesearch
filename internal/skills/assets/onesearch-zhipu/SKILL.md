@@ -21,6 +21,8 @@ onesearch zhipu search "微博热搜 前十 当前榜单" --count 10 --content-s
 onesearch zhipu search "站点内信息" --search-domain-filter example.cn --format json
 ```
 
+Zhipu keeps the China-compatible `bigmodel_cn` profile by default. A configured `zai_global` profile uses the global `api.z.ai` contract; do not mix engines or regional base URLs.
+
 Treat returned summaries and links as discovery candidates. Fetch authoritative pages before claim-level conclusions, especially for rankings and rapidly changing topics.
 
 ## Output and Recovery

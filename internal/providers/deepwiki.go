@@ -4,12 +4,15 @@ import (
 	"context"
 	"strings"
 	"time"
+
+	"github.com/deqiying/onesearch/internal/mcpclient"
 )
 
 type DeepWiki struct {
-	APIURL  string
-	APIKey  string
-	Timeout time.Duration
+	APIURL      string
+	APIKey      string
+	Timeout     time.Duration
+	SessionMode string
 }
 
 func (p DeepWiki) Ask(ctx context.Context, repoName, question string) map[string]any {
@@ -26,45 +29,55 @@ func (p DeepWiki) Contents(ctx context.Context, repoName string) map[string]any 
 
 func (p DeepWiki) call(ctx context.Context, name string, arguments map[string]any) map[string]any {
 	start := time.Now()
-	payload := map[string]any{
-		"jsonrpc": "2.0",
-		"id":      1,
-		"method":  "tools/call",
-		"params":  map[string]any{"name": name, "arguments": arguments},
+	client := mcpclient.NewHTTP(mcpclient.Config{Endpoint: strings.TrimRight(p.APIURL, "/"), APIKey: p.APIKey, Timeout: p.Timeout, SessionMode: p.SessionMode})
+	defer client.Close(context.Background())
+	resolvedName := name
+	var snapshot mcpclient.ToolSnapshot
+	if strings.EqualFold(strings.TrimSpace(p.SessionMode), "auto") {
+		var discoverErr error
+		snapshot, discoverErr = client.ListTools(ctx)
+		if discoverErr != nil {
+			errorType, message := mcpClientErrorPayload(discoverErr)
+			return map[string]any{"ok": false, "provider": "deepwiki", "tool": name, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
+		}
+		var found bool
+		resolvedName, found = mcpclient.ResolveTool(snapshot, name)
+		if !found {
+			return map[string]any{"ok": false, "provider": "deepwiki", "tool": name, "error_type": "capability_unavailable", "error": "DeepWiki MCP tool not found: " + name, "elapsed_ms": Elapsed(start)}
+		}
 	}
-	headers := map[string]string{"Accept": "application/json, text/event-stream"}
-	if p.APIKey != "" {
-		headers["Authorization"] = "Bearer " + p.APIKey
-	}
-	var data map[string]any
-	err := PostJSON(ctx, Client(p.Timeout), strings.TrimRight(p.APIURL, "/"), headers, payload, &data)
+	data, err := client.CallTool(ctx, resolvedName, arguments)
 	if err != nil {
-		errorType, message := ErrorPayload(err)
+		errorType, message := mcpClientErrorPayload(err)
 		return map[string]any{"ok": false, "provider": "deepwiki", "tool": name, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
 	}
-	if rawError, ok := data["error"]; ok {
-		return map[string]any{"ok": false, "provider": "deepwiki", "tool": name, "error_type": "provider_error", "error": stringValue(rawError), "elapsed_ms": Elapsed(start)}
-	}
-	result, _ := data["result"].(map[string]any)
+	result := data
 	text := extractMCPText(result)
+	boundedText, textTruncated := boundedMCPText(text)
 	isError, _ := result["isError"].(bool)
-	ok := !isError && strings.TrimSpace(text) != ""
+	ok := !isError && strings.TrimSpace(boundedText) != ""
 	out := map[string]any{
-		"ok":          ok,
-		"provider":    "deepwiki",
-		"tool":        name,
-		"repo":        stringValue(arguments["repoName"]),
-		"content":     text,
-		"raw_content": text,
-		"elapsed_ms":  Elapsed(start),
+		"ok":            ok,
+		"provider":      "deepwiki",
+		"tool":          name,
+		"resolved_tool": resolvedName,
+		"repo":          stringValue(arguments["repoName"]),
+		"content":       boundedText,
+		"raw_content":   boundedText,
+		"elapsed_ms":    Elapsed(start),
+		"mcp":           map[string]any{"protocol_version": client.ProtocolVersion(), "session_mode": client.SessionMode(), "tool_name": resolvedName},
+	}
+	if textTruncated {
+		out["content_truncated"] = true
+		out["raw_content_truncated"] = true
 	}
 	if question := stringValue(arguments["question"]); question != "" {
 		out["query"] = question
 	}
 	if isError {
 		out["error_type"] = "provider_error"
-		out["error"] = firstNonEmpty(text, "DeepWiki tool returned isError=true")
-	} else if strings.TrimSpace(text) == "" {
+		out["error"] = firstNonEmpty(boundedText, "DeepWiki tool returned isError=true")
+	} else if strings.TrimSpace(boundedText) == "" {
 		out["error_type"] = "empty_result"
 		out["error"] = "DeepWiki tool returned no text content"
 	}

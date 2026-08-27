@@ -24,7 +24,7 @@ onesearch firecrawl scrape "https://example.com/article" --format json
 onesearch firecrawl map "https://docs.example.com" --limit 50 --format json
 ```
 
-Map before a crawl when site structure is uncertain. Keep crawl depth and page limits bounded and same-domain unless the task explicitly requires broader collection. `firecrawl crawl` submits an asynchronous job; the initial result contains job identity/status rather than completed page content.
+Map before a crawl when site structure is uncertain. Keep crawl depth and page limits bounded and same-domain unless the task explicitly requires broader collection. `firecrawl crawl` submits an asynchronous job; the initial result contains `job_id`, `status`, and `submitted=true`, not completed page content.
 
 ## Output and Recovery
 

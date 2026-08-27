@@ -22,7 +22,7 @@ type FreecrawlScrapeOptions struct {
 	AntiBot    bool
 	Cache      bool
 	Timeout    int
-	WaitFor    int
+	WaitFor    string
 }
 
 type FreecrawlCrawlOptions struct {
@@ -87,8 +87,8 @@ func (p Freecrawl) Scrape(ctx context.Context, targetURL string, options Freecra
 	if options.Timeout > 0 {
 		args["timeout"] = options.Timeout
 	}
-	if options.WaitFor > 0 {
-		args["wait_for"] = options.WaitFor
+	if strings.TrimSpace(options.WaitFor) != "" {
+		args["wait_for"] = strings.TrimSpace(options.WaitFor)
 	}
 	result, err := p.MCP.CallTool(ctx, "scrape", args)
 	if err != nil {

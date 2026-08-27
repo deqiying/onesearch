@@ -2,6 +2,10 @@ package providers
 
 import (
 	"context"
+	"errors"
+	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -354,20 +358,39 @@ func (p Tavily) Crawl(ctx context.Context, targetURL string, options TavilyCrawl
 }
 
 type Firecrawl struct {
-	APIURL string
-	APIKey string
+	APIURL  string
+	APIKey  string
+	Timeout time.Duration
 }
 
 func (p Firecrawl) Search(ctx context.Context, query string, limit int) ([]map[string]any, error) {
-	if limit <= 0 {
-		limit = 14
-	}
-	payload := map[string]any{"query": query, "limit": limit}
-	var data map[string]any
-	err := PostJSON(ctx, Client(90*time.Second), strings.TrimRight(p.APIURL, "/")+"/search", map[string]string{"Authorization": "Bearer " + p.APIKey}, payload, &data)
+	data, err := p.searchData(ctx, query, limit)
 	if err != nil {
 		return nil, err
 	}
+	return firecrawlWebResults(data), nil
+}
+
+func (p Firecrawl) searchData(ctx context.Context, query string, limit int) (map[string]any, error) {
+	if limit <= 0 {
+		limit = 14
+	}
+	if limit > 100 {
+		return nil, &ProviderError{Type: "parameter_error", Message: "Firecrawl limit must be between 1 and 100"}
+	}
+	payload := map[string]any{"query": query, "limit": limit}
+	var data map[string]any
+	err := firecrawlPostJSON(ctx, p.client(90*time.Second), p.endpoint("search"), p.APIKey, payload, &data, true)
+	if err != nil {
+		return nil, err
+	}
+	if success, ok := data["success"].(bool); ok && !success {
+		return nil, firecrawlEnvelopeError(data, "Firecrawl search returned success=false")
+	}
+	return data, nil
+}
+
+func firecrawlWebResults(data map[string]any) []map[string]any {
 	var web []map[string]any
 	if nested, ok := data["data"].(map[string]any); ok {
 		web = asMaps(nested["web"])
@@ -380,17 +403,28 @@ func (p Firecrawl) Search(ctx context.Context, query string, limit int) ([]map[s
 			"description": stringValue(item["description"]),
 		})
 	}
-	return results, nil
+	return results
 }
 
 func (p Firecrawl) SearchResult(ctx context.Context, query string, limit int) map[string]any {
 	start := time.Now()
-	results, err := p.Search(ctx, query, limit)
+	data, err := p.searchData(ctx, query, limit)
 	if err != nil {
 		errorType, message := ErrorPayload(err)
 		return map[string]any{"ok": false, "provider": "firecrawl", "tool": "firecrawl_search", "query": query, "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
 	}
-	return map[string]any{"ok": len(results) > 0, "provider": "firecrawl", "tool": "firecrawl_search", "query": query, "results": results, "total": len(results), "elapsed_ms": Elapsed(start)}
+	results := firecrawlWebResults(data)
+	out := map[string]any{"ok": len(results) > 0, "provider": "firecrawl", "tool": "firecrawl_search", "query": query, "results": results, "total": len(results), "elapsed_ms": Elapsed(start)}
+	for source, target := range map[string]string{"warning": "warning", "id": "id", "creditsUsed": "credits_used"} {
+		if data[source] != nil {
+			out[target] = data[source]
+		}
+	}
+	if len(results) == 0 {
+		out["error_type"] = "empty_result"
+		out["error"] = "Firecrawl search returned no web results"
+	}
+	return out
 }
 
 func (p Firecrawl) Map(ctx context.Context, targetURL string, limit int) map[string]any {
@@ -400,16 +434,30 @@ func (p Firecrawl) Map(ctx context.Context, targetURL string, limit int) map[str
 	}
 	payload := map[string]any{"url": targetURL, "limit": limit}
 	var data map[string]any
-	err := PostJSON(ctx, Client(90*time.Second), strings.TrimRight(p.APIURL, "/")+"/map", map[string]string{"Authorization": "Bearer " + p.APIKey}, payload, &data)
+	err := firecrawlPostJSON(ctx, p.client(90*time.Second), p.endpoint("map"), p.APIKey, payload, &data, true)
 	if err != nil {
 		errorType, message := ErrorPayload(err)
 		return map[string]any{"ok": false, "url": targetURL, "provider": "firecrawl", "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
 	}
+	if success, ok := data["success"].(bool); ok && !success {
+		errorType, message := ErrorPayload(firecrawlEnvelopeError(data, "Firecrawl map returned success=false"))
+		return map[string]any{"ok": false, "url": targetURL, "provider": "firecrawl", "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
+	}
 	results := data["links"]
 	if results == nil {
-		results = data["data"]
+		if nested, ok := data["data"].(map[string]any); ok {
+			results = nested["links"]
+			if results == nil {
+				results = nested["data"]
+			}
+		} else {
+			results = data["data"]
+		}
 	}
-	return map[string]any{"ok": true, "url": targetURL, "provider": "firecrawl", "results": results, "elapsed_ms": Elapsed(start)}
+	if isEmptyValue(results) {
+		return map[string]any{"ok": false, "url": targetURL, "provider": "firecrawl", "results": []any{}, "error_type": "empty_result", "error": "Firecrawl map returned no links", "elapsed_ms": Elapsed(start)}
+	}
+	return map[string]any{"ok": true, "url": targetURL, "provider": "firecrawl", "results": results, "elapsed_ms": Elapsed(start), "warning": data["warning"], "credits_used": data["creditsUsed"]}
 }
 
 func (p Firecrawl) Crawl(ctx context.Context, targetURL string, maxDepth, limit int) map[string]any {
@@ -427,7 +475,7 @@ func (p Firecrawl) Crawl(ctx context.Context, targetURL string, maxDepth, limit 
 		"scrapeOptions":     map[string]any{"formats": []string{"markdown"}, "onlyMainContent": true},
 	}
 	var data map[string]any
-	err := PostJSON(ctx, Client(120*time.Second), strings.TrimRight(p.APIURL, "/")+"/crawl", map[string]string{"Authorization": "Bearer " + p.APIKey}, payload, &data)
+	err := firecrawlPostJSON(ctx, p.client(120*time.Second), p.endpoint("crawl"), p.APIKey, payload, &data, false)
 	if err != nil {
 		errorType, message := ErrorPayload(err)
 		return map[string]any{"ok": false, "url": targetURL, "provider": "firecrawl", "error_type": errorType, "error": message, "elapsed_ms": Elapsed(start)}
@@ -454,6 +502,17 @@ func (p Firecrawl) Crawl(ctx context.Context, targetURL string, maxDepth, limit 
 	} else if stringValue(data["id"]) != "" {
 		out["status"] = "submitted"
 	}
+	if jobID := firstNonEmpty(stringValue(data["id"]), stringValue(data["job_id"])); jobID != "" {
+		out["job_id"] = jobID
+		out["submitted"] = true
+		out["job_url"] = firstNonEmpty(stringValue(data["url"]), p.endpoint("crawl/"+jobID))
+	}
+	if ok && strings.TrimSpace(stringValue(data["id"])) == "" {
+		ok = false
+		out["ok"] = false
+		out["error_type"] = "protocol_error"
+		out["error"] = "Firecrawl crawl response missing job id"
+	}
 	if !ok {
 		out["error_type"] = "provider_error"
 		out["error"] = firstNonEmpty(stringValue(data["error"]), "Firecrawl crawl returned success=false")
@@ -474,9 +533,13 @@ func (p Firecrawl) Scrape(ctx context.Context, targetURL string, attempts int) (
 			"waitFor": (i + 1) * 1500,
 		}
 		var data map[string]any
-		err := PostJSON(ctx, Client(90*time.Second), strings.TrimRight(p.APIURL, "/")+"/scrape", map[string]string{"Authorization": "Bearer " + p.APIKey}, payload, &data)
+		err := firecrawlPostJSON(ctx, p.client(90*time.Second), p.endpoint("scrape"), p.APIKey, payload, &data, true)
 		if err != nil {
 			lastErr = err
+			continue
+		}
+		if success, ok := data["success"].(bool); ok && !success {
+			lastErr = firecrawlEnvelopeError(data, "Firecrawl scrape returned success=false")
 			continue
 		}
 		if nested, ok := data["data"].(map[string]any); ok {
@@ -484,6 +547,9 @@ func (p Firecrawl) Scrape(ctx context.Context, targetURL string, attempts int) (
 				return markdown, nil
 			}
 		}
+	}
+	if lastErr == nil {
+		lastErr = &ProviderError{Type: "empty_result", Message: "Firecrawl scrape returned no markdown content"}
 	}
 	return "", lastErr
 }
@@ -549,4 +615,87 @@ func joinedContentByKey(items []map[string]any, key string) string {
 		}
 	}
 	return strings.TrimSpace(strings.Join(parts, "\n\n"))
+}
+
+func (p Firecrawl) client(fallback time.Duration) *http.Client {
+	timeout := p.Timeout
+	if timeout <= 0 {
+		timeout = fallback
+	}
+	return Client(timeout)
+}
+
+func (p Firecrawl) endpoint(path string) string {
+	base := normalizeFirecrawlBaseURL(p.APIURL)
+	return strings.TrimRight(base, "/") + "/" + strings.TrimLeft(path, "/")
+}
+
+func normalizeFirecrawlBaseURL(raw string) string {
+	raw = strings.TrimRight(strings.TrimSpace(raw), "/")
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return raw
+	}
+	path := strings.TrimRight(parsed.Path, "/")
+	if path == "" {
+		parsed.Path = "/v2"
+	} else if !strings.HasSuffix(path, "/v2") {
+		parsed.Path = path + "/v2"
+	} else {
+		parsed.Path = path
+	}
+	return strings.TrimRight(parsed.String(), "/")
+}
+
+func firecrawlEnvelopeError(data map[string]any, fallback string) error {
+	message := firstNonEmpty(stringValue(data["error"]), stringValue(data["message"]), stringValue(data["details"]), fallback)
+	return &ProviderError{Type: "provider_error", Message: truncate(message, 500)}
+}
+
+func firecrawlPostJSON(ctx context.Context, client *http.Client, endpoint, apiKey string, payload any, out any, retry bool) error {
+	maxAttempts := 1
+	if retry {
+		maxAttempts = 3
+	}
+	var lastErr error
+	for attempt := 0; attempt < maxAttempts; attempt++ {
+		lastErr = PostJSON(ctx, client, endpoint, map[string]string{"Authorization": "Bearer " + apiKey}, payload, out)
+		if lastErr == nil {
+			return nil
+		}
+		var httpErr *HTTPError
+		if !errors.As(lastErr, &httpErr) || !retry || !retryableFirecrawlStatus(httpErr.StatusCode) || attempt+1 >= maxAttempts {
+			break
+		}
+		if delay := parseRetryAfter(httpErr.RetryAfter); delay > 0 {
+			timer := time.NewTimer(delay)
+			select {
+			case <-ctx.Done():
+				timer.Stop()
+				return ctx.Err()
+			case <-timer.C:
+			}
+		}
+	}
+	return lastErr
+}
+
+func retryableFirecrawlStatus(status int) bool {
+	switch status {
+	case 408, 429, 500, 502, 503, 504:
+		return true
+	default:
+		return false
+	}
+}
+
+func parseRetryAfter(value string) time.Duration {
+	seconds, err := strconv.Atoi(strings.TrimSpace(value))
+	if err != nil || seconds <= 0 {
+		return 0
+	}
+	if seconds > 2 {
+		seconds = 2
+	}
+	return time.Duration(seconds) * time.Second
 }

@@ -5,7 +5,7 @@ func providerDefinitions() []CommandDefinition {
 		providerCommand("exa.web-search", "exa", []string{"exa", "web-search"}, "Search the web with Exa.", []string{"docs_search", "source_search"}, []PositionalDefinition{positional("query", "Search query.", true)}, []OptionDefinition{
 			optionDefault("num_results", "num-results", TypeInteger, 5, "Number of results."),
 			{Name: "max_results", Flag: "max-results", Type: TypeInteger, Default: 0, HasDefault: true, Description: "Compatibility flag that overrides num_results when greater than zero.", Deprecated: true, Overrides: "num_results", OverridesWhen: "positive"},
-			optionDefault("search_type", "search-type", TypeString, "neural", "Exa search type."),
+			{Name: "search_type", Flag: "search-type", Type: TypeString, Default: "auto", HasDefault: true, Enum: []string{"auto", "fast", "instant", "deep-lite", "deep", "deep-reasoning", "neural"}, Description: "Exa search type; neural is a deprecated alias for auto."},
 			optionDefault("include_text", "include-text", TypeBoolean, false, "Include page text."),
 			optionDefault("include_highlights", "include-highlights", TypeBoolean, false, "Include highlights."),
 			optionDefault("start_published_date", "start-published-date", TypeString, "", "Minimum publication date."),
@@ -75,17 +75,19 @@ func providerDefinitions() []CommandDefinition {
 		providerCommand("deepwiki.read-wiki-structure", "deepwiki", []string{"deepwiki", "read-wiki-structure"}, "Read a repository wiki structure.", []string{"repo_wiki"}, []PositionalDefinition{positional("repo", "Repository in owner/name form.", true)}, nil),
 		providerCommand("deepwiki.read-wiki-contents", "deepwiki", []string{"deepwiki", "read-wiki-contents"}, "Read repository wiki contents.", []string{"repo_wiki"}, []PositionalDefinition{positional("repo", "Repository in owner/name form.", true)}, nil),
 
-		providerCommand("anysearch.domains", "anysearch", []string{"anysearch", "domains"}, "List or inspect AnySearch domains.", []string{"vertical_search"}, []PositionalDefinition{positional("domain", "Optional domain identifier.", false)}, nil),
+		providerCommand("anysearch.domains", "anysearch", []string{"anysearch", "domains"}, "List or inspect AnySearch domains.", []string{"vertical_search"}, []PositionalDefinition{positional("domain", "Optional domain identifier.", false)}, []OptionDefinition{optionDefault("domains", "domains", TypeString, "", "Domain identifier list (comma-separated or JSON array).")}),
 		providerCommand("anysearch.search", "anysearch", []string{"anysearch", "search"}, "Search an AnySearch vertical domain.", []string{"vertical_search"}, []PositionalDefinition{positional("query", "Search query.", true)}, []OptionDefinition{
 			optionDefault("domain", "domain", TypeString, "", "Domain filter."),
 			optionDefault("sub_domain", "sub-domain", TypeString, "", "Sub-domain filter."),
+			optionDefault("sub_domain_params", "sub-domain-params", TypeString, "", "JSON parameters for the selected sub-domain."),
 			optionDefault("max_results", "max-results", TypeInteger, 5, "Number of results."),
 		}),
 		providerCommand("anysearch.extract", "anysearch", []string{"anysearch", "extract"}, "Extract content from a URL with AnySearch.", []string{"page_fetch"}, []PositionalDefinition{positional("url", "Target URL.", true)}, []OptionDefinition{
 			optionDefault("max_length", "max-length", TypeInteger, 20000, "Maximum content length."),
 		}),
-		providerCommand("anysearch.batch", "anysearch", []string{"anysearch", "batch"}, "Run multiple AnySearch queries.", []string{"vertical_search"}, []PositionalDefinition{variadicPositional("queries", "Queries to execute.", 1)}, []OptionDefinition{
+		providerCommand("anysearch.batch", "anysearch", []string{"anysearch", "batch"}, "Run multiple AnySearch queries.", []string{"vertical_search"}, []PositionalDefinition{variadicPositional("queries", "Queries to execute.", 0)}, []OptionDefinition{
 			optionDefault("max_results", "max-results", TypeInteger, 3, "Number of results per query."),
+			optionDefault("queries_json", "queries-json", TypeString, "", "JSON array of query objects (mutually exclusive with positional queries)."),
 		}),
 
 		providerCommand("zhipu.search", "zhipu", []string{"zhipu", "search"}, "Search the web with Zhipu.", []string{"source_search"}, []PositionalDefinition{positional("query", "Search query.", true)}, []OptionDefinition{
@@ -117,7 +119,7 @@ func providerDefinitions() []CommandDefinition {
 			optionDefault("anti_bot", "anti-bot", TypeBoolean, false, "Enable anti-bot handling."),
 			optionDefault("cache", "cache", TypeBoolean, false, "Enable cache."),
 			optionDefault("timeout", "timeout", TypeInteger, 60000, "Timeout in milliseconds."),
-			optionDefault("wait_for", "wait-for", TypeInteger, 0, "Wait time in milliseconds."),
+			optionDefault("wait_for", "wait-for", TypeString, "", "CSS selector or wait time in milliseconds."),
 		}),
 		providerCommand("freecrawl.crawl", "freecrawl", []string{"freecrawl", "crawl"}, "Crawl a website with Freecrawl.", []string{"site_crawl"}, []PositionalDefinition{positional("url", "Website URL.", true)}, []OptionDefinition{
 			optionDefault("max_depth", "max-depth", TypeInteger, 2, "Maximum traversal depth."),
@@ -140,6 +142,10 @@ func providerDefinitions() []CommandDefinition {
 			definitions[i].Constraints = normalConstraints(ConstraintDefinition{Kind: "at_least_one", Members: []string{"url_args", "urls"}})
 		case "anysearch.search":
 			definitions[i].PreferredFor = []string{"vertical_search"}
+		case "anysearch.domains":
+			definitions[i].Constraints = []ConstraintDefinition{{Kind: "mutually_exclusive", Members: []string{"domain", "domains"}}}
+		case "anysearch.batch":
+			definitions[i].Constraints = []ConstraintDefinition{{Kind: "at_least_one", Members: []string{"queries", "queries_json"}}, {Kind: "mutually_exclusive", Members: []string{"queries", "queries_json"}}}
 		}
 	}
 	return definitions

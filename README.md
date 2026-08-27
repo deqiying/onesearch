@@ -347,6 +347,8 @@ onesearch freecrawl crawl "https://example.com"
 onesearch freecrawl deep-research "topic"
 ```
 
+Protocol notes: Exa uses the current `auto` wire search type (`neural` is a deprecated alias), Context7 library resolution uses `/api/v2/libs/search` and requires an API key, and `firecrawl crawl` returns an asynchronous job (`job_id`/`status`) rather than completed page content. AnySearch domain discovery requires an explicit domain or `--domains`; Freecrawl MCP deployments should pin a package revision and rely on runtime tool discovery.
+
 </details>
 
 Run `status` first and verify `direct_endpoints.<provider>.available`. DDG and Freecrawl use a local `mcp_stdio` bridge and are disabled plus direct-only by default, so they do not change the normal workflow routes unless you explicitly enable and route them.

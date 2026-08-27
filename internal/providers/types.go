@@ -31,6 +31,7 @@ type HTTPError struct {
 	Body         string
 	ProviderType string
 	Message      string
+	RetryAfter   string
 }
 
 type ProviderError struct {
@@ -99,7 +100,7 @@ func PostJSON(ctx context.Context, client *http.Client, url string, headers map[
 	data, readErr := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		errorType, message := extractProviderError(data)
-		return &HTTPError{StatusCode: resp.StatusCode, Status: resp.Status, Body: trimBody(data, 500), ProviderType: errorType, Message: message}
+		return &HTTPError{StatusCode: resp.StatusCode, Status: resp.Status, Body: trimBody(data, 500), ProviderType: errorType, Message: message, RetryAfter: resp.Header.Get("Retry-After")}
 	}
 	if out == nil {
 		if readErr != nil {
@@ -144,7 +145,7 @@ func GetJSON(ctx context.Context, client *http.Client, url string, headers map[s
 	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		errorType, message := extractProviderError(data)
-		return &HTTPError{StatusCode: resp.StatusCode, Status: resp.Status, Body: trimBody(data, 500), ProviderType: errorType, Message: message}
+		return &HTTPError{StatusCode: resp.StatusCode, Status: resp.Status, Body: trimBody(data, 500), ProviderType: errorType, Message: message, RetryAfter: resp.Header.Get("Retry-After")}
 	}
 	if out == nil {
 		return nil

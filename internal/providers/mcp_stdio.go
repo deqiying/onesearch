@@ -13,12 +13,14 @@ import (
 )
 
 type MCPStdio struct {
-	Provider string
-	Command  string
-	Args     []string
-	Env      map[string]string
-	Tools    map[string]string
-	Timeout  time.Duration
+	Provider        string
+	Command         string
+	Args            []string
+	Env             map[string]string
+	Tools           map[string]string
+	Timeout         time.Duration
+	ProtocolVersion string
+	SessionMode     string
 }
 
 type MCPNormalizedResult struct {
@@ -32,13 +34,21 @@ type MCPNormalizedResult struct {
 
 func NewMCPStdio(provider string, settings map[string]any) MCPStdio {
 	timeoutSeconds := floatSetting(settings, "timeout_seconds", 60)
+	protocolVersion := stringSetting(settings, "protocol_version", "")
+	sessionMode := stringSetting(settings, "session_mode", "")
+	if nested := mapSetting(settings, "mcp"); nested != nil {
+		protocolVersion = stringSetting(nested, "protocol_version", protocolVersion)
+		sessionMode = stringSetting(nested, "session_mode", sessionMode)
+	}
 	return MCPStdio{
-		Provider: provider,
-		Command:  stringSetting(settings, "command", ""),
-		Args:     stringListSetting(settings, "args"),
-		Env:      stringMapSetting(settings, "env"),
-		Tools:    stringMapSetting(settings, "tools"),
-		Timeout:  time.Duration(timeoutSeconds * float64(time.Second)),
+		Provider:        provider,
+		Command:         stringSetting(settings, "command", ""),
+		Args:            stringListSetting(settings, "args"),
+		Env:             stringMapSetting(settings, "env"),
+		Tools:           stringMapSetting(settings, "tools"),
+		Timeout:         time.Duration(timeoutSeconds * float64(time.Second)),
+		ProtocolVersion: protocolVersion,
+		SessionMode:     sessionMode,
 	}
 }
 
@@ -56,16 +66,35 @@ func (p MCPStdio) CallTool(ctx context.Context, publicTool string, arguments map
 	if toolName == "" {
 		return MCPNormalizedResult{}, &ProviderError{Type: "config_error", Message: "missing mcp_stdio tool mapping for " + publicTool}
 	}
-	call, err := mcpstdio.CallTool(ctx, mcpstdio.Config{Command: p.Command, Args: p.Args, Env: p.Env, Timeout: p.Timeout}, toolName, compactArgs(arguments))
+	call, err := mcpstdio.CallTool(ctx, mcpstdio.Config{Command: p.Command, Args: p.Args, Env: p.Env, Timeout: p.Timeout, ProtocolVersion: p.ProtocolVersion, SessionMode: p.SessionMode}, toolName, compactArgs(arguments))
 	if err != nil {
 		return MCPNormalizedResult{}, normalizeMCPStdioError(err)
 	}
 	if truthy(call.Result["isError"]) {
 		normalized := normalizeMCPToolResult(call.Result, toolName, call.Tools, call.Stderr)
+		if normalized.MCP == nil {
+			normalized.MCP = map[string]any{}
+		}
+		if call.ProtocolVersion != "" {
+			normalized.MCP["protocol_version"] = call.ProtocolVersion
+		}
+		if call.SessionMode != "" {
+			normalized.MCP["session_mode"] = call.SessionMode
+		}
 		message := firstNonEmpty(normalized.Content, normalized.RawContent, "mcp tool returned isError=true")
 		return normalized, &ProviderError{Type: "provider_error", Message: message}
 	}
-	return normalizeMCPToolResult(call.Result, toolName, call.Tools, call.Stderr), nil
+	normalized := normalizeMCPToolResult(call.Result, toolName, call.Tools, call.Stderr)
+	if normalized.MCP == nil {
+		normalized.MCP = map[string]any{}
+	}
+	if call.ProtocolVersion != "" {
+		normalized.MCP["protocol_version"] = call.ProtocolVersion
+	}
+	if call.SessionMode != "" {
+		normalized.MCP["session_mode"] = call.SessionMode
+	}
+	return normalized, nil
 }
 
 func (r MCPNormalizedResult) Envelope() map[string]any {
@@ -137,16 +166,69 @@ func normalizeMCPToolResult(raw map[string]any, toolName string, tools []mcpstdi
 		mcp["tools"] = names
 	}
 	if strings.TrimSpace(stderr) != "" {
-		mcp["stderr"] = stderr
+		mcp["stderr_present"] = true
+		mcp["stderr_summary"] = truncate(redactDiagnostic(strings.Map(func(r rune) rune {
+			if r < 0x20 && r != '\t' {
+				return ' '
+			}
+			return r
+		}, stderr)), 500)
 	}
 	return MCPNormalizedResult{
 		Content:    strings.TrimSpace(content),
 		RawContent: strings.TrimSpace(rawContent),
 		Results:    results,
 		Pages:      pages,
-		RawResult:  raw,
+		RawResult:  boundedRawResult(raw),
 		MCP:        mcp,
 	}
+}
+
+func redactDiagnostic(text string) string {
+	pattern := regexp.MustCompile(`(?i)(authorization|cookie|token|api[_-]?key|secret)=?[^\s;,]+`)
+	return pattern.ReplaceAllString(text, "$1=[REDACTED]")
+}
+
+func mapSetting(settings map[string]any, key string) map[string]any {
+	if settings == nil {
+		return nil
+	}
+	if value, ok := settings[key].(map[string]any); ok {
+		return value
+	}
+	return nil
+}
+
+func boundedRawResult(raw map[string]any) map[string]any {
+	if raw == nil {
+		return map[string]any{}
+	}
+	data, err := json.Marshal(raw)
+	if err != nil {
+		return map[string]any{"redacted": true}
+	}
+	if len(data) <= 64*1024 {
+		return redactMap(raw)
+	}
+	return map[string]any{"truncated": true, "bytes": len(data)}
+}
+
+func redactMap(raw map[string]any) map[string]any {
+	out := map[string]any{}
+	for key, value := range raw {
+		lower := strings.ToLower(key)
+		if strings.Contains(lower, "authorization") || strings.Contains(lower, "cookie") || strings.Contains(lower, "token") || strings.Contains(lower, "api_key") || strings.Contains(lower, "secret") {
+			out[key] = "[REDACTED]"
+			continue
+		}
+		switch typed := value.(type) {
+		case map[string]any:
+			out[key] = redactMap(typed)
+		default:
+			out[key] = value
+		}
+	}
+	return out
 }
 
 func extractMCPContentText(value any) string {

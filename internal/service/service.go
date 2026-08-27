@@ -471,10 +471,12 @@ func (s *Service) ZhipuSearch(ctx context.Context, query string, options provide
 		return s.providerConfigError("zhipu")
 	}
 	return providers.Zhipu{
-		APIURL:       provider.BaseURL,
-		APIKey:       provider.APIKey,
-		SearchEngine: provider.SettingString("search_engine", config.DefaultZhipuSearchEngine),
-		Timeout:      durationSeconds(provider.SettingFloat("timeout_seconds", 30)),
+		APIURL:          provider.BaseURL,
+		APIKey:          provider.APIKey,
+		SearchEngine:    provider.SettingString("search_engine", config.DefaultZhipuSearchEngine),
+		ProtocolProfile: provider.SettingString("protocol_profile", "bigmodel_cn"),
+		SearchIntent:    provider.SettingBool("search_intent", false),
+		Timeout:         durationSeconds(provider.SettingFloat("timeout_seconds", 30)),
 	}.Search(ctx, query, options)
 }
 
@@ -483,7 +485,7 @@ func (s *Service) Context7Library(ctx context.Context, name, query string) map[s
 	if !ok || provider.APIKey == "" {
 		return s.providerConfigError("context7")
 	}
-	return providers.Context7{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 30))}.Library(ctx, name, query)
+	return providers.Context7{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 30)), LegacySearchEndpoint: provider.SettingBool("legacy_search_endpoint", false)}.Library(ctx, name, query)
 }
 
 func (s *Service) Context7Docs(ctx context.Context, libraryID, query string) map[string]any {
@@ -497,18 +499,20 @@ func (s *Service) Context7Docs(ctx context.Context, libraryID, query string) map
 func (s *Service) AnySearch() providers.AnySearch {
 	provider, _ := s.providerByID("anysearch")
 	return providers.AnySearch{
-		APIURL:  firstNonEmpty(provider.BaseURL, config.DefaultAnySearchAPIURL),
-		APIKey:  provider.APIKey,
-		Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 30)),
+		APIURL:      firstNonEmpty(provider.BaseURL, config.DefaultAnySearchAPIURL),
+		APIKey:      provider.APIKey,
+		Timeout:     durationSeconds(provider.SettingFloat("timeout_seconds", 30)),
+		SessionMode: provider.SettingString("session_mode", provider.SettingString("mcp.session_mode", "")),
 	}
 }
 
 func (s *Service) DeepWiki() providers.DeepWiki {
 	provider, _ := s.providerByID("deepwiki")
 	return providers.DeepWiki{
-		APIURL:  firstNonEmpty(provider.BaseURL, config.DefaultDeepWikiAPIURL),
-		APIKey:  provider.APIKey,
-		Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 30)),
+		APIURL:      firstNonEmpty(provider.BaseURL, config.DefaultDeepWikiAPIURL),
+		APIKey:      provider.APIKey,
+		Timeout:     durationSeconds(provider.SettingFloat("timeout_seconds", 30)),
+		SessionMode: provider.SettingString("session_mode", provider.SettingString("mcp.session_mode", "")),
 	}
 }
 

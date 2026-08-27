@@ -37,6 +37,8 @@ onesearch skills show onesearch --file references/agent-execution-contract.md --
 onesearch skills show tavily --format content
 ```
 
+Exa uses the current `auto` wire search type, Firecrawl crawl reports an asynchronous job, and AnySearch domain discovery requires an explicit domain or `--domains`.
+
 JSON output is one-line compact by default and keeps a trailing newline. Use `--pretty` for two-space indentation during human inspection; output layout does not switch automatically for TTYs.
 
 `schema` is the static V2 CLI command manifest. Command entries use `name`, `description`, and `input_schema`; V1 `id` and `summary` are no longer emitted. Runtime configuration remains available through `config list --format json`. The manifest is a CLI contract, not a native tool registration: adapters map `input_schema` to the target platform and execute the canonical `path`. Schema queries, command `--help`, and `skills list/show` do not initialize config files or access the network. `skills show` reads `SKILL.md` by default; `--file <relative-path>` reads one bundled file. Its default compact JSON includes metadata, the relative file path, and `content`; use `--format content` for plain text. `schema --output` only writes the explicitly requested manifest file. Invalid flags or extra positional arguments return exit code 2.

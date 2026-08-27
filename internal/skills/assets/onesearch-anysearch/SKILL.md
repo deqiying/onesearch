@@ -19,10 +19,13 @@ onesearch schema anysearch batch --format json
 Run `onesearch status --format json` and require `status.direct_endpoints.anysearch.available == true` before a direct call.
 
 ```text
-onesearch anysearch domains --format json
+onesearch anysearch domains example.com --format json
+onesearch anysearch domains --domains example.com,github.com --format json
 onesearch anysearch search "vertical query" --domain example.com --max-results 5 --format json
 onesearch anysearch extract "https://example.com/page" --max-length 20000 --format json
 ```
+
+`anysearch domains` 必须提供 positional `domain` 或 `--domains`（1–5 个）；无参数直接调用会返回 `parameter_error`。`extract --max-length` 仅用于本地结果截断。批量查询可使用 `--queries-json` 传入 1–5 个 query object，不能与 positional queries 同时使用。
 
 Domain/search results are discovery candidates. Extract important pages before claim-level use. Inspect targeted schema before a batch call or provider-specific optional flags, and keep batch size bounded.
 

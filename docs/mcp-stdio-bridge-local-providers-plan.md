@@ -1,5 +1,7 @@
 # MCP Stdio Bridge 本地 Provider 接入技术方案
 
+> 状态：superseded（2026-08-27）。MCP transport、版本协商、schema discovery 与 Freecrawl 版本冻结以 [`provider-upstream-protocol-alignment-technical-design.md`](provider-upstream-protocol-alignment-technical-design.md) 为准；本文件仅保留历史背景。
+
 ## 背景
 
 `onesearch` 当前是 CLI-first 的研究与证据工具，核心能力通过 workflow 命令和 provider-direct 命令暴露。已有 provider 主要通过 HTTP API、HTTP JSON-RPC 或固定 SDK 风格协议调用，例如 `exa`、`tavily`、`firecrawl`、`context7`、`deepwiki`、`anysearch` 和 `zhipu`。

@@ -105,8 +105,8 @@ func TestDefaultMCPStdioProvidersAreDirectOnly(t *testing.T) {
 		t.Fatalf("mcp_stdio provider templates missing: %#v %#v", runtime.Providers["ddg"], runtime.Providers["freecrawl"])
 	}
 	freecrawlSettings := runtime.Providers["freecrawl"].Settings
-	if got := stringListFromAny(freecrawlSettings["args"]); !reflect.DeepEqual(got, []string{"freecrawl-mcp"}) {
-		t.Fatalf("freecrawl args = %#v, want freecrawl-mcp without positional transport", got)
+	if got := stringListFromAny(freecrawlSettings["args"]); !reflect.DeepEqual(got, []string{"freecrawl-mcp==0.1.2"}) {
+		t.Fatalf("freecrawl args = %#v, want pinned freecrawl-mcp release", got)
 	}
 	env := stringMapFromAny(freecrawlSettings["env"])
 	if env["FREECRAWL_TRANSPORT"] != "stdio" {

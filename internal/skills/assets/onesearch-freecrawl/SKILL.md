@@ -25,6 +25,8 @@ onesearch freecrawl crawl "https://docs.example.com" --max-depth 2 --max-pages 2
 onesearch freecrawl deep-research "topic" --num-sources 8 --max-depth 3 --format json
 ```
 
+The bundled example pins Freecrawl to `pypi:freecrawl-mcp==0.1.2` when configured. `--wait-for` accepts a CSS selector or a millisecond string; tool availability is determined by runtime discovery and missing tools return `capability_unavailable`.
+
 Keep crawl and deep-research limits small and restrict crawling to the relevant domain. Treat search output as discovery and scrape key pages before citing claims.
 
 Freecrawl may require Playwright browser binaries. If startup reports missing browser/runtime assets, report the exact prerequisite and ask the user to authorize installation; do not run an installer or `--install-browsers` automatically.

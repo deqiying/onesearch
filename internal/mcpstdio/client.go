@@ -18,21 +18,28 @@ import (
 const defaultProtocolVersion = "2025-03-26"
 
 type Config struct {
-	Command string
-	Args    []string
-	Env     map[string]string
-	Timeout time.Duration
+	Command         string
+	Args            []string
+	Env             map[string]string
+	Timeout         time.Duration
+	ProtocolVersion string
+	SessionMode     string
 }
 
 type Tool struct {
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
+	Name         string         `json:"name"`
+	Description  string         `json:"description,omitempty"`
+	InputSchema  map[string]any `json:"inputSchema,omitempty"`
+	OutputSchema map[string]any `json:"outputSchema,omitempty"`
+	Meta         map[string]any `json:"_meta,omitempty"`
 }
 
 type CallResult struct {
-	Result map[string]any
-	Tools  []Tool
-	Stderr string
+	Result          map[string]any
+	Tools           []Tool
+	Stderr          string
+	ProtocolVersion string
+	SessionMode     string
 }
 
 type Error struct {
@@ -54,12 +61,16 @@ func (e *Error) Error() string {
 }
 
 type Client struct {
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
-	events chan rpcEvent
-	nextID int
-	write  sync.Mutex
-	stderr *limitedBuffer
+	cmd             *exec.Cmd
+	stdin           io.WriteCloser
+	events          chan rpcEvent
+	nextID          int
+	write           sync.Mutex
+	stderr          *limitedBuffer
+	modern          bool
+	protocolVersion string
+	pendingMu       sync.Mutex
+	pending         map[string]chan rpcEvent
 }
 
 type rpcEvent struct {
@@ -91,8 +102,18 @@ func CallTool(ctx context.Context, cfg Config, toolName string, arguments map[st
 		return CallResult{}, err
 	}
 	defer client.Close()
-	if err := client.Initialize(ctx); err != nil {
-		return CallResult{Stderr: client.Stderr()}, err
+	if !client.modern {
+		if err := client.Initialize(ctx); err != nil {
+			return CallResult{Stderr: client.Stderr()}, err
+		}
+	} else {
+		if _, err := client.Discover(ctx); err != nil {
+			client.modern = false
+			client.protocolVersion = defaultProtocolVersion
+			if initErr := client.Initialize(ctx); initErr != nil {
+				return CallResult{Stderr: client.Stderr(), ProtocolVersion: client.protocolVersion, SessionMode: sessionModeForClient(client)}, initErr
+			}
+		}
 	}
 	tools, err := client.ListTools(ctx)
 	if err != nil {
@@ -100,10 +121,17 @@ func CallTool(ctx context.Context, cfg Config, toolName string, arguments map[st
 	}
 	resolvedToolName, found := resolveToolName(tools, toolName)
 	if !found {
-		return CallResult{Tools: tools, Stderr: client.Stderr()}, &Error{Type: "config_error", Message: "mcp_stdio tool not found: " + toolName}
+		return CallResult{Tools: tools, Stderr: client.Stderr(), ProtocolVersion: client.protocolVersion, SessionMode: sessionModeForClient(client)}, &Error{Type: "capability_unavailable", Message: "mcp_stdio tool not found: " + toolName}
 	}
 	result, err := client.CallTool(ctx, resolvedToolName, arguments)
-	return CallResult{Result: result, Tools: tools, Stderr: client.Stderr()}, err
+	return CallResult{Result: result, Tools: tools, Stderr: client.Stderr(), ProtocolVersion: client.protocolVersion, SessionMode: sessionModeForClient(client)}, err
+}
+
+func sessionModeForClient(client *Client) string {
+	if client != nil && client.modern {
+		return "modern"
+	}
+	return "legacy"
 }
 
 func Start(ctx context.Context, cfg Config) (*Client, error) {
@@ -129,12 +157,19 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 		return nil, normalizeStartError(command, err)
 	}
 	client := &Client{
-		cmd:    cmd,
-		stdin:  stdin,
-		events: make(chan rpcEvent, 16),
-		stderr: newLimitedBuffer(16 * 1024),
+		cmd:     cmd,
+		stdin:   stdin,
+		events:  make(chan rpcEvent, 16),
+		stderr:  newLimitedBuffer(16 * 1024),
+		pending: make(map[string]chan rpcEvent),
+	}
+	client.modern = strings.EqualFold(strings.TrimSpace(cfg.SessionMode), "modern")
+	client.protocolVersion = strings.TrimSpace(cfg.ProtocolVersion)
+	if client.protocolVersion == "" {
+		client.protocolVersion = "2026-07-28"
 	}
 	go client.readLoop(stdout)
+	go client.dispatchLoop()
 	go func() {
 		_, _ = io.Copy(client.stderr, stderrPipe)
 	}()
@@ -157,17 +192,43 @@ func (c *Client) Initialize(ctx context.Context) error {
 }
 
 func (c *Client) ListTools(ctx context.Context) ([]Tool, error) {
-	result, err := c.request(ctx, "tools/list", map[string]any{})
+	var tools []Tool
+	var cursor string
+	for page := 0; page < 20; page++ {
+		params := map[string]any{}
+		if cursor != "" {
+			params["cursor"] = cursor
+		}
+		result, err := c.request(ctx, "tools/list", params)
+		if err != nil {
+			return nil, err
+		}
+		var payload struct {
+			Tools      []Tool `json:"tools"`
+			NextCursor string `json:"nextCursor"`
+		}
+		if err := json.Unmarshal(result, &payload); err != nil {
+			return nil, &Error{Type: "protocol_error", Message: "invalid tools/list result: " + err.Error()}
+		}
+		tools = append(tools, payload.Tools...)
+		cursor = strings.TrimSpace(payload.NextCursor)
+		if cursor == "" || len(tools) >= 1000 {
+			break
+		}
+	}
+	return tools, nil
+}
+
+func (c *Client) Discover(ctx context.Context) (map[string]any, error) {
+	result, err := c.request(ctx, "server/discover", map[string]any{})
 	if err != nil {
 		return nil, err
 	}
-	var payload struct {
-		Tools []Tool `json:"tools"`
+	var out map[string]any
+	if err := json.Unmarshal(result, &out); err != nil {
+		return nil, &Error{Type: "protocol_error", Message: "invalid server/discover result: " + err.Error()}
 	}
-	if err := json.Unmarshal(result, &payload); err != nil {
-		return nil, &Error{Type: "protocol_error", Message: "invalid tools/list result: " + err.Error()}
-	}
-	return payload.Tools, nil
+	return out, nil
 }
 
 func (c *Client) CallTool(ctx context.Context, name string, arguments map[string]any) (map[string]any, error) {
@@ -220,6 +281,22 @@ func (c *Client) request(ctx context.Context, method string, params any) (json.R
 	c.write.Lock()
 	c.nextID++
 	id := c.nextID
+	responseCh := make(chan rpcEvent, 1)
+	c.pendingMu.Lock()
+	c.pending[fmt.Sprint(id)] = responseCh
+	c.pendingMu.Unlock()
+	defer func() { c.pendingMu.Lock(); delete(c.pending, fmt.Sprint(id)); c.pendingMu.Unlock() }()
+	if c.modern {
+		if values, ok := params.(map[string]any); ok {
+			values = cloneAnyMap(values)
+			values["_meta"] = map[string]any{
+				"io.modelcontextprotocol/protocolVersion": c.protocolVersion,
+				"clientInfo":   map[string]any{"name": "onesearch", "version": "local"},
+				"capabilities": map[string]any{},
+			}
+			params = values
+		}
+	}
 	payload := map[string]any{
 		"jsonrpc": "2.0",
 		"id":      id,
@@ -240,7 +317,7 @@ func (c *Client) request(ctx context.Context, method string, params any) (json.R
 		select {
 		case <-ctx.Done():
 			return nil, &Error{Type: "timeout", Message: ctx.Err().Error()}
-		case event, ok := <-c.events:
+		case event, ok := <-responseCh:
 			if !ok {
 				return nil, &Error{Type: "protocol_error", Message: c.closedMessage()}
 			}
@@ -259,6 +336,52 @@ func (c *Client) request(ctx context.Context, method string, params any) (json.R
 			return event.message.Result, nil
 		}
 	}
+}
+
+func (c *Client) dispatchLoop() {
+	for event := range c.events {
+		if event.err != nil {
+			c.pendingMu.Lock()
+			for _, channel := range c.pending {
+				channel <- event
+			}
+			c.pendingMu.Unlock()
+			continue
+		}
+		key := rpcIDKey(event.message.ID)
+		c.pendingMu.Lock()
+		channel := c.pending[key]
+		c.pendingMu.Unlock()
+		if channel != nil {
+			channel <- event
+		}
+	}
+	c.pendingMu.Lock()
+	defer c.pendingMu.Unlock()
+	for _, channel := range c.pending {
+		channel <- rpcEvent{err: &Error{Type: "protocol_error", Message: c.closedMessage()}}
+	}
+}
+
+func rpcIDKey(value any) string {
+	switch typed := value.(type) {
+	case float64:
+		return fmt.Sprint(int(typed))
+	case int:
+		return fmt.Sprint(typed)
+	case string:
+		return typed
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
+func cloneAnyMap(input map[string]any) map[string]any {
+	out := make(map[string]any, len(input)+1)
+	for key, value := range input {
+		out[key] = value
+	}
+	return out
 }
 
 func (c *Client) closedMessage() string {
