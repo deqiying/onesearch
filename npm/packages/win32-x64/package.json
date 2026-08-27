@@ -1,6 +1,6 @@
 {
   "name": "@deqiying/onesearch-win32-x64",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Windows x64 binary for onesearch.",
   "license": "Apache-2.0",
   "os": [
