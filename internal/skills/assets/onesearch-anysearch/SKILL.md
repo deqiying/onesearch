@@ -25,7 +25,7 @@ onesearch anysearch search "vertical query" --domain example.com --max-results 5
 onesearch anysearch extract "https://example.com/page" --max-length 20000 --format json
 ```
 
-`anysearch domains` 必须提供 positional `domain` 或 `--domains`（1–5 个）；无参数直接调用会返回 `parameter_error`。`extract --max-length` 仅用于本地结果截断。批量查询可使用 `--queries-json` 传入 1–5 个 query object，不能与 positional queries 同时使用。
+`anysearch domains` 必须提供 positional `domain` 或 `--domains`（1–5 个）；无参数直接调用会返回 `parameter_error`。`extract` 返回解包后的页面正文（`content`/`raw_content` 为页面 Markdown，上游提供 `title` 时顶层带上该字段，`results` 只有一条 `page_extract` 证据），`--max-length` 仅用于本地结果截断。批量查询可使用 `--queries-json` 传入 1–5 个 query object，不能与 positional queries 同时使用。
 
 Domain/search results are discovery candidates. Extract important pages before claim-level use. Inspect targeted schema before a batch call or provider-specific optional flags, and keep batch size bounded.
 

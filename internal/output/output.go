@@ -119,7 +119,7 @@ func compactSearchResult(data map[string]any) map[string]any {
 
 func compactContentResult(data map[string]any) map[string]any {
 	out := map[string]any{"ok": data["ok"]}
-	for _, key := range []string{"query", "url", "repo", "library_id", "provider", "tool", "mode", "id", "job_id", "status", "success", "total", "elapsed_ms", "fallback_used"} {
+	for _, key := range []string{"query", "url", "repo", "library_id", "provider", "tool", "mode", "id", "job_id", "status", "success", "title", "total", "elapsed_ms", "fallback_used"} {
 		if value, ok := data[key]; ok && stringValue(value) != "" {
 			out[key] = value
 		}

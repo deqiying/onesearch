@@ -347,7 +347,7 @@ onesearch freecrawl crawl "https://example.com"
 onesearch freecrawl deep-research "topic"
 ```
 
-协议说明：Exa 当前 wire 使用 `auto`（`neural` 仅作为弃用兼容别名），Context7 library resolution 使用 `/api/v2/libs/search` 且需要 API key，`firecrawl crawl` 返回异步任务提交状态（`job_id`/`status`），不是已完成页面内容。AnySearch 域发现必须提供 domain 或 `--domains`；Freecrawl MCP 部署应固定版本并以运行时 tool discovery 为准。
+协议说明：Exa 当前 wire 使用 `auto`（`neural` 仅作为弃用兼容别名），Context7 library resolution 使用 `/api/v2/libs/search` 且需要 API key，`firecrawl crawl` 返回异步任务提交状态（`job_id`/`status`），不是已完成页面内容。AnySearch 域发现必须提供 domain 或 `--domains`；AnySearch 抽取会解包上游页面载荷（`url`/`title`/`content`，含 REST 的 `data` 包装），因此 `content` 与 `--format content` 返回页面 Markdown 而非原始 JSON 外壳；Freecrawl MCP 部署应固定版本并以运行时 tool discovery 为准。
 
 </details>
 

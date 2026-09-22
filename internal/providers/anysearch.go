@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -55,9 +56,32 @@ func (p AnySearch) Call(ctx context.Context, name string, arguments map[string]a
 	text := extractAnySearchText(result)
 	boundedText, textTruncated := boundedMCPText(text)
 	isError, _ := result["isError"].(bool)
+	content := boundedText
+	contentTruncated := textTruncated
+	pageTitle := ""
 	parsed := []map[string]any{}
 	if !isError {
-		parsed = parseAnySearchMarkdownResults(boundedText)
+		if isAnySearchExtractTool(resolvedName) {
+			// extract 返回单页内容，不能按 markdown 搜索结果列表解析。
+			pageURL, extractTitle, pageContent, ok := anySearchExtractPayload(result, boundedText)
+			if ok {
+				if pageURL == "" {
+					pageURL = stringValue(arguments["url"])
+				}
+				// 正文可能来自未被 boundedMCPText 约束的 structuredContent，
+				// 因此按最终返回的正文重新判定截断标记。
+				content, contentTruncated = boundedMCPText(pageContent)
+				pageTitle = extractTitle
+				parsed = append(parsed, map[string]any{
+					"title":         firstNonEmpty(pageTitle, pageURL, "extract page content"),
+					"url":           pageURL,
+					"description":   truncate(content, 500),
+					"evidence_type": "page_extract",
+				})
+			}
+		} else {
+			parsed = parseAnySearchMarkdownResults(boundedText)
+		}
 		if len(parsed) == 0 && strings.TrimSpace(boundedText) != "" {
 			parsed = append(parsed, map[string]any{
 				"title":         name + " structured evidence",
@@ -73,14 +97,17 @@ func (p AnySearch) Call(ctx context.Context, name string, arguments map[string]a
 		"provider":      "anysearch",
 		"tool":          name,
 		"resolved_tool": resolvedName,
-		"content":       boundedText,
-		"raw_content":   boundedText,
+		"content":       content,
+		"raw_content":   content,
 		"results":       parsed,
 		"total":         len(parsed),
 		"elapsed_ms":    Elapsed(start),
 		"mcp":           map[string]any{"protocol_version": client.ProtocolVersion(), "session_mode": client.SessionMode(), "tool_name": resolvedName},
 	}
-	if textTruncated {
+	if pageTitle != "" {
+		out["title"] = pageTitle
+	}
+	if contentTruncated {
 		out["content_truncated"] = true
 		out["raw_content_truncated"] = true
 	}
@@ -94,6 +121,65 @@ func (p AnySearch) Call(ctx context.Context, name string, arguments map[string]a
 		out["error"] = firstNonEmpty(boundedText, "AnySearch tool returned isError=true")
 	}
 	return out
+}
+
+// isAnySearchExtractTool 判断解析后的工具名是否指向单页抽取，兼容 mcp__<server>__extract 形式。
+func isAnySearchExtractTool(name string) bool {
+	parts := strings.Split(strings.TrimSpace(name), "__")
+	return strings.EqualFold(strings.TrimSpace(parts[len(parts)-1]), "extract")
+}
+
+// anySearchExtractPayload 把 extract 的返回解包成 url/title/content。
+// MCP 端点把单页结果放在扁平 JSON 文本（{"url","title","content"}）或
+// result.structuredContent 中，REST /v1/extract 再用 data 包一层，三者都归一。
+// 解包失败时返回 ok=false，由调用方保留原始文本作为内容。
+func anySearchExtractPayload(result map[string]any, text string) (string, string, string, bool) {
+	if url, title, content, ok := anySearchExtractFields(result["structuredContent"]); ok {
+		return url, title, content, true
+	}
+	trimmed := strings.TrimSpace(text)
+	if trimmed == "" || !json.Valid([]byte(trimmed)) {
+		return "", "", "", false
+	}
+	var decoded any
+	if err := json.Unmarshal([]byte(trimmed), &decoded); err != nil {
+		return "", "", "", false
+	}
+	return anySearchExtractFields(decoded)
+}
+
+func anySearchExtractFields(value any) (string, string, string, bool) {
+	switch typed := value.(type) {
+	case map[string]any:
+		if data, ok := typed["data"].(map[string]any); ok && len(data) > 0 {
+			if url, title, content, found := anySearchExtractFields(data); found {
+				return url, title, content, true
+			}
+		}
+		content := anySearchExtractString(typed["content"], typed["markdown"])
+		if content == "" {
+			return "", "", "", false
+		}
+		return strings.TrimSpace(stringValue(typed["url"])), strings.TrimSpace(stringValue(typed["title"])), content, true
+	case []any:
+		for _, item := range typed {
+			if url, title, content, ok := anySearchExtractFields(item); ok {
+				return url, title, content, true
+			}
+		}
+	}
+	return "", "", "", false
+}
+
+// anySearchExtractString 只接受字符串正文。非字符串值宁可回退到原始文本，
+// 也不用 fmt.Sprint 把对象或数组变成难以察觉的脏内容。
+func anySearchExtractString(values ...any) string {
+	for _, value := range values {
+		if text, ok := value.(string); ok && strings.TrimSpace(text) != "" {
+			return strings.TrimSpace(text)
+		}
+	}
+	return ""
 }
 
 func (p AnySearch) Domains(ctx context.Context, domain string) map[string]any {
