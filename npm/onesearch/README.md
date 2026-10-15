@@ -46,6 +46,29 @@ onesearch skills show tavily --format content
 
 Exa uses the current `auto` wire search type, Firecrawl crawl reports an asynchronous job, and AnySearch domain discovery requires an explicit domain or `--domains`.
 
+## MCP integration (source implementation; release pending)
+
+The source tree implements `onesearch mcp`, a local stdio MCP server with no runtime flags or `serve` subcommand. The existing launcher forwards this argument, but **the current npm manifest version `1.0.6` does not include the feature**. Before release, build the source with the repository's pinned Go toolchain and point your host at the local binary with `args: ["mcp"]`; do not validate the new entry using an older downloaded package.
+
+After a release containing the feature, a host configuration can use:
+
+```json
+{
+  "mcpServers": {
+    "onesearch": {
+      "command": "npx",
+      "args": ["-y", "onesearch", "mcp"]
+    }
+  }
+}
+```
+
+For production, replace `onesearch` with `onesearch@<published-version>` using a verified published version that includes MCP; no available version is asserted here. `-y` authorizes npm's package installation prompt, so download must already be permitted. Windows host behavior is not tested: follow the host's `npx.cmd` / `cmd` invocation and quoting requirements, rather than assuming the generic configuration works everywhere.
+
+The five tools are `onesearch_search` (required `mode=answer/sources/docs`), `onesearch_fetch`, `onesearch_site` (required `action=map/crawl`), `onesearch_repo_wiki` (required `mode=ask/structure/contents`), and `onesearch_status`. Search sources uses Exa; docs uses Context7 and resolves `library_name` candidates without automatically querying them. Query again with a selected `library_id`. Use `tools/list` for the schema and liveness; modern protocol has no `ping`.
+
+Configure providers outside MCP with the CLI. Discovery does not read or create configuration and does not contact providers; tool requests use read-only configuration snapshots. Inspect status `data.tools[name].operations`: overall `data.ready` only covers the minimum profile, not all branches. Calls can incur fees or launch configured local providers; no arbitrary shell or file-writing tools are exposed. Full-suite and targeted race checks passed, as did offline local binary/npm integration on Windows x64 with a fake provider. Public release, real-host, launcher signal forwarding, and live-provider acceptance remain unverified. See the [repository MCP guide](https://github.com/deqiying/onesearch/blob/main/docs/guides/mcp.md) for limits, protocols, security boundaries, and setup details.
+
 ## Agent integration
 
 Create a custom Skill folder named `onesearch` in the Skills directory supported by your agent host and save the following content as `SKILL.md`:

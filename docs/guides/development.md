@@ -39,6 +39,7 @@ mise exec -- go test ./...
 # 按影响范围运行
 mise exec -- go test ./internal/cli ./internal/commandcontract ./internal/skills
 mise exec -- go test ./internal/config ./internal/providers ./internal/output
+mise exec -- go test ./internal/mcpserver ./internal/execution
 
 # 检查构建后的静态发现，不使用个人 provider 配置
 ./bin/onesearch.exe schema search --format json
@@ -50,6 +51,28 @@ macOS/Linux 将 `.exe` 路径替换为 `./bin/onesearch`。测试可能使用本
 - CLI manifest golden 位于 [cli-command-manifest-v2.golden.json](../../internal/cli/testdata/cli-command-manifest-v2.golden.json)，更新合同后同步对应[测试](../../internal/cli/schema_commands_test.go)。
 - 内置 Skill 的命令路径与 metadata 由 [skills_test.go](../../internal/skills/skills_test.go)检查。
 - `smoke` 默认 mock，`regression` 固定 mock；当前 `smoke --live` 也仅调用本机 `doctor` 检查 minimum profile，不验证远端。它们会加载 runtime 配置，不能替代 `go test`，也不能当作真实 provider 端到端验证。模式依据见 [Smoke 实现](../../internal/service/service.go)与[命令绑定](../../internal/cli/command_bindings.go)。
+- MCP 的 [catalog](../../internal/mcpserver/catalog_test.go)、[handler](../../internal/mcpserver/server_test.go)、[transport](../../internal/mcpserver/transport_test.go)及[wire](../../internal/mcpserver/wire_test.go)测试覆盖 schema/分支、readiness、配置快照、取消、脱敏、限额和四个协议版本；真实 binary/npm 链路使用下述独立脚本检查。当前验收与发布边界见 [MCP 指南](mcp.md)。
+
+### MCP 本地进程与 npm 集成
+
+[scripts/test-mcp.mjs](../../scripts/test-mcp.mjs)需要 Node 18+ 和 npm。使用本地 binary 与复制的 npm 包，离线打包/安装到指定临时目录；仅访问 loopback fake provider，不发布包、不读取个人 provider 配置。Windows PowerShell 示例：
+
+```powershell
+$scratch = Join-Path ([System.IO.Path]::GetTempPath()) ('onesearch-mcp-' + [guid]::NewGuid())
+New-Item -ItemType Directory -Path $scratch | Out-Null
+mise exec -- go build -o (Join-Path $scratch 'onesearch.exe') ./cmd/onesearch
+node scripts/test-mcp.mjs --binary (Join-Path $scratch 'onesearch.exe') --scratch $scratch
+```
+
+macOS/Linux Bash：
+
+```bash
+scratch="$(mktemp -d)"
+mise exec -- go build -o "$scratch/onesearch" ./cmd/onesearch
+node scripts/test-mcp.mjs --binary "$scratch/onesearch" --scratch "$scratch"
+```
+
+脚本验证四版本 binary、现代/legacy npx 链路、docs 两步、错误恢复、取消与 EOF；当前实测平台为 Windows x64，其他平台需在对应环境运行。若无法自动定位 npm JS 入口，传入 `--npm-cli <npm-cli.js>`。临时目录保留供诊断，检查后由调用者清理；这不是公共 npm 下载、具体 MCP host 或 launcher 信号转发验收。
 
 ## 文档维护
 

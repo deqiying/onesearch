@@ -29,8 +29,8 @@ func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	if full.ManifestVersion != 2 {
 		t.Fatalf("schema manifest version = %d, want 2", full.ManifestVersion)
 	}
-	if got := len(full.Commands); got != 44 {
-		t.Fatalf("full schema command count = %d, want 44", got)
+	if got := len(full.Commands); got != 45 {
+		t.Fatalf("full schema command count = %d, want 45", got)
 	}
 	var raw map[string]any
 	if err := json.Unmarshal([]byte(fullBytes), &raw); err != nil {
@@ -261,6 +261,7 @@ func TestSchemaAndHelpDoNotCreateConfig(t *testing.T) {
 		{name: "pretty schema", args: []string{"schema", "--pretty"}},
 		{name: "root help", args: []string{"--help"}},
 		{name: "command help", args: []string{"search", "--help"}},
+		{name: "mcp help", args: []string{"mcp", "--help"}},
 	}
 
 	for _, test := range tests {

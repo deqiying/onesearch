@@ -35,6 +35,8 @@ type Config struct {
 	MissingConfigFile   bool
 	CreatedConfigFile   bool
 	InitializationError string
+
+	snapshot *readOnlySnapshot
 }
 
 type PathInfo struct {
@@ -87,6 +89,9 @@ func resolveConfigDir() (string, string) {
 }
 
 func (c *Config) PathInfo() PathInfo {
+	if c.snapshot != nil {
+		return c.snapshot.pathInfo
+	}
 	def := filepath.Join(defaultConfigDir(), "config.json")
 	return PathInfo{
 		OK:                              true,
@@ -103,6 +108,9 @@ func (c *Config) PathInfo() PathInfo {
 func (c *Config) LoadFile() map[string]any {
 	if c == nil {
 		return map[string]any{}
+	}
+	if c.snapshot != nil {
+		return cloneSnapshotMap(c.snapshot.raw)
 	}
 	data, err := os.ReadFile(c.ConfigFile)
 	if err != nil {
@@ -122,6 +130,12 @@ func (c *Config) LoadFileStrict() (map[string]any, error) {
 	if c == nil {
 		return nil, errors.New("nil config")
 	}
+	if c.snapshot != nil {
+		if c.snapshot.err != nil {
+			return nil, c.snapshot.err
+		}
+		return cloneSnapshotMap(c.snapshot.raw), nil
+	}
 	data, err := os.ReadFile(c.ConfigFile)
 	if err != nil {
 		return nil, fmt.Errorf("无法读取配置文件: %w", err)
@@ -137,6 +151,9 @@ func (c *Config) LoadFileStrict() (map[string]any, error) {
 }
 
 func (c *Config) SaveFile(data map[string]any) error {
+	if c != nil && c.snapshot != nil {
+		return errReadOnlySnapshot
+	}
 	if err := os.MkdirAll(filepath.Dir(c.ConfigFile), 0o755); err != nil {
 		return fmt.Errorf("无法创建配置目录: %w", err)
 	}
@@ -162,6 +179,9 @@ func (c *Config) EnsureInitialized() (bool, bool, error) {
 	if c == nil {
 		return false, false, errors.New("nil config")
 	}
+	if c.snapshot != nil {
+		return c.snapshot.missing, false, errReadOnlySnapshot
+	}
 	if fileExists(c.ConfigFile) {
 		return false, false, nil
 	}
@@ -173,6 +193,12 @@ func (c *Config) EnsureInitialized() (bool, bool, error) {
 
 func (c *Config) Get(key, fallback string) string {
 	key = strings.ToUpper(strings.TrimSpace(key))
+	if c != nil && c.snapshot != nil {
+		if value, ok := c.snapshot.env[key]; ok {
+			return value
+		}
+		return fallback
+	}
 	if value, ok := os.LookupEnv(key); ok {
 		return value
 	}
@@ -227,6 +253,9 @@ func overrideMatchesDefault() bool {
 func ValidateWriteable(c *Config) error {
 	if c == nil {
 		return errors.New("nil config")
+	}
+	if c.snapshot != nil {
+		return errReadOnlySnapshot
 	}
 	return os.MkdirAll(filepath.Dir(c.ConfigFile), 0o755)
 }

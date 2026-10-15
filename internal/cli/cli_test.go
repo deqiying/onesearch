@@ -120,17 +120,57 @@ func TestProviderCommandsExposeOnlyHumanReadableSubcommands(t *testing.T) {
 	}
 }
 
-func TestGlobalMCPCommandNoLongerDispatches(t *testing.T) {
+func TestMCPRejectsArgumentsWithoutStdoutOrConfig(t *testing.T) {
 	if shouldDispatchProviderCommand("mcp", []string{"web_search_exa"}) {
 		t.Fatal("mcp compatibility router should not dispatch")
 	}
+	for _, args := range [][]string{
+		{"mcp", "web_search_exa"}, {"mcp", "--format", "json"},
+		{"mcp", "--pretty"}, {"mcp", "--json"}, {"mcp", "--output", "secret-output"},
+		{"mcp", "--api-key=secret-value"}, {"mcp", "--", "--help"},
+	} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			configDir := filepath.Join(t.TempDir(), "missing-config")
+			t.Setenv("ONESEARCH_CONFIG_DIR", configDir)
+			var stdout string
+			stderr := captureStderr(t, func() {
+				stdout = captureStdout(t, func() {
+					if code := Execute(args); code != 2 {
+						t.Fatalf("exit code = %d, want 2", code)
+					}
+				})
+			})
+			if stdout != "" || stderr != "invalid mcp arguments\n" {
+				t.Fatalf("stdout=%q stderr=%q", stdout, stderr)
+			}
+			if _, err := os.Stat(configDir); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("parse error initialized config: %v", err)
+			}
+		})
+	}
+}
+
+func TestMCPHelpIsStaticAndHasNoOutputFlags(t *testing.T) {
+	configDir := filepath.Join(t.TempDir(), "missing-config")
+	t.Setenv("ONESEARCH_CONFIG_DIR", configDir)
+	var stdout string
 	stderr := captureStderr(t, func() {
-		if code := Execute([]string{"mcp", "web_search_exa"}); code != 2 {
-			t.Fatalf("mcp command exit code = %d, want 2", code)
-		}
+		stdout = captureStdout(t, func() {
+			if code := Execute([]string{"mcp", "--help"}); code != 0 {
+				t.Fatalf("exit code = %d, want 0", code)
+			}
+		})
 	})
-	if !strings.Contains(stderr, "unknown command: mcp") {
-		t.Fatalf("mcp command stderr = %q", stderr)
+	if stderr != "" || !strings.Contains(stdout, "onesearch mcp") {
+		t.Fatalf("stdout=%q stderr=%q", stdout, stderr)
+	}
+	for _, flag := range []string{"--format", "--pretty", "--output", "--json"} {
+		if strings.Contains(stdout, flag) {
+			t.Fatalf("mcp help exposes %s: %q", flag, stdout)
+		}
+	}
+	if _, err := os.Stat(configDir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("help initialized config: %v", err)
 	}
 }
 

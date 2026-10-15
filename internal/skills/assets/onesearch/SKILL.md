@@ -65,9 +65,23 @@ Read the JSON error envelope before changing course.
 | Local output/file error | Correct the path or permissions; do not misclassify it as evidence failure |
 | Provider-specific failure | Preserve provider context and try an allowed fallback only when semantics remain valid |
 
+## Native MCP Mode
+
+When a host already exposes the Onesearch MCP tools, use their `tools/list` schemas instead of converting CLI flags or inventing tool names. The source implementation starts with `onesearch mcp` (no runtime flags or `serve` subcommand); npm manifest version `1.0.6` does not include it. Before release use a locally built binary; after a release containing MCP, `npx -y onesearch mcp` is a launcher entry. Pin an actually published version for production, and follow the host's Windows `npx.cmd` / `cmd` rules; real-host acceptance remains pending.
+
+- `onesearch_search` requires `mode` and `query`: `answer` uses configured routes and the minimum profile; `sources` uses Exa; `docs` uses Context7 with `docs_options`. `library_name` only resolves candidates; select a returned `library_id` and call again to query. Never guess an ID or combine options from different modes.
+- `onesearch_fetch` fetches one URL. `onesearch_site` requires `action=map/crawl`; `map_options` are only valid for map. A submitted crawl job is not completed evidence.
+- `onesearch_repo_wiki` requires `mode=ask/structure/contents`; `ask` requires `question`, other modes forbid it.
+- Call `onesearch_status` with `{}` before dynamic work. Inspect `data.tools[name].operations[operation].available`; `available` means any branch, `fully_available` means every branch, and overall `data.ready` only covers the minimum profile. No check proves remote access or quota.
+- Discovery does not read configuration, create configuration, or access the network. Each tool request uses a read-only snapshot; repair configuration outside MCP. Network calls can incur fees or launch configured local provider processes; this does not authorize installs or configuration changes.
+- Limits are 64 KiB per input frame, 2 MiB per complete response, and four concurrent calls. Handle `result_too_large` by narrowing the request, `server_busy` by waiting, and `timeout` by reporting or safely narrowing/retrying. Timeout seconds satisfy `0 < timeout <= 300`; site accepts integer, other timeout-enabled tools accept number. Defaults: search/fetch 90, map 150, crawl 180, repo wiki 60 seconds.
+- Only stdio/tools are exposed, not HTTP, resources, prompts, tasks, OAuth, arbitrary shell, or file-writing tools. Modern protocol `2026-07-28` has no ping (`-32601`); use `tools/list` for liveness. Also supported: `2025-11-25`, `2025-06-18`, and text-only `2025-03-26`. SDK is pinned to `v1.8.0`.
+
+The CLI execution/output conventions elsewhere in this Skill apply to CLI calls, not MCP transport. MCP returns its own redacted result envelope; do not apply CLI quiet/verbose rendering rules to it.
+
 ## Boundaries
 
-- Use canonical leaf commands such as `onesearch exa web-search`; never use the retired `onesearch mcp <tool>` bridge.
+- Use canonical leaf commands such as `onesearch exa web-search`; never use the retired `onesearch mcp <tool>` bridge. The new standalone `onesearch mcp` starts a downstream server, not a provider command router.
 - Do not invent flat provider commands, snake_case command names, or retired top-level flags.
 - Execute Deep Research `command_argv` token arrays directly. Never reconstruct argv by splitting the display-only `command` string.
 - Do not print, persist, or quote credential values. `status` and `doctor` expose metadata only; pass secrets through supported environment/config mechanisms.

@@ -2,6 +2,8 @@
 
 [文档导航](../README.md) · [English](agent-integration.en.md)
 
+本文介绍 CLI + Skill 路径。支持原生 MCP tools 的 host 可改用 [MCP 接入指南（中英）](mcp.md)：`onesearch mcp` 已在源码实现，npm `1.0.6` 尚不包含本功能，发布前需本地构建 binary；host / 发布 / live 验收尚待完成。
+
 ## 安装薄入口
 
 1. 按[上手指南](getting-started.md)安装 CLI 并完成所需能力的 readiness 配置。

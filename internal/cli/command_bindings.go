@@ -7,9 +7,9 @@ import (
 	"os"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/deqiying/onesearch/internal/commandcontract"
+	"github.com/deqiying/onesearch/internal/execution"
 	"github.com/deqiying/onesearch/internal/providers"
 	"github.com/deqiying/onesearch/internal/redact"
 	"github.com/deqiying/onesearch/internal/service"
@@ -65,6 +65,7 @@ var commandBindings = map[string]commandBinding{
 	"skills.show":                  {ID: "skills.show", HandlerKey: "skills.show"},
 	"regression":                   {ID: "regression", HandlerKey: "regression"},
 	"schema":                       {ID: "schema", HandlerKey: "schema"},
+	"mcp":                          {ID: "mcp", HandlerKey: "mcp"},
 }
 
 func init() {
@@ -98,31 +99,8 @@ func runParsedCommand(ctx context.Context, svc *service.Service, parsed *parsedC
 	}
 	fo := formatOutputFromParsed(parsed, svc)
 	switch parsed.Definition.ID {
-	case "search":
-		return runParsedSearch(ctx, svc, parsed, fo)
-	case "fetch":
-		return printCommand(svc, "fetch", svc.Fetch(ctx, parsed.String("url"), service.FetchOptions{Provider: parsed.String("provider")}), fo)
-	case "map":
-		data := svc.Map(ctx, parsed.String("url"), service.MapOptions{Instructions: parsed.String("instructions"), MaxDepth: parsed.Int("max_depth"), MaxBreadth: parsed.Int("max_breadth"), Limit: parsed.Int("limit"), Timeout: parsed.Int("timeout"), Provider: parsed.String("provider")})
-		return printCommand(svc, "map", data, fo)
-	case "crawl":
-		timeout := parsed.Int("timeout")
-		timedCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Second)
-		defer cancel()
-		data := svc.Crawl(timedCtx, parsed.String("url"), service.CrawlOptions{MaxDepth: parsed.Int("max_depth"), Limit: parsed.Int("limit"), Timeout: timeout, Provider: parsed.String("provider")})
-		if timedCtx.Err() == context.DeadlineExceeded {
-			data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Crawl timed out after %d seconds", timeout), "url": parsed.String("url"), "timeout_seconds": timeout}
-		}
-		return printCommand(svc, "crawl", data, fo)
-	case "repo-wiki":
-		timeout := parsed.Number("timeout")
-		timedCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout*float64(time.Second)))
-		defer cancel()
-		data := svc.RepoWiki(timedCtx, parsed.String("repo"), parsed.String("question"), service.RepoWikiOptions{Mode: parsed.String("mode"), Provider: parsed.String("provider")})
-		if timedCtx.Err() == context.DeadlineExceeded {
-			data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Repo wiki timed out after %g seconds", timeout), "repo": parsed.String("repo"), "timeout_seconds": timeout}
-		}
-		return printCommand(svc, "repo-wiki", data, fo)
+	case "search", "fetch", "map", "crawl", "repo-wiki":
+		return printCommand(svc, parsed.Definition.ID, execution.Execute(ctx, svc, parsed.Definition.ID, parsed.Values), fo)
 	case "deep":
 		return printCommand(svc, "deep", svc.DeepPlan(parsed.String("query"), parsed.String("budget"), parsed.String("evidence_dir")), fo)
 	case "doctor":
@@ -154,37 +132,7 @@ func runParsedCommand(ctx context.Context, svc *service.Service, parsed *parsedC
 }
 
 func runParsedSearch(ctx context.Context, svc *service.Service, parsed *parsedCommand, fo formatOutput) int {
-	providersFilter, providerFilters, err := parseSearchProviderFilters(parsed.String("providers"))
-	if err != nil {
-		return printParameterError(svc, "search", err.Error(), fo)
-	}
-	providerFilters = overlayProviderFilter(providerFilters, "answer_search", parsed.String("answer_providers"))
-	providerFilters = overlayProviderFilter(providerFilters, "source_search", parsed.String("source_providers"))
-	providerFilters = overlayProviderFilter(providerFilters, "docs_search", parsed.String("docs_providers"))
-	providerFilters = overlayProviderFilter(providerFilters, "page_fetch", parsed.String("fetch_providers"))
-	providerFilters = overlayProviderFilter(providerFilters, "repo_wiki", parsed.String("repo_providers"))
-	var stream *bool
-	if parsed.Bool("stream") {
-		value := true
-		stream = &value
-	}
-	if parsed.Bool("no_stream") {
-		value := false
-		stream = &value
-	}
-	timeout := parsed.Number("timeout")
-	timedCtx, cancel := context.WithTimeout(ctx, time.Duration(timeout*float64(time.Second)))
-	defer cancel()
-	query := parsed.String("query")
-	data := svc.Search(timedCtx, query, service.SearchOptions{
-		Platform: parsed.String("platform"), Model: parsed.String("model"), ExtraSources: parsed.Int("extra_sources"), FetchSources: parsed.Int("fetch_sources"),
-		Validation: parsed.String("validation"), Fallback: parsed.String("fallback"), Providers: providersFilter, ProviderFilters: providerFilters, Stream: stream,
-		RepoWiki: parsed.String("repo_wiki"), RepoWikiMode: parsed.String("repo_wiki_mode"), RepoWikiQuery: parsed.String("repo_wiki_query"),
-	})
-	if timedCtx.Err() == context.DeadlineExceeded {
-		data = map[string]any{"ok": false, "error_type": "network_error", "error": fmt.Sprintf("Search timed out after %g seconds", timeout), "query": query, "content": "", "sources": []map[string]any{}, "sources_count": 0, "timeout_seconds": timeout}
-	}
-	return printCommand(svc, "search", data, fo)
+	return printCommand(svc, "search", execution.Execute(ctx, svc, "search", parsed.Values), fo)
 }
 
 func runParsedProvider(ctx context.Context, svc *service.Service, parsed *parsedCommand) int {
@@ -194,12 +142,8 @@ func runParsedProvider(ctx context.Context, svc *service.Service, parsed *parsed
 	fo := formatOutputFromParsed(parsed, svc)
 	var data map[string]any
 	switch parsed.Definition.ID {
-	case "exa.web-search":
-		numResults := parsed.Int("num_results")
-		if parsed.Int("max_results") > 0 {
-			numResults = parsed.Int("max_results")
-		}
-		data = svc.ExaSearch(ctx, parsed.String("query"), providers.ExaOptions{NumResults: numResults, SearchType: parsed.String("search_type"), IncludeText: parsed.Bool("include_text"), IncludeHighlights: parsed.Bool("include_highlights"), StartPublishedDate: parsed.String("start_published_date"), IncludeDomains: parsed.Strings("include_domains"), ExcludeDomains: parsed.Strings("exclude_domains"), Category: parsed.String("category")})
+	case "exa.web-search", "context7.resolve-library-id", "context7.query-docs":
+		data = execution.Execute(ctx, svc, parsed.Definition.ID, parsed.Values)
 	case "exa.web-fetch":
 		urls := append(parsed.Strings("urls"), parsed.Strings("url_args")...)
 		data = svc.ExaFetch(ctx, urls, providers.ExaFetchOptions{MaxCharacters: parsed.Int("max_characters")})
@@ -222,10 +166,6 @@ func runParsedProvider(ctx context.Context, svc *service.Service, parsed *parsed
 		data = svc.FirecrawlMap(ctx, parsed.String("url"), parsed.Int("limit"))
 	case "firecrawl.crawl":
 		data = svc.FirecrawlCrawl(ctx, parsed.String("url"), service.CrawlOptions{MaxDepth: parsed.Int("max_depth"), Limit: parsed.Int("limit"), Timeout: parsed.Int("timeout")})
-	case "context7.resolve-library-id":
-		data = svc.Context7Library(ctx, parsed.String("name"), parsed.String("query"))
-	case "context7.query-docs":
-		data = svc.Context7Docs(ctx, parsed.String("library_id"), parsed.String("query"))
 	case "deepwiki.ask-question":
 		data = svc.RepoWiki(ctx, parsed.String("repo"), parsed.String("question"), service.RepoWikiOptions{Mode: "ask", Provider: "deepwiki"})
 	case "deepwiki.read-wiki-structure":

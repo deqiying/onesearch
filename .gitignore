@@ -9,6 +9,7 @@
 dist/
 scripts/*
 !scripts/package-npm.ps1
+!scripts/test-mcp.mjs
 npm/packages/*/bin/onesearch
 npm/packages/*/bin/onesearch.exe
 npm/packages/*/bin/version

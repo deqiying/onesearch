@@ -12,6 +12,7 @@ Current user guides are available in Chinese and English below. Development, arc
 | --- | --- | --- |
 | 安装、配置 readiness、完成首次搜索 / Get started | [上手指南](guides/getting-started.md) | [Getting started](guides/getting-started.en.md) |
 | 将 CLI 接入 Agent / Connect an agent | [Agent 接入](guides/agent-integration.md) | [Agent integration](guides/agent-integration.en.md) |
+| 通过 stdio MCP tools 接入 host / Connect an MCP host | [MCP 接入（中英）](guides/mcp.md) | [MCP integration (bilingual)](guides/mcp.md) |
 | 查询配置、路由与 provider 限制 / Configure providers | [配置参考](reference/configuration.md) | [Configuration reference](reference/configuration.en.md) |
 | 查询命令、输出和证据策略 / Use the CLI | [CLI 参考](reference/cli.md) | [CLI reference](reference/cli.en.md) |
 | 构建、测试、维护文档与了解发布边界 / Develop | [开发与验证](guides/development.md) | Chinese guide |

@@ -16,7 +16,7 @@
 
 `onesearch` is a CLI-first research and evidence tool for AI agents, scripts, and terminal users. It unifies answer search, source discovery, documentation lookup, page fetching, site mapping and crawling, repository wiki access, offline research planning, configuration diagnostics, and built-in Skill distribution.
 
-> `onesearch` is not an MCP server. AI tools read bundled workflows with `skills show`, then execute explicit CLI commands.
+> Use explicit CLI workflows with `skills show`, or connect a host to the local stdio MCP server with `onesearch mcp`. MCP is implemented in source; npm manifest version `1.0.6` does not contain it. See the [MCP guide](docs/guides/mcp.md) for local-binary setup before release and `npx -y onesearch mcp` after a release containing the feature.
 
 ## Why onesearch
 
@@ -63,6 +63,8 @@ Configuration defaults to `~/.config/onesearch/config.json`; override its direct
 ## Connect onesearch to an agent
 
 Follow [agent integration](docs/guides/agent-integration.en.md) to install a thin host Skill that loads version-matched workflows from the actual binary instead of copying provider contracts.
+
+For native MCP tools instead of CLI execution, follow [MCP integration](docs/guides/mcp.md). The server exposes five tools over stdio; configure providers outside MCP and inspect per-operation readiness with `onesearch_status`. Release, real-host, and live-provider acceptance remain pending.
 
 ## Development
 

@@ -36,6 +36,7 @@ V2 replaces V1 `commands[].id` with `name` and `commands[].summary` with `descri
 | Skill discovery | `skills list/show` | Router, workflow, and provider Skills |
 | Diagnostics | `doctor`, `status`, `config list` | Configuration health and local preflight |
 | Local self-checks | `smoke`, `regression` | Default / fixed mock; `smoke --live` currently checks only the local minimum profile |
+| Downstream MCP server | `mcp` | Local stdio, five tools; no runtime flags / `serve`; see the [MCP guide](../guides/mcp.md) and its release boundary |
 
 Availability depends on local configuration. Run `status` and pass the [appropriate readiness gate](../guides/getting-started.en.md) before execution.
 

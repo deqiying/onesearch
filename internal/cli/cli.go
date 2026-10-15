@@ -8,6 +8,7 @@ import (
 
 	"github.com/deqiying/onesearch/internal/app"
 	"github.com/deqiying/onesearch/internal/config"
+	"github.com/deqiying/onesearch/internal/mcpserver"
 	"github.com/deqiying/onesearch/internal/output"
 	"github.com/deqiying/onesearch/internal/redact"
 	"github.com/deqiying/onesearch/internal/service"
@@ -48,6 +49,17 @@ func Execute(args []string) int {
 		return 2
 	}
 	parsed, parseErr := parseCommand(invocation.Definition, args[invocation.Consumed:])
+	if invocation.Definition.ID == "mcp" {
+		if parseErr != nil {
+			fmt.Fprintln(os.Stderr, "invalid mcp arguments")
+			return 2
+		}
+		if err := mcpserver.Run(context.Background(), os.Stdin, os.Stdout); err != nil {
+			fmt.Fprintln(os.Stderr, "mcp server failed")
+			return 5
+		}
+		return 0
+	}
 	if invocation.Definition.ID == "schema" {
 		if parseErr != nil {
 			return writeStaticParameterError(parseErr.Error(), parsed.String("output"), parsed.Bool("pretty"))

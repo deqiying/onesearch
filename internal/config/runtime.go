@@ -105,6 +105,9 @@ func LoadRuntimeStrict(c *Config) (RuntimeConfig, error) {
 	if err != nil {
 		return RuntimeConfig{}, err
 	}
+	if c.snapshot != nil && c.snapshot.missing {
+		return runtimeFromRaw(raw), nil
+	}
 	if !isRuntimeSchema(raw) {
 		return RuntimeConfig{}, fmt.Errorf("配置文件不是可识别的 runtime schema")
 	}

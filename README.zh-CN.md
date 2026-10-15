@@ -16,7 +16,7 @@
 
 `onesearch` 是面向 AI agent、脚本和终端用户的 CLI-first 研究与证据工具，统一答案搜索、来源发现、文档检索、网页抓取、站点 map/crawl、仓库 Wiki、离线研究规划、配置诊断和内置 Skill 分发。
 
-> `onesearch` 不是 MCP Server。AI 工具先用 `skills show` 读取内置工作流，再执行明确的 CLI 命令。
+> 可用 `skills show` 读取工作流并执行 CLI，也可用 `onesearch mcp` 接入本地 stdio MCP Server。MCP 已在源码实现，npm 清单版本 `1.0.6` 尚不包含本功能；发布前使用本地构建 binary，包含本功能的版本发布后可用 `npx -y onesearch mcp`，详见 [MCP 接入指南](docs/guides/mcp.md)。
 
 ## 为什么使用 onesearch
 
@@ -63,6 +63,8 @@ onesearch search "解释 Go context cancellation 的常用模式" --validation b
 ## 将 onesearch 接入 agent
 
 按 [Agent 接入指南](docs/guides/agent-integration.md)安装薄入口 Skill，由实际运行的 binary 提供版本匹配的工作流，不在 host 中复制 provider 合同。
+
+需要原生 MCP tools 而不是执行 CLI 时，按 [MCP 接入指南](docs/guides/mcp.md)配置 host。服务仅通过 stdio 提供 5 个工具；在 MCP 外配置 provider，用 `onesearch_status` 检查各 operation readiness。发布、真实 host 与 live provider 验收尚待完成。
 
 ## 开发
 

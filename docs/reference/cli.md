@@ -36,6 +36,7 @@ V2 用 `commands[].name` 替换 V1 `id`，用 `commands[].description` 替换 V1
 | Skill 发现 | `skills list/show` | router、workflow 和 provider Skill |
 | 诊断 | `doctor`、`status`、`config list` | 配置健康与本机 preflight |
 | 本地自检 | `smoke`、`regression` | 默认 / 固定 mock；`smoke --live` 当前仅检查本机 minimum profile |
+| 下游 MCP Server | `mcp` | 本地 stdio，固定 5 工具；无运行 flags / `serve`，见 [MCP 指南](../guides/mcp.md)及发布边界 |
 
 可用性由本机配置决定。执行前运行 `status` 并通过[对应 readiness gate](../guides/getting-started.md)。
 

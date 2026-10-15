@@ -2,6 +2,12 @@ package commandcontract
 
 func utilityDefinitions() []CommandDefinition {
 	return []CommandDefinition{
+		{
+			ID: "mcp", Path: []string{"mcp"}, Category: CategoryUtility, Visibility: VisibilityPublic,
+			Description:  "Serve the Model Context Protocol over stdin and stdout.",
+			Availability: localAvailability(), SideEffects: runtimeSideEffects("stdin_read", "stdout_write", "network"),
+			Output: OutputDefinition{DefaultFormat: "jsonrpc", Formats: []string{"jsonrpc"}, Contract: "mcp_session"},
+		},
 		utilityCommand("doctor", []string{"doctor"}, [][]string{{"d"}}, "Diagnose configuration and capability readiness.", nil, nil, "doctor_result", []string{"config_read", "filesystem_write_when_output_is_set"}),
 		utilityCommand("status", []string{"status"}, [][]string{{"st"}}, "Report runtime capability and provider status.", nil, nil, "status_result", []string{"config_read", "filesystem_write_when_output_is_set"}),
 		{

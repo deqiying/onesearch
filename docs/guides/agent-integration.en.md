@@ -2,6 +2,8 @@
 
 [Documentation hub](../README.md) · [简体中文](agent-integration.md)
 
+This page covers CLI + Skill integration. For hosts supporting native MCP tools, see the [bilingual MCP guide](mcp.md). `onesearch mcp` is implemented in source, but npm `1.0.6` does not contain it; use a locally built binary before release. Host, release, and live-provider acceptance remain pending.
+
 ## Install the thin host entry
 
 1. Install the CLI and complete readiness setup for the required capabilities using [getting started](getting-started.en.md).

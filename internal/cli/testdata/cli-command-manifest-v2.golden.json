@@ -6360,6 +6360,38 @@
       }
     },
     {
+      "name": "mcp",
+      "description": "Serve the Model Context Protocol over stdin and stdout.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "path": [
+        "mcp"
+      ],
+      "category": "utility",
+      "aliases": [],
+      "availability": {
+        "dynamic": false,
+        "preflight_level": "static"
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "network",
+        "stdin_read",
+        "stdout_write"
+      ],
+      "output": {
+        "default_format": "jsonrpc",
+        "formats": [
+          "jsonrpc"
+        ],
+        "contract": "mcp_session"
+      }
+    },
+    {
       "name": "model.current",
       "description": "Show the effective model configuration.",
       "input_schema": {

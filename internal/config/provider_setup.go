@@ -42,6 +42,9 @@ func ResolveProviderSetupFromRuntime(c *Config, runtime RuntimeConfig, identifie
 }
 
 func (c *Config) PatchProviderSetup(providerID string, patch ProviderSetupPatch) ([]string, error) {
+	if c != nil && c.snapshot != nil {
+		return nil, errReadOnlySnapshot
+	}
 	raw, err := c.LoadFileStrict()
 	if err != nil {
 		return nil, err

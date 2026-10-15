@@ -10,8 +10,8 @@ func TestDefaultRegistryIndexesCanonicalAliasesAndCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(registry.Commands()); got != 44 {
-		t.Fatalf("public command count = %d, want 44 (43 existing routes plus schema)", got)
+	if got := len(registry.Commands()); got != 45 {
+		t.Fatalf("public command count = %d, want 45 (44 existing routes plus mcp)", got)
 	}
 	if got := len(registry.Namespaces()); got != 12 {
 		t.Fatalf("namespace count = %d, want 12", got)
@@ -59,6 +59,12 @@ func TestManifestV2PublishesAgentToolCoreFields(t *testing.T) {
 
 func TestEveryPublicCommandExposesPrettyPresentationOption(t *testing.T) {
 	for _, command := range MustDefaultRegistry().Commands() {
+		if command.ID == "mcp" {
+			if len(command.Options) != 0 || len(command.Positionals) != 0 || !reflect.DeepEqual(command.Path, []string{"mcp"}) {
+				t.Fatalf("mcp must expose no flags or positionals: %#v", command)
+			}
+			continue
+		}
 		var pretty OptionDefinition
 		for _, option := range command.Options {
 			if option.Name == "pretty" {
