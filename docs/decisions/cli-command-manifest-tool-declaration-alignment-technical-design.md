@@ -1,5 +1,7 @@
 # Onesearch CLI Command Manifest 与 Agent Tool 声明字段对齐技术方案
 
+> 设计记录：保留 V2 字段迁移的理由、兼容取舍与历史验证结果。当前合同见 [CLI 参考](../reference/cli.md)；返回[设计记录导航](README.md)。版本号和原始输出快照按实施前基线阅读。
+
 ## 实施状态
 
 状态：已实施并完成本地验证（2026-08-13）。
@@ -28,7 +30,7 @@
 
 真实 provider、网络、凭据、远端 MCP tool、OpenAI native tool 注册、MCP client 注册、发布后二进制与外部 V1 consumer 迁移不属于本地验收范围，未执行。
 
-当前基线已确认：
+实施前基线已确认：
 
 - 项目使用 `mise.toml` 声明的 Go 1.26.5，`go.mod` 声明 Go 1.26。
 - 当前源码版本和已安装 CLI 版本均为 1.0.2，targeted `schema search --pretty` 输出一致。
@@ -606,9 +608,9 @@ onesearch schema --legacy
 | `npm/deqiying-onesearch/README.md` | 同步 scoped package | scoped npm 入口 |
 | `internal/skills/assets/onesearch/SKILL.md` | 必要时说明 V2 核心字段 | Agent router |
 | `internal/skills/assets/onesearch/references/agent-execution-contract.md` | 更新 targeted schema 字段合同 | version-matched Agent reference |
-| `docs/cli-command-schema-technical-design.md` | 标注 V1 已由本方案的 V2 supersede | 历史设计边界 |
-| `docs/cli-json-output-format-technical-design.md` | 更新当前 manifest version 说明 | 避免状态文档过期 |
-| `docs/builtin-skills-agent-optimization-plan.md` | 更新 schema 真源字段说明 | 避免 Agent contract 漂移 |
+| `docs/decisions/cli-command-schema-technical-design.md` | 标注 V1 已由本方案的 V2 supersede | 历史设计边界 |
+| `docs/decisions/cli-json-output-format-technical-design.md` | 更新当前 manifest version 说明 | 避免状态文档过期 |
+| `docs/decisions/builtin-skills-agent-optimization-plan.md` | 更新 schema 真源字段说明 | 避免 Agent contract 漂移 |
 
 `.deploy/version`、npm `package.json` 和平台 binary package versions 不在实现阶段修改；它们只在用户另行授权发布时同步。
 

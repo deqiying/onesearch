@@ -1,5 +1,7 @@
 # OpenAI Responses 联网搜索迁移至 Alpha Search 技术方案
 
+> 设计记录：保留 Alpha Search 迁移的原始协议依据与历史验证结果。摘要、背景中的“当前”指实施前基线；当前配置见[配置参考](../reference/configuration.md)，实现见 [Alpha Search adapter](../../internal/providers/openai_alpha_search.go)。返回[设计记录导航](README.md)。
+
 ## 文档状态
 
 - 状态：已实施（本地验证完成；真实 provider 可用性未验证）。
@@ -40,12 +42,12 @@ onesearch search
 
 关键事实如下：
 
-- [`internal/config/runtime.go`](../internal/config/runtime.go) 将 `openai_responses` 注册为 `answer_search` provider，默认 base URL 为 `https://api.openai.com/v1`，默认 settings 包含 `model`、`stream`、`tools` 和 `tool_choice`。
-- [`internal/service/service.go`](../internal/service/service.go) 的 `buildOpenAIResponsesRunner()` 读取这些 settings，并把请求交给 `providers.OpenAIResponses`。
-- [`internal/providers/xai.go`](../internal/providers/xai.go) 当前让 `OpenAIResponses` 与 `XAIResponses` 共用 `responsesSearch()`：构造 Responses payload、请求 `/v1/responses`，并解析 Responses JSON 或 SSE。
-- [`internal/providers/openai.go`](../internal/providers/openai.go) 的 `openAIEndpointURL()` 负责给自定义 base URL 补齐 `/v1`。
-- [`internal/sources/sources.go`](../internal/sources/sources.go) 通过 `sources(...)` trailer 将 provider 正文与 URL 来源拆开，供 `Service.Search()` 统一输出。
-- [`README.md`](../README.md) 当前明确承诺 `openai_responses` 固定请求 `/v1/responses`，并说明 `stream`、`tools`、`tool_choice` 语义。
+- [`internal/config/runtime.go`](../../internal/config/runtime.go) 将 `openai_responses` 注册为 `answer_search` provider，默认 base URL 为 `https://api.openai.com/v1`，默认 settings 包含 `model`、`stream`、`tools` 和 `tool_choice`。
+- [`internal/service/service.go`](../../internal/service/service.go) 的 `buildOpenAIResponsesRunner()` 读取这些 settings，并把请求交给 `providers.OpenAIResponses`。
+- [`internal/providers/xai.go`](../../internal/providers/xai.go) 当前让 `OpenAIResponses` 与 `XAIResponses` 共用 `responsesSearch()`：构造 Responses payload、请求 `/v1/responses`，并解析 Responses JSON 或 SSE。
+- [`internal/providers/openai.go`](../../internal/providers/openai.go) 的 `openAIEndpointURL()` 负责给自定义 base URL 补齐 `/v1`。
+- [`internal/sources/sources.go`](../../internal/sources/sources.go) 通过 `sources(...)` trailer 将 provider 正文与 URL 来源拆开，供 `Service.Search()` 统一输出。
+- [`README.md`](../../README.md) 在实施前明确承诺 `openai_responses` 固定请求 `/v1/responses`，并说明 `stream`、`tools`、`tool_choice` 语义。
 
 ### sub2api 参考实现结论
 
@@ -353,7 +355,7 @@ type openAIAlphaSearchSettings struct {
 
 ## 源码组织
 
-建议将 OpenAI Alpha Search 从 [`internal/providers/xai.go`](../internal/providers/xai.go) 中拆出，形成独立文件：
+建议将 OpenAI Alpha Search 从 [`internal/providers/xai.go`](../../internal/providers/xai.go) 中拆出，形成独立文件：
 
 ```text
 internal/providers/
@@ -385,7 +387,7 @@ internal/providers/
 - `internal/commandcontract/**` 和 CLI manifest golden：provider wire 不改变公共 argv。
 - `internal/skills/assets/onesearch/SKILL.md`：主 Skill 不描述 wire 字段。
 - `internal/skills/assets/onesearch-search/SKILL.md`：provider ID 和调用方式保持不变；仅当现有文字声称 Responses hosted tool 时才同步修订。
-- `docs/cli-provider-setup-technical-design.md`：key 必填和 base URL 配置语义未改变。
+- `docs/decisions/cli-provider-setup-technical-design.md`：key 必填和 base URL 配置语义未改变。
 
 ## 实施步骤
 
@@ -534,11 +536,11 @@ Codex 可用 opaque state 支持 `open/click/find` 等连续操作。onesearch �
 
 本方案已按“保留公共 provider 合同、替换 OpenAI 专属 wire、不做旧 endpoint 回退”的边界落地：
 
-- 新增 [`internal/providers/openai_alpha_search.go`](../internal/providers/openai_alpha_search.go)，独立实现 Alpha Search request builder、随机 request ID、HTTP 调用、JSON response 解析和来源归一化。
-- [`internal/providers/xai.go`](../internal/providers/xai.go) 只保留 xAI Responses wire；新增 [`internal/providers/xai_test.go`](../internal/providers/xai_test.go) 锁定 `/v1/responses` 的 JSON/SSE 回归合同。
-- 新增 [`internal/providers/openai_alpha_search_test.go`](../internal/providers/openai_alpha_search_test.go)，覆盖 endpoint、headers、完整 payload、query/platform、来源、协议错误、HTTP 分类、8 MiB 上限、context cancellation 和敏感字段边界。
-- [`internal/service/service.go`](../internal/service/service.go) 不再读取 `openai_responses` 的遗留 `stream/tools/tool_choice`；service tests 覆盖 model override、来源输出以及 `404/405` 的 auto/off fallback 行为。
-- [`internal/config/runtime.go`](../internal/config/runtime.go)、[`config.example.json`](../config.example.json) 和 [`README.md`](../README.md) 已同步 Alpha Search 默认配置与用户可见语义。
+- 新增 [`internal/providers/openai_alpha_search.go`](../../internal/providers/openai_alpha_search.go)，独立实现 Alpha Search request builder、随机 request ID、HTTP 调用、JSON response 解析和来源归一化。
+- [`internal/providers/xai.go`](../../internal/providers/xai.go) 只保留 xAI Responses wire；新增 [`internal/providers/xai_test.go`](../../internal/providers/xai_test.go) 锁定 `/v1/responses` 的 JSON/SSE 回归合同。
+- 新增 [`internal/providers/openai_alpha_search_test.go`](../../internal/providers/openai_alpha_search_test.go)，覆盖 endpoint、headers、完整 payload、query/platform、来源、协议错误、HTTP 分类、8 MiB 上限、context cancellation 和敏感字段边界。
+- [`internal/service/service.go`](../../internal/service/service.go) 不再读取 `openai_responses` 的遗留 `stream/tools/tool_choice`；service tests 覆盖 model override、来源输出以及 `404/405` 的 auto/off fallback 行为。
+- [`internal/config/runtime.go`](../../internal/config/runtime.go)、[`config.example.json`](../../config.example.json) 和 [`README.md`](../../README.md) 已同步 Alpha Search 默认配置与用户可见语义。
 
 已完成以下本地验证：
 

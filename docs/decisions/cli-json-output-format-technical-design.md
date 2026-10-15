@@ -1,5 +1,7 @@
 # Onesearch CLI JSON Compact 输出与 `--pretty` 技术方案
 
+> 设计记录：保留 compact/pretty 与 payload 语义分离的原始决定及历史验证结果。当前输出说明见 [CLI 参考](../reference/cli.md)；返回[设计记录导航](README.md)。实施前基线不代表当前输出行为。
+
 ## 实施状态
 
 状态：已实施并完成验证（2026-08-04）。
@@ -440,8 +442,8 @@ CLI/package 版本是否升级由实施后的发布流程统一决定，不在�
 | `npm/deqiying-onesearch/README.md` | 与 unscoped npm README 保持一致 |
 | `internal/skills/assets/onesearch/SKILL.md` | 明确 agent 默认不传 `--pretty`，人工检查时才使用 |
 | `internal/skills/assets/onesearch/references/agent-execution-contract.md` | 记录运行时排版、错误、schema、regression、stdout/file 合同，并同步现有 regression/golden 维护说明 |
-| `docs/cli-command-schema-technical-design.md` | 更新已实施 schema 的默认排版、pretty option、golden 和测试说明 |
-| `docs/cli-provider-setup-technical-design.md` | 补充 pretty 不改变脱敏边界和 stdout/文件一致性 |
+| `docs/decisions/cli-command-schema-technical-design.md` | 更新已实施 schema 的默认排版、pretty option、golden 和测试说明 |
+| `docs/decisions/cli-provider-setup-technical-design.md` | 补充 pretty 不改变脱敏边界和 stdout/文件一致性 |
 
 明确不改：
 

@@ -1,5 +1,7 @@
 # Onesearch 内置 Skill 面向 Agent 优化方案
 
+> 设计记录：保留原始问题、方案与历史验证结果，不作为当前使用手册。当前说明见 [Agent 接入](../guides/agent-integration.md)；返回[设计记录导航](README.md)。正文中的实施前描述按其历史语境阅读。
+
 ## 实施状态
 
 状态：已按方案实施。主 Skill 的 canonical ID、asset folder、frontmatter name 与 metadata prompt 已统一为 `onesearch`，未保留旧名称作为 CLI alias。

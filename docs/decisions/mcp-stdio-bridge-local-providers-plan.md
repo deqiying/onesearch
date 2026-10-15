@@ -1,5 +1,7 @@
 # MCP Stdio Bridge 本地 Provider 接入技术方案
 
+> 历史设计记录：保留本地进程桥接与 direct-only 隔离的原始理由，不按本文旧协议示例配置当前版本。当前说明见[配置参考](../reference/configuration.md)与[架构概览](../architecture/README.md)；返回[设计记录导航](README.md)。
+
 > 状态：superseded（2026-08-27）。MCP transport、版本协商、schema discovery 与 Freecrawl 版本冻结以 [`provider-upstream-protocol-alignment-technical-design.md`](provider-upstream-protocol-alignment-technical-design.md) 为准；本文件仅保留历史背景。
 
 ## 背景

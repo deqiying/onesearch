@@ -1,5 +1,7 @@
 # Exa、Context7、Z.AI/智谱、Firecrawl 与 MCP 端点上游协议对齐技术方案
 
+> 设计记录：仍保留“实施中”状态，不将计划项或历史验证升级为完成承诺。摘要及问题清单描述 2026-08-27 的实施前基线；当前用户可见行为见 [CLI 参考](../reference/cli.md)和[配置参考](../reference/configuration.md)，共享 HTTP MCP 实现见 [mcpclient](../../internal/mcpclient/client.go)。返回[设计记录导航](README.md)。
+
 ## 文档状态
 
 - 状态：实施中（HTTP provider、MCP shared client、CLI 合同和文档已完成首轮对齐；真实 provider/MCP live smoke 仍未执行）。
@@ -39,14 +41,14 @@ CLI command / workflow
 
 主要入口如下：
 
-- [`internal/cli/cli.go`](../internal/cli/cli.go)：命令解析和 service 初始化。
-- [`internal/cli/command_bindings.go`](../internal/cli/command_bindings.go)：provider-direct 参数到 service/provider options 的映射。
-- [`internal/commandcontract/providers.go`](../internal/commandcontract/providers.go)：CLI 命令和默认值的公开合同。
-- [`internal/config/runtime.go`](../internal/config/runtime.go)：provider、capability、route、availability 和 `direct_only` 规则。
-- [`internal/service/service.go`](../internal/service/service.go) 与 [`internal/service/provider_direct.go`](../internal/service/provider_direct.go)：workflow fallback、provider 构造和 direct 命令。
-- [`internal/providers/`](../internal/providers/)：HTTP provider、MCP HTTP wrapper、MCP stdio wrapper 和结果归一化。
-- [`internal/mcpstdio/client.go`](../internal/mcpstdio/client.go)：当前唯一的通用 MCP stdio JSON-RPC client。
-- [`internal/skills/assets/`](../internal/skills/assets/)：面向 agent 的 provider 命令和错误处理说明。
+- [`internal/cli/cli.go`](../../internal/cli/cli.go)：命令解析和 service 初始化。
+- [`internal/cli/command_bindings.go`](../../internal/cli/command_bindings.go)：provider-direct 参数到 service/provider options 的映射。
+- [`internal/commandcontract/providers.go`](../../internal/commandcontract/providers.go)：CLI 命令和默认值的公开合同。
+- [`internal/config/runtime.go`](../../internal/config/runtime.go)：provider、capability、route、availability 和 `direct_only` 规则。
+- [`internal/service/service.go`](../../internal/service/service.go) 与 [`internal/service/provider_direct.go`](../../internal/service/provider_direct.go)：workflow fallback、provider 构造和 direct 命令。
+- [`internal/providers/`](../../internal/providers/)：HTTP provider、MCP HTTP wrapper、MCP stdio wrapper 和结果归一化。
+- [`internal/mcpstdio/client.go`](../../internal/mcpstdio/client.go)：实施前唯一的通用 MCP stdio JSON-RPC client。
+- [`internal/skills/assets/`](../../internal/skills/assets/)：面向 agent 的 provider 命令和错误处理说明。
 
 ### Runtime provider 与 route 基线
 
@@ -84,13 +86,13 @@ CLI command / workflow
 
 | 结论 | 代码证据 |
 | --- | --- |
-| Exa Search 默认 `neural` 并发送 `useAutoprompt`；Contents 已保留 `statuses` 原字段 | [`internal/providers/exa.go`](../internal/providers/exa.go) 的 `Exa.Search`、`Exa.Fetch` |
-| Context7 将 name/query 拼接后请求旧 search path；Docs 只读取 snippets | [`internal/providers/context7.go`](../internal/providers/context7.go) 的 `Context7.Library`、`Context7.Docs` |
-| Zhipu 固定 `search_std`、`search_intent`、`content_size`，base 来自中国区默认值 | [`internal/providers/zhipu.go`](../internal/providers/zhipu.go)、[`internal/config/config.go`](../internal/config/config.go) 的默认常量 |
-| Firecrawl Search/Map/Scrape/Crawl 解析不同 envelope，Crawl 只提交 job | [`internal/providers/web.go`](../internal/providers/web.go) 的 `Firecrawl` 方法族 |
-| AnySearch/DeepWiki 各自构造 `tools/call` JSON-RPC，没有共享 modern metadata/probe 或 legacy initialize/session | [`internal/providers/anysearch.go`](../internal/providers/anysearch.go)、[`internal/providers/deepwiki.go`](../internal/providers/deepwiki.go) |
-| stdio client 固定 2025-03-26、一次 `tools/list`，Tool 不含 schema/cursor | [`internal/mcpstdio/client.go`](../internal/mcpstdio/client.go) 的 `defaultProtocolVersion`、`ListTools`、`Tool` |
-| DDG/Freecrawl 通过 `settings.tools` 映射并受 `direct_only` 控制 | [`internal/providers/mcp_stdio.go`](../internal/providers/mcp_stdio.go)、[`internal/config/runtime.go`](../internal/config/runtime.go) 的 route merge/availability |
+| Exa Search 默认 `neural` 并发送 `useAutoprompt`；Contents 已保留 `statuses` 原字段 | [`internal/providers/exa.go`](../../internal/providers/exa.go) 的 `Exa.Search`、`Exa.Fetch` |
+| Context7 将 name/query 拼接后请求旧 search path；Docs 只读取 snippets | [`internal/providers/context7.go`](../../internal/providers/context7.go) 的 `Context7.Library`、`Context7.Docs` |
+| Zhipu 固定 `search_std`、`search_intent`、`content_size`，base 来自中国区默认值 | [`internal/providers/zhipu.go`](../../internal/providers/zhipu.go)、[`internal/config/config.go`](../../internal/config/config.go) 的默认常量 |
+| Firecrawl Search/Map/Scrape/Crawl 解析不同 envelope，Crawl 只提交 job | [`internal/providers/web.go`](../../internal/providers/web.go) 的 `Firecrawl` 方法族 |
+| AnySearch/DeepWiki 各自构造 `tools/call` JSON-RPC，没有共享 modern metadata/probe 或 legacy initialize/session | [`internal/providers/anysearch.go`](../../internal/providers/anysearch.go)、[`internal/providers/deepwiki.go`](../../internal/providers/deepwiki.go) |
+| stdio client 固定 2025-03-26、一次 `tools/list`，Tool 不含 schema/cursor | [`internal/mcpstdio/client.go`](../../internal/mcpstdio/client.go) 的 `defaultProtocolVersion`、`ListTools`、`Tool` |
+| DDG/Freecrawl 通过 `settings.tools` 映射并受 `direct_only` 控制 | [`internal/providers/mcp_stdio.go`](../../internal/providers/mcp_stdio.go)、[`internal/config/runtime.go`](../../internal/config/runtime.go) 的 route merge/availability |
 
 这些证据是本方案的当前实现基线；实施时应以具体 diff 和新增 fixture 重新核对，不把本文件中的规划文字当作已完成行为。
 
@@ -413,10 +415,10 @@ Freecrawl 是本方案的合同冻结门，处理顺序必须是：
 
 | 现有文件 | 已知旧陈述 | 与本方案的冲突 | 处理时点 |
 | --- | --- | --- | --- |
-| [`docs/mcp-stdio-bridge-local-providers-plan.md`](mcp-stdio-bridge-local-providers-plan.md) | 仅支持本地 stdio、`initialize`/legacy 生命周期；远程 HTTP/SSE 属于非目标；Freecrawl 固定 prefixed tool，并示例允许 `@latest` | 本方案覆盖 modern Streamable HTTP、`server/discover`/per-request metadata、legacy fallback，并要求 Freecrawl pin + discovery，不使用裸 `latest` | 阶段 0 前标记历史；阶段 2/3 同步 transport、tool、版本边界 |
-| [`docs/cli-provider-setup-technical-design.md`](cli-provider-setup-technical-design.md) | Context7 列为强制 key | 与本方案“请求必须 Bearer、缺 key 先 `config_error`”一致；若未来开放匿名，必须同步 readiness 和该文档，不能只改 provider | 当前保留为 readiness 交叉 authority；匿名决策时同步 |
-| [`docs/cli-command-schema-technical-design.md`](cli-command-schema-technical-design.md)、[`docs/cli-json-output-format-technical-design.md`](cli-json-output-format-technical-design.md) | 旧的动态 schema、raw output 和错误字段边界 | 本方案增加 schema snapshot、MCP metadata、partial/job 状态，并对 raw 值增加有界脱敏约束 | 阶段 4 与 command contract/golden 一起同步 |
-| [`internal/skills/assets/onesearch-anysearch/SKILL.md`](../internal/skills/assets/onesearch-anysearch/SKILL.md) | `anysearch domains` 无参数示例 | 新合同要求 `domain` 或 `--domains` 至少一项，并优先 `get_sub_domains`；无参调用应说明 `parameter_error` | 阶段 4 前同步示例、参数和错误恢复 |
+| [`docs/decisions/mcp-stdio-bridge-local-providers-plan.md`](mcp-stdio-bridge-local-providers-plan.md) | 仅支持本地 stdio、`initialize`/legacy 生命周期；远程 HTTP/SSE 属于非目标；Freecrawl 固定 prefixed tool，并示例允许 `@latest` | 本方案覆盖 modern Streamable HTTP、`server/discover`/per-request metadata、legacy fallback，并要求 Freecrawl pin + discovery，不使用裸 `latest` | 阶段 0 前标记历史；阶段 2/3 同步 transport、tool、版本边界 |
+| [`docs/decisions/cli-provider-setup-technical-design.md`](cli-provider-setup-technical-design.md) | Context7 列为强制 key | 与本方案“请求必须 Bearer、缺 key 先 `config_error`”一致；若未来开放匿名，必须同步 readiness 和该文档，不能只改 provider | 当前保留为 readiness 交叉 authority；匿名决策时同步 |
+| [`docs/decisions/cli-command-schema-technical-design.md`](cli-command-schema-technical-design.md)、[`docs/decisions/cli-json-output-format-technical-design.md`](cli-json-output-format-technical-design.md) | 旧的动态 schema、raw output 和错误字段边界 | 本方案增加 schema snapshot、MCP metadata、partial/job 状态，并对 raw 值增加有界脱敏约束 | 阶段 4 与 command contract/golden 一起同步 |
+| [`internal/skills/assets/onesearch-anysearch/SKILL.md`](../../internal/skills/assets/onesearch-anysearch/SKILL.md) | `anysearch domains` 无参数示例 | 新合同要求 `domain` 或 `--domains` 至少一项，并优先 `get_sub_domains`；无参调用应说明 `parameter_error` | 阶段 4 前同步示例、参数和错误恢复 |
 
 在上述迁移完成前，评审和实现以本文件的目标合同、代码现状证据及上游链接为准；旧文档中的命令示例不代表新的验收标准。
 
@@ -537,7 +539,7 @@ Provider 的上游 schema 不直接复制到静态 manifest；Skill 只说明稳
 | `internal/commandcontract/providers.go`、`internal/cli/command_bindings.go` | 默认值、范围、AnySearch/Freecrawl 参数和 warning | 必改 |
 | `internal/cli/testdata/cli-command-manifest-v2.golden.json` | 由 contract 生成器同步 | 必改 |
 | `README.md`、`README.zh-CN.md`、`npm/onesearch/README.md`、`npm/deqiying-onesearch/README.md`、`internal/skills/assets/` | 上游限制、错误恢复、异步 crawl、协议边界 | 必改 |
-| `docs/mcp-stdio-bridge-local-providers-plan.md`、`docs/cli-command-schema-technical-design.md`、`docs/cli-provider-setup-technical-design.md`、`docs/cli-json-output-format-technical-design.md`、`internal/skills/assets/onesearch-anysearch/SKILL.md` | 标记旧 transport/Freecrawl `@latest`/动态 schema/readiness/raw output/AnySearch 无参示例为历史或同步新合同；保留 Context7 强制 key 交叉说明 | 阶段 0 标记，阶段 4 同步 |
+| `docs/decisions/mcp-stdio-bridge-local-providers-plan.md`、`docs/decisions/cli-command-schema-technical-design.md`、`docs/decisions/cli-provider-setup-technical-design.md`、`docs/decisions/cli-json-output-format-technical-design.md`、`internal/skills/assets/onesearch-anysearch/SKILL.md` | 标记旧 transport/Freecrawl `@latest`/动态 schema/readiness/raw output/AnySearch 无参示例为历史或同步新合同；保留 Context7 强制 key 交叉说明 | 阶段 0 标记，阶段 4 同步 |
 
 不应修改的核心范围：`internal/providers/openai.go`、`internal/providers/openai_alpha_search.go`、OpenAI provider 默认配置和 OpenAI 搜索测试；若共享 helper 必须触及这些调用点，只允许保持行为的兼容性改动并增加回归测试。
 
