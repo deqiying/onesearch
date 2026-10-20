@@ -8,7 +8,7 @@
 
 Windows、macOS、Linux 默认使用 `~/.config/onesearch/config.json`；`ONESEARCH_CONFIG_DIR` 可覆盖目录。首次普通命令会创建缺失的目录和配置并继续执行；`schema`、命令级 `--help`、`skills list/show` 在 runtime 加载前返回，不初始化配置。
 
-初始 schema 只启用 `deepwiki` 和 `anysearch`。`xai`、两个 OpenAI adapter、Exa、Context7、Zhipu、Tavily、Firecrawl、DDG 和 Freecrawl 默认禁用，普通 `search` 需先完成 provider 配置。
+初始 schema 只启用 `deepwiki` 和 `anysearch`。`xai`、两个 OpenAI adapter、Exa、Context7、Zhipu、Tavily、Firecrawl、DeepSeek、DDG 和 Freecrawl 默认禁用，普通 `search` 需先完成 provider 配置。
 
 ## Schema 与路由
 
@@ -67,6 +67,7 @@ $env:OPENAI_COMPATIBLE_API_KEY |
 - 两者不互相降级；Alpha 失败进入普通跨 provider fallback。
 - `openai_responses` 的 base URL 必须是 API 根路径；以 `/alpha/search` 或 `/responses` 结尾的完整 endpoint 会被拒绝。
 - Context7 请求需要 API key。
+- `deepseek_tools` 调用 DeepSeek `POST /v1/tools/search` 与 `/v1/tools/fetch`，凭据环境变量为 `DEEPSEEK_API_KEY`，默认禁用；上游按成功请求计费。base URL 必须是 API 根路径（默认 `https://api.deepseek.com`，也接受 `/v1` 后缀），完整 endpoint（如 `/v1/tools/search`）会被拒绝。有效 fallback 位于 `source_search` 末段，`page_fetch` 位于 AnySearch 之后、Exa 之前。
 - DDG 与 Freecrawl 使用本地 `mcp_stdio` bridge，默认禁用且 direct-only；只有显式启用并加入 routes 才参与 workflow。Freecrawl 应固定部署版本，以运行时 tool discovery 为准。
 
 ## Readiness 排查

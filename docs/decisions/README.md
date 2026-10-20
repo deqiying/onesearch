@@ -17,6 +17,7 @@
 | [MCP stdio bridge 与本地 provider](mcp-stdio-bridge-local-providers-plan.md) | superseded；transport、协商、discovery 与版本冻结由下方协议对齐方案接替，历史理由保留 | [架构概览](../architecture/README.md)、[配置参考](../reference/configuration.md) |
 | [Provider 上游协议对齐](provider-upstream-protocol-alignment-technical-design.md) | 实施中；首轮代码与合同对齐不等于全部验收，真实 provider/MCP live smoke 仍未执行 | [CLI 参考](../reference/cli.md)、[配置参考](../reference/configuration.md) |
 | [MCP Server 模式](mcp-server-mode-technical-design.md) | Implemented (local validation passed; release/host/live pending)；顶层 `onesearch mcp` 与 5 工具已落地，原未来式正文保留为批准设计，不替代上游 client 设计 | [MCP 接入](../guides/mcp.md)、[当前架构](../architecture/README.md)；npm `1.0.6` 不含新功能 |
+| [DeepSeek Search / Fetch provider](deepseek-search-fetch-provider-technical-design.md) | 已实施，本地验证完成，真实 Search / Fetch live 调用已验证（402、429 未触发）；`deepseek` 默认禁用 | [CLI 参考](../reference/cli.md)、[配置参考](../reference/configuration.md) |
 
 ## 维护规则
 

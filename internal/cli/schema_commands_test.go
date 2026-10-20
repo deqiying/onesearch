@@ -29,8 +29,8 @@ func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	if full.ManifestVersion != 2 {
 		t.Fatalf("schema manifest version = %d, want 2", full.ManifestVersion)
 	}
-	if got := len(full.Commands); got != 45 {
-		t.Fatalf("full schema command count = %d, want 45", got)
+	if got := len(full.Commands); got != 47 {
+		t.Fatalf("full schema command count = %d, want 47", got)
 	}
 	var raw map[string]any
 	if err := json.Unmarshal([]byte(fullBytes), &raw); err != nil {
@@ -76,6 +76,33 @@ func TestSchemaFullManifestContainsAllCommandsAndMatchesTarget(t *testing.T) {
 	}
 	if fullEntry.Name == "" || !reflect.DeepEqual(target.Commands[0], fullEntry) {
 		t.Fatalf("target entry differs from full schema entry\ntarget: %#v\nfull: %#v", target.Commands[0], fullEntry)
+	}
+}
+
+func TestDeepSeekSearchCountBoundsAreSchemaAndParserEnforced(t *testing.T) {
+	targetBytes := runSchemaForTest(t, []string{"schema", "deepseek", "search"}, 0)
+	var target map[string]any
+	if err := json.Unmarshal([]byte(targetBytes), &target); err != nil {
+		t.Fatal(err)
+	}
+	command := target["commands"].([]any)[0].(map[string]any)
+	count := command["input_schema"].(map[string]any)["properties"].(map[string]any)["count"].(map[string]any)
+	if count["minimum"] != float64(1) || count["maximum"] != float64(50) || count["default"] != float64(10) {
+		t.Fatalf("deepseek search count schema = %#v", count)
+	}
+
+	for _, value := range []string{"0", "51"} {
+		t.Run("count_"+value, func(t *testing.T) {
+			t.Setenv(config.ConfigDirEnvName, t.TempDir())
+			stdout := runSchemaForTest(t, []string{"deepseek", "search", "q", "--count", value, "--format", "json"}, 2)
+			var result map[string]any
+			if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+				t.Fatalf("output = %q: %v", stdout, err)
+			}
+			if result["ok"] != false || result["error_type"] != "parameter_error" {
+				t.Fatalf("deepseek search --count %s = %#v", value, result)
+			}
+		})
 	}
 }
 

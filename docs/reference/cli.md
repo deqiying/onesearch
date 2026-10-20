@@ -25,9 +25,9 @@ V2 用 `commands[].name` 替换 V1 `id`，用 `commands[].description` 替换 V1
 | 任务 | 命令 | 能力 / provider |
 | --- | --- | --- |
 | 答案搜索 | `search` | `answer_search`：xAI、OpenAI-compatible、OpenAI Responses |
-| 来源发现 | `search --extra-sources`、provider search | `source_search`：Exa、Zhipu、Tavily、Firecrawl；DDG、Freecrawl 默认 direct-only |
+| 来源发现 | `search --extra-sources`、provider search | `source_search`：Exa、Zhipu、Tavily、Firecrawl、DeepSeek；DDG、Freecrawl 默认 direct-only |
 | 文档检索 | `context7 resolve-library-id/query-docs`、`exa web-search` | `docs_search`：Context7、Exa |
-| 网页抓取 | `fetch --provider`、provider fetch/extract/scrape | `page_fetch`：Tavily、Firecrawl、Exa、AnySearch；DDG、Freecrawl 默认 direct-only |
+| 网页抓取 | `fetch --provider`、provider fetch/extract/scrape | `page_fetch`：Tavily、Firecrawl、Exa、AnySearch、DeepSeek；DDG、Freecrawl 默认 direct-only |
 | 站点结构 | `map --provider`、`tavily map`、`firecrawl map` | `site_map`：Tavily、Firecrawl |
 | 站点爬取 | `crawl --provider`、provider crawl | `site_crawl`：Tavily、Firecrawl；Freecrawl 默认 direct-only |
 | 仓库 Wiki | `repo-wiki`、`search --repo-wiki` | `repo_wiki`：DeepWiki |
@@ -98,6 +98,8 @@ onesearch deepwiki read-wiki-structure "microsoft/playwright"
 onesearch deepwiki read-wiki-contents "microsoft/playwright"
 onesearch anysearch search "query"
 onesearch zhipu search "query"
+onesearch deepseek search "query site:example.com lang:zh,en"
+onesearch deepseek fetch "https://example.com"
 onesearch ddg search "query"
 onesearch ddg fetch-content "https://example.com"
 onesearch freecrawl search "query"
@@ -112,6 +114,7 @@ onesearch freecrawl deep-research "topic"
 - Context7 library resolution 使用 `/api/v2/libs/search`，需要 API key。
 - `firecrawl crawl` 返回异步提交状态 `job_id`/`status`，不是已完成页面。
 - AnySearch 域发现必须提供 domain 或 `--domains`。抽取会解包上游 `url`/`title`/`content`（含 REST `data` 包装），`content` 与 `--format content` 是页面 Markdown 而非 JSON 外壳。
+- DeepSeek 默认禁用，Search 与 Fetch 按成功请求计费（每个 API 约 5 QPS）；base URL 为 API 根 `https://api.deepseek.com`，不接受完整 endpoint。`deepseek search` 的 query 为 1–128 字符，透传 `site:`、`-site:`、`lang:`、`after:`、`before:` 等搜索语法；`--count` 默认 10（1–50），`--need-content` 才返回页面正文。`rerank_score` ≥ 1.5、`authority` ≥ 3 仅用于排序候选，不等于证据。`deepseek fetch` 接受不含 userinfo、不超过 8192 字符的 http(s) URL，返回标题与 Markdown 正文。
 - DDG、Freecrawl 的启用与版本限制见[配置参考](configuration.md)。
 
 ## 输出与错误

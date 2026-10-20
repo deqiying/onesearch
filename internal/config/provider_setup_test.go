@@ -26,6 +26,29 @@ func TestResolveProviderSetupAcceptsKebabCaseAndAlias(t *testing.T) {
 	}
 }
 
+func TestResolveProviderSetupDeepSeekRequiresKeyAndSupportsBaseURL(t *testing.T) {
+	cfg := testConfig(t, InitialRuntimeSchema())
+	spec, err := ResolveProviderSetup(cfg, "deepseek")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if spec.Provider.ID != "deepseek" || !spec.RequiresAPIKey || !spec.SupportsBaseURL {
+		t.Fatalf("deepseek spec = %#v", spec)
+	}
+	key := "deepseek-secret"
+	changed, err := cfg.PatchProviderSetup("deepseek", ProviderSetupPatch{APIKey: &key})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(changed, []string{"api_key", "enabled"}) {
+		t.Fatalf("changed = %#v", changed)
+	}
+	provider := cfg.LoadFile()["providers"].(map[string]any)["deepseek"].(map[string]any)
+	if provider["api_key"] != key || provider["enabled"] != "auto" || provider["adapter"] != AdapterDeepSeekTools {
+		t.Fatalf("deepseek provider = %#v", provider)
+	}
+}
+
 func TestPatchProviderSetupPreservesUnrelatedAndUnknownFields(t *testing.T) {
 	raw := InitialRuntimeSchema()
 	raw["custom_top"] = map[string]any{"keep": true}

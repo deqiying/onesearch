@@ -23,7 +23,7 @@ onesearch skills show onesearch --file references/agent-execution-contract.md --
 onesearch skills show exa --format content
 ```
 
-内置 `onesearch` 是薄 router。Workflow Skill 覆盖 `search`、`docs`、`fetch`、Deep Research；provider Skill 覆盖 Exa、Tavily、Firecrawl、Context7、DeepWiki、AnySearch、Zhipu、DDG、Freecrawl。
+内置 `onesearch` 是薄 router。Workflow Skill 覆盖 `search`、`docs`、`fetch`、Deep Research；provider Skill 覆盖 Exa、Tavily、Firecrawl、Context7、DeepWiki、AnySearch、Zhipu、DeepSeek（`onesearch-deepseek`）、DDG、Freecrawl。
 
 `skills show` 默认读 `SKILL.md`；`--file <relative-path>` 读取目标 Skill 内的一个内置文件。除显式 `--output` 外，发现过程只读、离线，不初始化 provider 配置。返回的 Markdown 是工作流指导，不是新注册的 host Skill。
 

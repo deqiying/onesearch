@@ -26,7 +26,7 @@ Ordinary commands initialize missing runtime configuration. A fresh `ready: fals
 | --- | --- | --- |
 | `answer_search` | Required by `standard` | Configure `xai`, `openai-compatible`, or `openai-responses` |
 | `docs_search` | Required by `standard` | Configure Exa or Context7 |
-| `page_fetch` | Required by `standard` | Configure Exa, Tavily, or Firecrawl; AnySearch is initially enabled |
+| `page_fetch` | Required by `standard` | Configure Exa, Tavily, Firecrawl, or DeepSeek; AnySearch is initially enabled |
 | `repo_wiki` | Independent capability | DeepWiki is enabled; public repositories may work anonymously |
 | `vertical_search` | Optional experimental capability | AnySearch is enabled |
 

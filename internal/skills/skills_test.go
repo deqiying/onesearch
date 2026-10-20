@@ -27,14 +27,15 @@ var canonicalSchemaPaths = map[string][][]string{
 	"deepwiki":      {{"deepwiki", "ask-question"}, {"deepwiki", "read-wiki-structure"}, {"deepwiki", "read-wiki-contents"}},
 	"anysearch":     {{"anysearch", "domains"}, {"anysearch", "search"}, {"anysearch", "extract"}, {"anysearch", "batch"}},
 	"zhipu":         {{"zhipu", "search"}},
+	"deepseek":      {{"deepseek", "search"}, {"deepseek", "fetch"}},
 	"ddg":           {{"ddg", "search"}, {"ddg", "fetch-content"}},
 	"freecrawl":     {{"freecrawl", "search"}, {"freecrawl", "scrape"}, {"freecrawl", "crawl"}, {"freecrawl", "deep-research"}},
 }
 
 func TestDefinitionsMatchBundledAssetFolders(t *testing.T) {
 	defs := Definitions()
-	if len(defs) != 14 {
-		t.Fatalf("Definitions() returned %d definitions, want 14", len(defs))
+	if len(defs) != 15 {
+		t.Fatalf("Definitions() returned %d definitions, want 15", len(defs))
 	}
 
 	entries, err := fs.ReadDir(assets, "assets")
@@ -48,8 +49,8 @@ func TestDefinitionsMatchBundledAssetFolders(t *testing.T) {
 		}
 		assetFolders[entry.Name()] = true
 	}
-	if len(assetFolders) != 14 {
-		t.Fatalf("embedded assets contain %d skill folders, want 14", len(assetFolders))
+	if len(assetFolders) != 15 {
+		t.Fatalf("embedded assets contain %d skill folders, want 15", len(assetFolders))
 	}
 
 	definitionIDs := make(map[string]bool, len(defs))

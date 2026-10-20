@@ -85,6 +85,10 @@ func TestProviderCommandsExposeOnlyHumanReadableSubcommands(t *testing.T) {
 		"zhipu": {
 			"search": "zhipu_search",
 		},
+		"deepseek": {
+			"search": "deepseek_search",
+			"fetch":  "deepseek_fetch",
+		},
 		"ddg": {
 			"search":        "search",
 			"fetch-content": "fetch_content",
@@ -303,7 +307,7 @@ func TestSkillsListCommandIncludesProviderSkills(t *testing.T) {
 		item := raw.(map[string]any)
 		found[item["id"].(string)] = true
 	}
-	for _, id := range []string{"onesearch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"} {
+	for _, id := range []string{"onesearch", "exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "deepseek", "ddg", "freecrawl"} {
 		if !found[id] {
 			t.Fatalf("skills list missing %s: %#v", id, got["skills"])
 		}
@@ -496,6 +500,15 @@ func TestStatusCommandReportsDirectEndpointAvailability(t *testing.T) {
 	}
 	if !containsTestString(testStrings(zhipu["commands"]), "onesearch zhipu search") {
 		t.Fatalf("zhipu commands = %#v", zhipu["commands"])
+	}
+	deepseek := direct["deepseek"].(map[string]any)
+	if deepseek["available"] != false {
+		t.Fatalf("deepseek direct endpoint should be unavailable by default: %#v", deepseek)
+	}
+	for _, command := range []string{"onesearch deepseek search", "onesearch deepseek fetch"} {
+		if !containsTestString(testStrings(deepseek["commands"]), command) {
+			t.Fatalf("deepseek commands = %#v, missing %s", deepseek["commands"], command)
+		}
 	}
 	ddg := direct["ddg"].(map[string]any)
 	if ddg["available"] != false || ddg["reason"] != "disabled" {

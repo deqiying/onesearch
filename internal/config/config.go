@@ -27,6 +27,8 @@ const (
 	DefaultFirecrawlAPIURL   = "https://api.firecrawl.dev/v2"
 	DefaultAnySearchAPIURL   = "https://api.anysearch.com/mcp"
 	DefaultDeepWikiAPIURL    = "https://mcp.deepwiki.com/mcp"
+	// DefaultDeepSeekAPIURL 是 DeepSeek API 根路径；Search/Fetch 由 adapter 拼接 /v1/tools/<op>。
+	DefaultDeepSeekAPIURL = "https://api.deepseek.com"
 )
 
 type Config struct {

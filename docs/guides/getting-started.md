@@ -26,7 +26,7 @@ onesearch status --format json --pretty
 | --- | --- | --- |
 | `answer_search` | `standard` 必需 | 配置 `xai`、`openai-compatible` 或 `openai-responses` |
 | `docs_search` | `standard` 必需 | 配置 Exa 或 Context7 |
-| `page_fetch` | `standard` 必需 | 配置 Exa、Tavily 或 Firecrawl；AnySearch 初始已启用 |
+| `page_fetch` | `standard` 必需 | 配置 Exa、Tavily、Firecrawl 或 DeepSeek；AnySearch 初始已启用 |
 | `repo_wiki` | 独立能力 | DeepWiki 默认启用，公开仓库通常可匿名使用 |
 | `vertical_search` | 可选实验能力 | AnySearch 默认启用 |
 

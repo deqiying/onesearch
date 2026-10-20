@@ -20,6 +20,7 @@ Use this router to choose the smallest Onesearch workflow or provider skill that
 | Complex multi-step research planning | `onesearch-deep-research` | Skills named by the returned plan |
 | Explicit vertical or experimental search | `onesearch-anysearch` | — |
 | Explicit Chinese current search | `onesearch-zhipu` | — |
+| Explicit DeepSeek search with query operators, or DeepSeek page fetch | `onesearch-deepseek` | — |
 | Explicit local DuckDuckGo or browser-backed MCP task | `onesearch-ddg` or `onesearch-freecrawl` | — |
 
 `skills list`, `skills show`, and targeted `schema` are static discovery commands: they do not initialize config or access the network.

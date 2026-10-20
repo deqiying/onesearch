@@ -11,9 +11,41 @@ import (
 func TestDefaultRuntimeRoutesMatchConfigNewOrder(t *testing.T) {
 	runtime := LoadRuntime(testConfig(t, nil))
 
-	want := []string{"exa", "zhipu", "tavily", "firecrawl"}
+	want := []string{"exa", "zhipu", "tavily", "firecrawl", "deepseek"}
 	if got := runtime.Routes["source_search"]; !reflect.DeepEqual(got, want) {
 		t.Fatalf("source_search route = %#v, want %#v", got, want)
+	}
+}
+
+func TestDeepSeekProviderDefaultsAndAutoAppendedRoutes(t *testing.T) {
+	clearProviderEnv(t)
+	t.Setenv("DEEPSEEK_API_KEY", "deepseek-secret")
+	for name, raw := range map[string]map[string]any{"builtin": nil, "initial_schema": InitialRuntimeSchema()} {
+		t.Run(name, func(t *testing.T) {
+			cfg := testConfig(t, raw)
+			runtime := LoadRuntime(cfg)
+			provider := runtime.Providers["deepseek"]
+			if provider.Adapter != AdapterDeepSeekTools || provider.BaseURL != DefaultDeepSeekAPIURL || provider.APIKeyEnv != "DEEPSEEK_API_KEY" || len(provider.Aliases) != 0 {
+				t.Fatalf("deepseek provider = %#v", provider)
+			}
+			if !reflect.DeepEqual(provider.Capabilities, []string{"source_search", "page_fetch"}) {
+				t.Fatalf("deepseek capabilities = %#v", provider.Capabilities)
+			}
+			if got := runtime.Routes["source_search"]; !reflect.DeepEqual(got, []string{"exa", "zhipu", "tavily", "firecrawl", "deepseek"}) {
+				t.Fatalf("source_search route = %#v", got)
+			}
+			if got := runtime.Routes["page_fetch"]; !reflect.DeepEqual(got, []string{"tavily", "firecrawl", "anysearch", "deepseek", "exa"}) {
+				t.Fatalf("page_fetch route = %#v", got)
+			}
+			// 即使 DEEPSEEK_API_KEY 已存在，默认 enabled=false 也不得进入可用 provider。
+			for _, capability := range []string{"source_search", "page_fetch"} {
+				for _, item := range runtime.ResolveProviders(cfg, capability, "deepseek", true) {
+					if item.Available || item.UnavailableReason != "disabled" {
+						t.Fatalf("%s deepseek = %#v, want disabled", capability, item)
+					}
+				}
+			}
+		})
 	}
 }
 
@@ -562,6 +594,7 @@ func clearProviderEnv(t *testing.T) {
 		"FIRECRAWL_API_KEY",
 		"ANYSEARCH_API_KEY",
 		"DEEPWIKI_API_KEY",
+		"DEEPSEEK_API_KEY",
 	} {
 		t.Setenv(key, "")
 	}

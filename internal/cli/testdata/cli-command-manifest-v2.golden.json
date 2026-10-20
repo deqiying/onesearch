@@ -2373,6 +2373,308 @@
       }
     },
     {
+      "name": "deepseek.fetch",
+      "description": "Fetch one URL as Markdown with DeepSeek.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "url": {
+            "description": "Target URL.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
+      "path": [
+        "deepseek",
+        "fetch"
+      ],
+      "category": "provider",
+      "provider": "deepseek",
+      "capabilities": [
+        "page_fetch"
+      ],
+      "aliases": [],
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/deepseek/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
+      "name": "deepseek.search",
+      "description": "Search the web with DeepSeek.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "default": 10,
+            "description": "Number of results.",
+            "maximum": 50,
+            "minimum": 1,
+            "type": "integer",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--count"
+            }
+          },
+          "format": {
+            "default": "json",
+            "description": "Output format.",
+            "enum": [
+              "json",
+              "markdown",
+              "content"
+            ],
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--format"
+            }
+          },
+          "localization": {
+            "default": "",
+            "description": "IP address used to prefer localized results.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--localization"
+            }
+          },
+          "need_content": {
+            "default": false,
+            "description": "Include page body text in results.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--need-content"
+            }
+          },
+          "ori_question": {
+            "default": "",
+            "description": "Original user question used to interpret search intent.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--ori-question"
+            }
+          },
+          "output": {
+            "default": "",
+            "description": "Also write the rendered output to this path.",
+            "type": "string",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--output"
+            }
+          },
+          "pretty": {
+            "default": false,
+            "description": "Indent JSON output; ignored for non-JSON formats.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--pretty"
+            }
+          },
+          "query": {
+            "description": "Search query (1-128 characters); search operators are passed through.",
+            "minLength": 1,
+            "type": "string",
+            "x-cli-binding": {
+              "index": 0,
+              "kind": "positional",
+              "variadic": false
+            }
+          },
+          "quiet": {
+            "default": false,
+            "description": "Return the compact result variant.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--quiet"
+            }
+          },
+          "verbose": {
+            "default": false,
+            "description": "Include verbose diagnostics.",
+            "type": "boolean",
+            "x-cli-binding": {
+              "kind": "flag",
+              "repeatable": false,
+              "token": "--verbose"
+            }
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "type": "object"
+      },
+      "path": [
+        "deepseek",
+        "search"
+      ],
+      "category": "provider",
+      "provider": "deepseek",
+      "capabilities": [
+        "source_search"
+      ],
+      "aliases": [],
+      "constraints": [
+        {
+          "kind": "mutually_exclusive",
+          "members": [
+            "quiet",
+            "verbose"
+          ]
+        }
+      ],
+      "availability": {
+        "dynamic": true,
+        "check_command": [
+          "status"
+        ],
+        "json_pointer": "/direct_endpoints/deepseek/available",
+        "preflight_level": "local_configuration",
+        "does_not_prove": [
+          "credential_validity",
+          "network_reachability",
+          "remote_tool_presence"
+        ]
+      },
+      "side_effects": [
+        "config_initialize_when_missing",
+        "filesystem_write_when_output_is_set",
+        "network"
+      ],
+      "output": {
+        "default_format": "json",
+        "formats": [
+          "content",
+          "json",
+          "markdown"
+        ],
+        "variants": [
+          "quiet",
+          "verbose"
+        ],
+        "contract": "provider_result",
+        "provider_payload": "opaque"
+      }
+    },
+    {
       "name": "deepwiki.ask-question",
       "description": "Ask a question about a repository wiki.",
       "input_schema": {

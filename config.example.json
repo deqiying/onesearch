@@ -229,6 +229,20 @@
         "timeout_seconds": 30
       }
     },
+    "deepseek": {
+      "enabled": false,
+      "adapter": "deepseek_tools",
+      "capabilities": [
+        "source_search",
+        "page_fetch"
+      ],
+      "base_url": "https://api.deepseek.com",
+      "api_key": "",
+      "api_key_env": "DEEPSEEK_API_KEY",
+      "settings": {
+        "timeout_seconds": 30
+      }
+    },
     "ddg": {
       "enabled": false,
       "adapter": "mcp_stdio",

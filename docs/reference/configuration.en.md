@@ -8,7 +8,7 @@ This page describes runtime configuration, not the CLI command manifest returned
 
 Windows, macOS, and Linux default to `~/.config/onesearch/config.json`. Override the directory with `ONESEARCH_CONFIG_DIR`. Ordinary commands create missing configuration and continue; `schema`, command-level `--help`, and `skills list/show` return before runtime loading without initializing configuration.
 
-Only `deepwiki` and `anysearch` are initially enabled. xAI, both OpenAI adapters, Exa, Context7, Zhipu, Tavily, Firecrawl, DDG, and Freecrawl start disabled. Configure providers before normal `search` use.
+Only `deepwiki` and `anysearch` are initially enabled. xAI, both OpenAI adapters, Exa, Context7, Zhipu, Tavily, Firecrawl, DeepSeek, DDG, and Freecrawl start disabled. Configure providers before normal `search` use.
 
 ## Schema and routing
 
@@ -67,6 +67,7 @@ $env:OPENAI_COMPATIBLE_API_KEY |
 - The adapters do not downgrade into each other; Alpha failures enter normal cross-provider fallback.
 - `openai_responses` requires an API root base URL. Full endpoints ending in `/alpha/search` or `/responses` are rejected.
 - Context7 requests require an API key.
+- `deepseek_tools` calls DeepSeek `POST /v1/tools/search` and `/v1/tools/fetch`, reads the key from `DEEPSEEK_API_KEY`, and is disabled by default; the upstream bills per successful request. The base URL must be the API root (default `https://api.deepseek.com`; a `/v1` suffix is also accepted), and full endpoints such as `/v1/tools/search` are rejected. Its effective fallback position is last for `source_search` and after AnySearch but before Exa for `page_fetch`.
 - DDG and Freecrawl use the local `mcp_stdio` bridge and are disabled/direct-only by default. Enable and explicitly route them to use them in workflows. Pin Freecrawl deployments and rely on runtime tool discovery.
 
 ## Diagnose readiness

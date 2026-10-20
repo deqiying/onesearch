@@ -10,6 +10,7 @@ import (
 const (
 	AdapterAnySearchMCP         = "anysearch_mcp"
 	AdapterContext7             = "context7"
+	AdapterDeepSeekTools        = "deepseek_tools"
 	AdapterExa                  = "exa"
 	AdapterFirecrawl            = "firecrawl"
 	AdapterMCPStdio             = "mcp_stdio"
@@ -23,6 +24,7 @@ const (
 var supportedAdapters = map[string]struct{}{
 	AdapterAnySearchMCP:         {},
 	AdapterContext7:             {},
+	AdapterDeepSeekTools:        {},
 	AdapterExa:                  {},
 	AdapterFirecrawl:            {},
 	AdapterMCPStdio:             {},
@@ -533,6 +535,17 @@ func defaultProviders() map[string]ProviderDefinition {
 			Capabilities: []string{"source_search", "page_fetch", "site_map", "site_crawl"},
 			BaseURL:      DefaultFirecrawlAPIURL,
 			APIKeyEnv:    "FIRECRAWL_API_KEY",
+			Enabled:      false,
+			Settings:     map[string]any{"timeout_seconds": 30},
+		},
+		// deepseek 按成功请求计费，且 DEEPSEEK_API_KEY 常被 chat 工具预先设置，因此默认禁用；
+		// 不写入 defaultRuntimeRoutes，由 routesWithProviderCapabilities 自动追加到 route 末段。
+		"deepseek": {
+			ID:           "deepseek",
+			Adapter:      AdapterDeepSeekTools,
+			Capabilities: []string{"source_search", "page_fetch"},
+			BaseURL:      DefaultDeepSeekAPIURL,
+			APIKeyEnv:    "DEEPSEEK_API_KEY",
 			Enabled:      false,
 			Settings:     map[string]any{"timeout_seconds": 30},
 		},

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Onesearch DeepSeek Search and Fetch"
+  short_description: "Search with operators and fetch single pages via DeepSeek"
+  default_prompt: "Use $onesearch-deepseek to search with operators like site: or lang:, or to fetch a single page as Markdown through DeepSeek."

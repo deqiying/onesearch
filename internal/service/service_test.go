@@ -1966,6 +1966,7 @@ func clearProviderEnv(t *testing.T) {
 		"TAVILY_API_KEY",
 		"FIRECRAWL_API_KEY",
 		"ANYSEARCH_API_KEY",
+		"DEEPSEEK_API_KEY",
 	} {
 		t.Setenv(key, "")
 	}

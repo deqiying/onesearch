@@ -991,6 +991,11 @@ func (s *Service) runWebFetchFallback(ctx context.Context, targetURL, filter, fa
 			} else {
 				err = fmt.Errorf("%s", data["error"])
 			}
+		} else if provider.ID == "deepseek" {
+			// 直接返回带类型的错误，attempt 保留 empty_result / rate_limited 等真实 error_type。
+			var page providers.DeepSeekPage
+			page, err = deepSeekClient(provider).Fetch(ctx, targetURL)
+			content = page.Content
 		} else {
 			err = fmt.Errorf("unsupported page_fetch provider: %s", provider.ID)
 		}
@@ -1103,6 +1108,11 @@ func (s *Service) searchWithSourceProvider(ctx context.Context, provider config.
 			return providers.NormalizeSourceResults(asMapSlice(data["results"]), "freecrawl"), nil
 		}
 		return nil, fmt.Errorf("%s", data["error"])
+	case "deepseek":
+		// workflow query 可能是长自然语言问题：按上游 128 rune 上限截断，count 收敛到 1-50；
+		// 不发送 need_content、ori_question、localization，正文证据由 page_fetch 负责。
+		results, err := deepSeekClient(provider).Search(ctx, truncateRunes(strings.TrimSpace(query), providers.DeepSeekMaxQueryRunes), providers.DeepSeekSearchOptions{Count: clampInt(count, providers.DeepSeekMinCount, providers.DeepSeekMaxCount)})
+		return providers.NormalizeSourceResults(results, "deepseek"), err
 	default:
 		return nil, fmt.Errorf("unsupported source_search provider: %s", provider.ID)
 	}
@@ -1726,6 +1736,29 @@ func durationSeconds(value float64) time.Duration {
 		value = 30
 	}
 	return time.Duration(value * float64(time.Second))
+}
+
+func deepSeekClient(provider config.ResolvedProvider) providers.DeepSeek {
+	return providers.DeepSeek{APIURL: provider.BaseURL, APIKey: provider.APIKey, Timeout: durationSeconds(provider.SettingFloat("timeout_seconds", 30))}
+}
+
+// truncateRunes 按 Unicode 字符截断并去除截断后的首尾空白，用于有字符上限的上游 query。
+func truncateRunes(text string, limit int) string {
+	runes := []rune(text)
+	if limit <= 0 || len(runes) <= limit {
+		return text
+	}
+	return strings.TrimSpace(string(runes[:limit]))
+}
+
+func clampInt(value, minimum, maximum int) int {
+	if value < minimum {
+		return minimum
+	}
+	if value > maximum {
+		return maximum
+	}
+	return value
 }
 
 func extraResultsToSources(results []map[string]any, provider string) []map[string]any {

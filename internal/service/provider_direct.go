@@ -112,6 +112,23 @@ func (s *Service) FirecrawlCrawl(ctx context.Context, targetURL string, options 
 	return data
 }
 
+// DeepSeekSearch 与其他 HTTP provider-direct 方法一致，只检查 key；enabled 只控制 workflow 路由。
+func (s *Service) DeepSeekSearch(ctx context.Context, query string, options providers.DeepSeekSearchOptions) map[string]any {
+	provider, ok := s.providerByID("deepseek")
+	if !ok || provider.APIKey == "" {
+		return s.providerToolConfigError("deepseek", "deepseek_search")
+	}
+	return deepSeekClient(provider).SearchResult(ctx, query, options)
+}
+
+func (s *Service) DeepSeekFetch(ctx context.Context, targetURL string) map[string]any {
+	provider, ok := s.providerByID("deepseek")
+	if !ok || provider.APIKey == "" {
+		return s.providerToolConfigError("deepseek", "deepseek_fetch")
+	}
+	return deepSeekClient(provider).FetchResult(ctx, targetURL)
+}
+
 func (s *Service) DDGSearch(ctx context.Context, query string, options providers.DDGSearchOptions) map[string]any {
 	mcp, errData, ok := s.mcpStdioProvider("ddg", "search")
 	if !ok {

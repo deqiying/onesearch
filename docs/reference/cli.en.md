@@ -25,9 +25,9 @@ V2 replaces V1 `commands[].id` with `name` and `commands[].summary` with `descri
 | Task | Commands | Capability / providers |
 | --- | --- | --- |
 | Answer search | `search` | `answer_search`: xAI, OpenAI-compatible, OpenAI Responses |
-| Source discovery | `search --extra-sources`, provider search | `source_search`: Exa, Zhipu, Tavily, Firecrawl; DDG/Freecrawl are direct-only by default |
+| Source discovery | `search --extra-sources`, provider search | `source_search`: Exa, Zhipu, Tavily, Firecrawl, DeepSeek; DDG/Freecrawl are direct-only by default |
 | Documentation | `context7 resolve-library-id/query-docs`, `exa web-search` | `docs_search`: Context7, Exa |
-| Page fetch | `fetch --provider`, provider fetch/extract/scrape | `page_fetch`: Tavily, Firecrawl, Exa, AnySearch; DDG/Freecrawl are direct-only by default |
+| Page fetch | `fetch --provider`, provider fetch/extract/scrape | `page_fetch`: Tavily, Firecrawl, Exa, AnySearch, DeepSeek; DDG/Freecrawl are direct-only by default |
 | Site map | `map --provider`, `tavily map`, `firecrawl map` | `site_map`: Tavily, Firecrawl |
 | Site crawl | `crawl --provider`, provider crawl | `site_crawl`: Tavily, Firecrawl; Freecrawl is direct-only by default |
 | Repository wiki | `repo-wiki`, `search --repo-wiki` | `repo_wiki`: DeepWiki |
@@ -98,6 +98,8 @@ onesearch deepwiki read-wiki-structure "microsoft/playwright"
 onesearch deepwiki read-wiki-contents "microsoft/playwright"
 onesearch anysearch search "query"
 onesearch zhipu search "query"
+onesearch deepseek search "query site:example.com lang:zh,en"
+onesearch deepseek fetch "https://example.com"
 onesearch ddg search "query"
 onesearch ddg fetch-content "https://example.com"
 onesearch freecrawl search "query"
@@ -112,6 +114,7 @@ Check `direct_endpoints.<provider>.available == true` first. Protocol boundaries
 - Context7 library resolution uses `/api/v2/libs/search` and requires an API key.
 - `firecrawl crawl` returns async submission `job_id`/`status`, not completed page content.
 - AnySearch domain discovery requires a domain or `--domains`. Extraction unwraps `url`/`title`/`content`, including REST `data` envelopes; `content` and `--format content` return page Markdown rather than the JSON shell.
+- DeepSeek is disabled by default. Search and Fetch are billed per successful request (about 5 QPS per API), and the base URL is the API root `https://api.deepseek.com`; full endpoints are rejected. `deepseek search` takes a 1-128 character query and passes through operators such as `site:`, `-site:`, `lang:`, `after:`, and `before:`; `--count` defaults to 10 (1-50) and page bodies are returned only with `--need-content`. `rerank_score` >= 1.5 and `authority` >= 3 only rank candidates and are not evidence. `deepseek fetch` accepts an http(s) URL without userinfo and at most 8192 characters, and returns the title and Markdown content.
 - See [configuration](configuration.en.md) for DDG/Freecrawl enablement and version constraints.
 
 ## Output and errors

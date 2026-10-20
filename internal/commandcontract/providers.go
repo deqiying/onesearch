@@ -98,6 +98,15 @@ func providerDefinitions() []CommandDefinition {
 			optionDefault("content_size", "content-size", TypeString, "medium", "Returned content size."),
 		}),
 
+		// DeepSeek 请求字段与上游 /v1/tools/search、/v1/tools/fetch 一一对应；query 的 1-128 字符约束由 provider 校验。
+		providerCommand("deepseek.search", "deepseek", []string{"deepseek", "search"}, "Search the web with DeepSeek.", []string{"source_search"}, []PositionalDefinition{positional("query", "Search query (1-128 characters); search operators are passed through.", true)}, []OptionDefinition{
+			boundedIntegerOption("count", "count", 10, 1, 50, "Number of results."),
+			optionDefault("need_content", "need-content", TypeBoolean, false, "Include page body text in results."),
+			optionDefault("ori_question", "ori-question", TypeString, "", "Original user question used to interpret search intent."),
+			optionDefault("localization", "localization", TypeString, "", "IP address used to prefer localized results."),
+		}),
+		providerCommand("deepseek.fetch", "deepseek", []string{"deepseek", "fetch"}, "Fetch one URL as Markdown with DeepSeek.", []string{"page_fetch"}, []PositionalDefinition{positional("url", "Target URL.", true)}, nil),
+
 		providerCommand("ddg.search", "ddg", []string{"ddg", "search"}, "Search the web with DuckDuckGo.", []string{"source_search"}, []PositionalDefinition{positional("query", "Search query.", true)}, []OptionDefinition{
 			optionDefault("max_results", "max-results", TypeInteger, 10, "Number of results."),
 			optionDefault("region", "region", TypeString, "", "DuckDuckGo region."),
@@ -188,8 +197,16 @@ func tavilyMapDefinition(crawl bool) CommandDefinition {
 	return providerCommand("tavily."+name, "tavily", []string{"tavily", name}, "Run Tavily "+name+" on a website.", []string{capability}, []PositionalDefinition{positional("url", "Website URL.", true)}, options)
 }
 
+// boundedIntegerOption 声明带默认值与闭区间约束的整数选项；CLI parser 与 input_schema 都会执行该约束。
+func boundedIntegerOption(name, flag string, defaultValue int, minimum, maximum float64, description string) OptionDefinition {
+	option := optionDefault(name, flag, TypeInteger, defaultValue, description)
+	option.Minimum = &minimum
+	option.Maximum = &maximum
+	return option
+}
+
 func providerNamespaces() []NamespaceDefinition {
-	providers := []string{"exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "ddg", "freecrawl"}
+	providers := []string{"exa", "tavily", "firecrawl", "context7", "deepwiki", "anysearch", "zhipu", "deepseek", "ddg", "freecrawl"}
 	out := make([]NamespaceDefinition, 0, len(providers))
 	for _, provider := range providers {
 		out = append(out, NamespaceDefinition{Path: []string{provider}, Category: CategoryProvider, Visibility: VisibilityPublic, Description: "Direct " + provider + " provider commands."})

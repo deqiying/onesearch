@@ -10,11 +10,14 @@ func TestDefaultRegistryIndexesCanonicalAliasesAndCapabilities(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got := len(registry.Commands()); got != 45 {
-		t.Fatalf("public command count = %d, want 45 (44 existing routes plus mcp)", got)
+	if got := len(registry.Commands()); got != 47 {
+		t.Fatalf("public command count = %d, want 47 (44 existing routes plus mcp and deepseek search/fetch)", got)
 	}
-	if got := len(registry.Namespaces()); got != 12 {
-		t.Fatalf("namespace count = %d, want 12", got)
+	if got := len(registry.Namespaces()); got != 13 {
+		t.Fatalf("namespace count = %d, want 13", got)
+	}
+	if got := len(registry.CommandsForProvider("deepseek")); got != 2 {
+		t.Fatalf("deepseek command count = %d, want 2", got)
 	}
 	if command, ok := registry.LookupID("exa.similar"); !ok || pathKey(command.Path) != "exa\x00similar" {
 		t.Fatalf("LookupID(exa.similar) = %#v, %v", command, ok)

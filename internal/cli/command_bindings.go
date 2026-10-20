@@ -48,6 +48,8 @@ var commandBindings = map[string]commandBinding{
 	"anysearch.extract":            {ID: "anysearch.extract", HandlerKey: "extract"},
 	"anysearch.batch":              {ID: "anysearch.batch", HandlerKey: "batch"},
 	"zhipu.search":                 {ID: "zhipu.search", HandlerKey: "zhipu_search"},
+	"deepseek.search":              {ID: "deepseek.search", HandlerKey: "deepseek_search"},
+	"deepseek.fetch":               {ID: "deepseek.fetch", HandlerKey: "deepseek_fetch"},
 	"ddg.search":                   {ID: "ddg.search", HandlerKey: "search"},
 	"ddg.fetch-content":            {ID: "ddg.fetch-content", HandlerKey: "fetch_content"},
 	"freecrawl.search":             {ID: "freecrawl.search", HandlerKey: "search"},
@@ -198,6 +200,10 @@ func runParsedProvider(ctx context.Context, svc *service.Service, parsed *parsed
 		}
 	case "zhipu.search":
 		data = svc.ZhipuSearch(ctx, parsed.String("query"), providers.ZhipuOptions{Count: parsed.Int("count"), SearchEngine: parsed.String("search_engine"), SearchRecencyFilter: parsed.String("search_recency_filter"), SearchDomainFilter: parsed.String("search_domain_filter"), ContentSize: parsed.String("content_size")})
+	case "deepseek.search":
+		data = svc.DeepSeekSearch(ctx, parsed.String("query"), providers.DeepSeekSearchOptions{Count: parsed.Int("count"), NeedContent: parsed.Bool("need_content"), OriQuestion: parsed.String("ori_question"), Localization: parsed.String("localization")})
+	case "deepseek.fetch":
+		data = svc.DeepSeekFetch(ctx, parsed.String("url"))
 	case "ddg.search":
 		data = svc.DDGSearch(ctx, parsed.String("query"), providers.DDGSearchOptions{MaxResults: parsed.Int("max_results"), Region: parsed.String("region")})
 	case "ddg.fetch-content":

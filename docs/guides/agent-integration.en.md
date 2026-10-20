@@ -23,7 +23,7 @@ onesearch skills show onesearch --file references/agent-execution-contract.md --
 onesearch skills show exa --format content
 ```
 
-The bundled `onesearch` Skill is a thin router. Workflow Skills cover `search`, `docs`, `fetch`, and deep research. Provider Skills cover Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, Zhipu, DDG, and Freecrawl.
+The bundled `onesearch` Skill is a thin router. Workflow Skills cover `search`, `docs`, `fetch`, and deep research. Provider Skills cover Exa, Tavily, Firecrawl, Context7, DeepWiki, AnySearch, Zhipu, DeepSeek (`onesearch-deepseek`), DDG, and Freecrawl.
 
 `skills show` reads `SKILL.md` by default; `--file <relative-path>` reads one bundled file within the selected Skill. Discovery is read-only and offline without provider configuration initialization, except for explicit `--output`. Returned Markdown is guidance, not a newly registered host Skill.
 
