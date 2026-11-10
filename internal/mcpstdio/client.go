@@ -62,6 +62,7 @@ func (e *Error) Error() string {
 
 type Client struct {
 	cmd             *exec.Cmd
+	tree            *processTree
 	stdin           io.WriteCloser
 	events          chan rpcEvent
 	nextID          int
@@ -141,6 +142,8 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 	}
 	cmd := exec.CommandContext(ctx, command, cfg.Args...)
 	cmd.Env = mergedEnv(cfg.Env)
+	// 超时取消与强制关闭均作用于整棵进程树，避免 uvx -> uv -> python 等后代成为孤儿进程。
+	tree := newProcessTree(cmd)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, err
@@ -156,8 +159,10 @@ func Start(ctx context.Context, cfg Config) (*Client, error) {
 	if err := cmd.Start(); err != nil {
 		return nil, normalizeStartError(command, err)
 	}
+	tree.attach()
 	client := &Client{
 		cmd:     cmd,
+		tree:    tree,
 		stdin:   stdin,
 		events:  make(chan rpcEvent, 16),
 		stderr:  newLimitedBuffer(16 * 1024),
@@ -272,9 +277,10 @@ func (c *Client) Close() {
 	select {
 	case <-done:
 	case <-time.After(2 * time.Second):
-		_ = c.cmd.Process.Kill()
+		_ = c.tree.kill()
 		<-done
 	}
+	c.tree.release()
 }
 
 func (c *Client) request(ctx context.Context, method string, params any) (json.RawMessage, error) {
@@ -343,7 +349,7 @@ func (c *Client) dispatchLoop() {
 		if event.err != nil {
 			c.pendingMu.Lock()
 			for _, channel := range c.pending {
-				channel <- event
+				deliver(channel, event)
 			}
 			c.pendingMu.Unlock()
 			continue
@@ -353,13 +359,22 @@ func (c *Client) dispatchLoop() {
 		channel := c.pending[key]
 		c.pendingMu.Unlock()
 		if channel != nil {
-			channel <- event
+			deliver(channel, event)
 		}
 	}
 	c.pendingMu.Lock()
 	defer c.pendingMu.Unlock()
 	for _, channel := range c.pending {
-		channel <- rpcEvent{err: &Error{Type: "protocol_error", Message: c.closedMessage()}}
+		deliver(channel, rpcEvent{err: &Error{Type: "protocol_error", Message: c.closedMessage()}})
+	}
+}
+
+// deliver 不得阻塞：dispatchLoop 持有 pendingMu 时发送，而超时返回的请求在 defer 中也要获取该锁，
+// 阻塞发送到已满的缓冲会使两者互相等待。缓冲已满表示请求方尚有未读事件，丢弃后到的事件即可。
+func deliver(channel chan rpcEvent, event rpcEvent) {
+	select {
+	case channel <- event:
+	default:
 	}
 }
 
