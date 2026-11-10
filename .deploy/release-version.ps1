@@ -1,3 +1,18 @@
+<#
+.SYNOPSIS
+Prepare a local release commit and tag. Nothing is pushed.
+
+.PARAMETER Version
+Explicit release version such as 1.0.9; a leading "v" is accepted.
+When omitted, the patch number of .deploy/version is incremented if its tag
+already exists. A version already written to .deploy/version but not yet
+tagged is released as-is, so the manual edit-then-run flow keeps working.
+#>
+param(
+    [Parameter(Position = 0)]
+    [string]$Version
+)
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
@@ -9,12 +24,27 @@ if (-not (Test-Path -LiteralPath $versionFile)) {
     throw "Missing .deploy/version"
 }
 
-$Version = (Get-Content -LiteralPath $versionFile -Raw).Trim()
-if ($Version -notmatch $versionPattern) {
+$currentVersion = (Get-Content -LiteralPath $versionFile -Raw).Trim()
+if ($currentVersion -notmatch $versionPattern) {
     throw ".deploy/version must contain a semver value like 0.1.1"
 }
 
-$tagName = "v$Version"
+if (-not [string]::IsNullOrWhiteSpace($Version)) {
+    $Version = $Version.Trim() -replace '^v', ''
+    if ($Version -notmatch $versionPattern) {
+        throw "Version argument must be a semver value like 0.1.1: $Version"
+    }
+}
+
+function Test-TagExists {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Name
+    )
+
+    & git rev-parse -q --verify "refs/tags/$Name" *> $null
+    return $LASTEXITCODE -eq 0
+}
 
 function Invoke-Checked {
     param(
@@ -140,9 +170,28 @@ try {
         throw "Working tree has unrelated changes. Commit or stash them before preparing a release.$([Environment]::NewLine)$details"
     }
 
-    & git rev-parse -q --verify "refs/tags/$tagName" *> $null
-    if ($LASTEXITCODE -eq 0) {
+    if ([string]::IsNullOrWhiteSpace($Version)) {
+        if (Test-TagExists -Name "v$currentVersion") {
+            # Pre-release/build suffixes have no unambiguous "next patch"; require an explicit version.
+            if ($currentVersion -notmatch '^(\d+)\.(\d+)\.(\d+)$') {
+                throw "Cannot auto-increment $currentVersion; pass the next version explicitly."
+            }
+            $Version = "$($Matches[1]).$($Matches[2]).$([long]$Matches[3] + 1)"
+        }
+        else {
+            $Version = $currentVersion
+        }
+    }
+
+    $tagName = "v$Version"
+    if (Test-TagExists -Name $tagName) {
         throw "Tag $tagName already exists."
+    }
+
+    Write-Host "Preparing release $Version (.deploy/version was $currentVersion)."
+    # Written only after every check passes, so a failed run leaves the tree untouched.
+    if ($Version -ne $currentVersion) {
+        Write-Utf8NoBom -Path $versionFile -Content ($Version + "`n")
     }
 
     $updates = @{}

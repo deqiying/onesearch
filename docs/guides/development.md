@@ -91,6 +91,8 @@ node scripts/test-mcp.mjs --binary "$scratch/onesearch" --scratch "$scratch"
 
 [Release workflow](../../.github/workflows/npm-publish.yml)由 `v*.*.*` tag 或手动触发，校验 [.deploy/version](../../.deploy/version) 与 npm package 版本，运行测试、构建压缩包和 checksums，再发布 GitHub Release 与 npm 包。构建通过 `BuildVersion` 注入版本，逻辑见 [app.go](../../internal/app/app.go)。
 
+本地准备发布使用 [release-version.ps1](../../.deploy/release-version.ps1)：`./.deploy/release-version.ps1 1.0.9` 显式指定版本（可带 `v` 前缀）；不传参数时，若 `.deploy/version` 对应的 tag 已存在则 patch 位加一，尚未打 tag 的版本按原值发布，预发布版本必须显式指定。脚本同步 npm package 版本、创建发布提交和本地 tag，不推送。
+
 - Release archive matrix 覆盖 Windows、Linux、macOS 的 amd64/arm64；npm 平台包为 Windows x64、Linux x64、macOS arm64。
 - Release 压缩包附带英文根 README 和 LICENSE，不包含整棵文档与源码；README 提供仓库入口。
 - npm 包的 README 必须脱离仓库可读，不能改成指向包外文件的相对链接。host Skill 模板需与[仓库模板](../assets/onesearch-host-skill.md)同步。
