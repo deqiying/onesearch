@@ -1,4 +1,6 @@
 .idea/
+.openidea/
+
 .ace-tool/
 .codesearch.db/
 .cache/
